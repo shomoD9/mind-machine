@@ -1,0 +1,47 @@
+# MVP scope
+
+This is a living scope index for [Scattered ambitious pitch](map.md). The MVP is still being defined.
+
+## Inclusion rule
+
+The human wants an ambitious MVP limited to product decisions that are fully concrete and settled. Engineering capacity does not constrain ambition in this planning effort. Explicit agreement settles the behavior discussed; it does not settle every detail of a larger feature.
+
+Decision detail stays in the linked tickets. This index distinguishes settled commitments from the choices needed to turn them into a complete first release.
+
+## Settled commitments
+
+| Commitment | Decision source |
+| --- | --- |
+| One product joins capture and retrieval; the maker does not classify thoughts while capturing. | [One product or a series](issues/05-one-product-or-a-series.md) |
+| Preserve separate thoughts and the maker's wording, allowing very minor corrections for legibility. | [What capture must preserve — accepted answers](issues/10-what-capture-must-preserve.md#comments) |
+| Keep inferred connections revisable and retain a source or draft reference when available. | [What capture must preserve — accepted answers](issues/10-what-capture-must-preserve.md#comments) |
+| Allow an adjacent writing space for a new thought while another stays unfinished. | [What capture must preserve — accepted answers](issues/10-what-capture-must-preserve.md#comments) |
+| Related notes during capture are optional and easy to ignore. | [What capture must preserve — accepted answers](issues/10-what-capture-must-preserve.md#comments) |
+| A simple capture overlay blurs and darkens the background; a shortcut opens and dismisses it. | [What capture must preserve — accepted answers](issues/10-what-capture-must-preserve.md#comments) |
+| Wikilinks are a first-class interaction: a simple hotkey creates a new dialog linked from a selected word or phrase in the current dialog. | [What capture must preserve — accepted answers](issues/10-what-capture-must-preserve.md#comments) |
+| A wikilink creates an independent note that can be retrieved and acted on by itself, and keeps the selected phrase as its source reference. | [What capture must preserve — accepted answers](issues/10-what-capture-must-preserve.md#comments) |
+| A multi-thought block gets a split hint. The hint is optional and ignorable, and accepting or adjusting it is Explode. | [What capture must preserve — accepted answers](issues/10-what-capture-must-preserve.md#comments) |
+| A point-of-decision card shows a backend chunk of a multi-thought block. The split hint shows the maker the proposed boundary so they can see and fix it. | [What capture must preserve — accepted answers](issues/10-what-capture-must-preserve.md#comments) |
+| Capture is typing only. The product has no speech-to-text. The maker can still dictate into it using their own tool, such as Wispr. | [What capture must preserve — accepted answers](issues/10-what-capture-must-preserve.md#comments) |
+| Bring a dumped note into an app the maker already has open; one click takes it to the chosen destination. There is no separate home they must remember to open. | [Form of the creation session](issues/11-form-of-the-creation-session.md) |
+| Rare label corrections do not gate the point of decision. | [Form of the creation session](issues/11-form-of-the-creation-session.md) |
+| In any Mac text box, a related note appears beside the cursor. It is quiet while typing, appears on a pause or a hotkey, and shows one card at most. Clicking inserts the note's text at the cursor; a secondary control opens it as a dialog. | Grilling 2026-10-02, recorded in [Vision capture](../../docs/VISION-CAPTURE-2026-10-01.md) |
+| Notes tagged private are never prompted and never leave the device. | Grilling 2026-10-02 |
+| The product never displays audience reaction. It reads whether a piece shipped. | Grilling 2026-10-02 |
+| A daily canvas (earlier days, notes in the background, a central agent-written note) is a browsing view and is never required. Its central note is a mirror of the day. | Grilling 2026-10-02 |
+| The MVP runs on the Mac only. | Grilling 2026-10-02 |
+| First surfaces: prompts in the X timeline, and Substack as the publishing target. GitHub and code come after. | Grilling 2026-10-02 |
+
+## Product vision beyond the MVP
+
+- **Native speech capture**: the product turns speech into text itself. Later, and only if the point of decision follows the maker's cursor.
+- **Explode as a standalone hotkey**: divides a large captured text block into atomic notes by meaning on demand. Explode is in the MVP only as accepting or adjusting the split hint. See [What capture must preserve](issues/10-what-capture-must-preserve.md#comments).
+
+## Boundaries still being settled
+
+- Capture: exact key combinations and visual styling belong to the rough interface.
+- Retrieval: the apps, cues, destinations, and amount of draft content remain open. See [Last pass on passive cues](issues/13-last-pass-on-passive-cues.md) and [Day in the life and rough interface](issues/07-day-and-rough-interface.md).
+- The map still carries questions about cross-surface capture, first use, empty days, and return after abandonment. Determine which are required for a complete MVP as these choices become concrete.
+- Pricing is set in [Which price band](issues/12-which-price-band.md): utility band, free bring-your-own-key tier, paid sync and managed AI, notes on the device by default. The exact price is open. Sync and managed AI are business-tier commitments, not yet a specified MVP feature.
+
+[Lock the pitch](issues/08-lock-the-pitch.md) will confirm the vision and complete MVP scope with the human. Until then, this index records commitments without claiming the release is fully specified.

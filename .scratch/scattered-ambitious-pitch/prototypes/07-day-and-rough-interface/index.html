@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE 07 - Day in the life and rough interface</title>
+<!--
+  FILE HEADER
+  What this file is: a single-file, throwaway UI prototype (PROTOTYPE, wipe me) for ticket
+  .scratch/scattered-ambitious-pitch/issues/07-day-and-rough-interface.md. It answers one question:
+  "what does a day look like for the maker, and what is the rough interface we react to?"
+  It shows the two settled moments of the product: Capture (blurred overlay, adjacent dialogs,
+  wikilink, split hint, optional related notes) and the point of decision (a dumped note appears
+  inside the app the maker already has open, one click uses it).
+  Three structurally different versions of the point-of-decision surface are switchable with
+  ?variant=A|B|C or the floating bottom bar. ?moment=0..3 picks the moment of the day.
+  Where it is referred to: ticket 07 (comments), docs/DESIGN.md (Prototype section), and the journal
+  docs/_J-Agent-productivity-for-neurodivergents.md.
+  How to run: double-click this file. Nothing is installed, stored, or sent anywhere.
+  Everything is in memory; reload wipes it. Matching is crude word overlap standing in for the
+  backend's chunking and retrieval.
+-->
+<style>
+  /* Design tokens: one accent colour, restrained neutrals. Prototype chrome is deliberately plain. */
+  :root{
+    --bg:#f2f1ec; --ink:#1c1b19; --mute:#6c6a64; --line:#d9d6cc; --card:#ffffff;
+    --accent:#4f46e5; --accent-soft:#e8e7fd; --hl:#fde68a; --ok:#15803d;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;padding-bottom:84px}
+  h1{font-size:18px;margin:0 0 4px}
+  h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 8px}
+  button{font:inherit;cursor:pointer}
+  mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
+
+  /* Page frame: intro across the top, stage (the "desktop") left, product-state panel right. */
+  .top{max-width:1240px;margin:0 auto;padding:16px 16px 0}
+  .banner{display:inline-block;background:#1c1b19;color:#fff;font:600 11px var(--mono);padding:3px 8px;border-radius:4px;margin-bottom:8px}
+  .intro{color:var(--mute);max-width:900px;margin:0 0 10px}
+  .assume{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px}
+  .assume summary{cursor:pointer;font-weight:600}
+  .assume ol{margin:6px 0 0 18px;padding:0}
+  .layout{max-width:1240px;margin:0 auto;padding:0 16px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px}
+  @media (max-width:980px){.layout{grid-template-columns:1fr}}
+
+  /* Day strip: the four moments of the maker's day. */
+  .day{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .mo{flex:1 1 170px;text-align:left;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .mo b{display:block;font-family:var(--mono);font-size:12px;color:var(--mute)}
+  .mo.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  .blurb{margin:0 0 8px;color:var(--mute)}
+  .tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .btn{background:#fff;border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+  .btn.p{background:var(--accent);border-color:var(--accent);color:#fff}
+  kbd{font:11px var(--mono);background:#eee;border:1px solid #ccc;border-radius:3px;padding:0 4px}
+
+  /* Stage: a fake desktop. The host app window lives here; the capture overlay covers it. */
+  .stage{position:relative;height:560px;border-radius:12px;background:linear-gradient(135deg,#c9d3e6,#e6d9e6);padding:24px;overflow:hidden}
+  .stage.blurred .win{filter:blur(4px)}
+  .win{background:#fff;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.18);height:100%;display:flex;flex-direction:column;overflow:hidden;transition:filter .15s}
+  .titlebar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:var(--mute)}
+  .dot{width:10px;height:10px;border-radius:50%;background:#ddd}
+  .wrow{flex:1;display:grid;grid-template-columns:1fr;min-height:0}
+  .wrow.has-margin{grid-template-columns:1fr 250px}
+  .hostbody{padding:16px 20px;overflow:auto;min-width:0}
+  .field{min-height:70px;outline:none;font-size:16px;line-height:1.5;white-space:pre-wrap}
+  .field:empty:before{content:attr(data-ph);color:#aaa}
+  .under{margin-top:8px}
+  /* Host-specific looks so the cue is seen inside four different apps. */
+  .x-row{display:flex;gap:10px}.avatar{width:38px;height:38px;border-radius:50%;background:#222;flex:none}
+  .x-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;border-top:1px solid #eee;padding-top:8px;color:var(--mute);font-size:12px}
+  .x-post{background:#111;color:#fff;border-radius:16px;padding:4px 14px;opacity:.4}
+  .doc h3{font:600 26px Georgia,serif;margin:0 0 10px}.doc .para{font:16px/1.6 Georgia,serif;color:#444;margin-bottom:10px}
+  .doc .field{font-family:Georgia,serif}
+  .msg{max-width:70%;padding:6px 10px;border-radius:10px;margin-bottom:6px;background:#eef0f4}.msg.me{margin-left:auto;background:var(--accent-soft)}
+  .chatbox{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:10px}.chatbox .field{min-height:44px;font-size:14px}
+  .script{font-family:var(--mono);font-size:13px}.script .ln{color:#555;margin-bottom:6px}.script .field{font:13px/1.6 var(--mono)}
+
+  /* Variant A: one card that follows the text cursor. */
+  .float{position:fixed;z-index:20;width:330px}
+  /* Cards are shared by A and B. */
+  .card{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:8px 10px;box-shadow:0 4px 14px rgba(0,0,0,.12);cursor:pointer;margin-bottom:8px;font-size:13px;color:var(--ink)}
+  .card:hover{border-color:var(--accent)}
+  .cs{display:flex;justify-content:space-between;gap:8px;margin-top:4px;color:var(--mute);font-size:11px}
+  .use{color:var(--accent);font-weight:600;white-space:nowrap}
+  .more{background:none;border:none;color:var(--accent);font-size:12px;padding:0 2px}
+  /* Variant B: marginalia column at the edge of the host window. */
+  .margin{background:#faf9f5;border-left:1px solid #eee;padding:12px 10px;overflow:auto}
+  .margin .empty{color:#aaa;font-size:12px}
+  .margin .card{box-shadow:none}
+  /* Variant C: suggestion strip directly under the text box. */
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{background:var(--accent-soft);border:1px solid #cfcdf7;color:#2b2780;border-radius:999px;padding:3px 10px;font-size:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .peek{font-size:12px;color:var(--mute);margin-top:4px;min-height:16px}
+
+  /* Capture overlay: blur and darken the background; dialogs sit side by side. */
+  .ov{position:absolute;inset:0;background:rgba(12,12,20,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:30;display:flex;flex-direction:column;padding:18px;color:#fff}
+  .ov[hidden]{display:none}
+  .ovhead{font-size:12px;opacity:.85;margin-bottom:10px}
+  .ovhead kbd{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.45);color:#fff}
+  .dialogs{display:flex;gap:12px;overflow-x:auto;flex:1;min-height:0;align-items:flex-start}
+  .dlg{flex:0 0 300px;background:#fff;color:var(--ink);border-radius:10px;padding:10px;display:flex;flex-direction:column;max-height:100%}
+  .dh{display:flex;justify-content:space-between;gap:6px;font-size:12px}.src{color:var(--mute);font-size:11px;text-align:right}
+  .lf{background:var(--accent-soft);color:#2b2780;border-radius:4px;font-size:11px;padding:2px 6px;margin-top:4px}
+  .dlg textarea{width:100%;min-height:150px;border:none;outline:none;resize:vertical;font:15px/1.5 inherit;margin-top:6px;background:transparent}
+  .lk button{background:var(--accent-soft);border:none;border-radius:4px;color:#2b2780;font-size:11px;margin:2px 4px 0 0;padding:2px 6px}
+  .adddlg{flex:0 0 auto;align-self:flex-start;background:rgba(255,255,255,.15);border:1px dashed rgba(255,255,255,.5);color:#fff;border-radius:10px;padding:10px 14px}
+  .splithint{background:#fff;color:var(--ink);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:13px}
+  .splithint[hidden]{display:none}
+  .ch{padding:3px 6px;background:#f3f2ee;border-radius:4px}
+  .div{display:block;margin:2px auto;font-size:11px;background:none;border:1px dashed #bbb;border-radius:10px;color:var(--mute);padding:0 8px}
+  .div.joined{border-style:solid;color:var(--ok)}
+  .related{margin-top:10px;font-size:12px;opacity:.85;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .related span.r{background:rgba(255,255,255,.14);border-radius:999px;padding:2px 10px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .related button{background:none;border:none;color:#fff;opacity:.7}
+
+  /* Right panel: what the product knows, made visible (prototype rule: surface the state). */
+  .panel{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px}
+  .stat{display:flex;gap:16px;font-family:var(--mono);font-size:12px;margin-bottom:6px}
+  .dump{max-height:230px;overflow:auto;margin:0;padding:0;list-style:none}
+  .dump li{padding:5px 0;border-bottom:1px solid #f0eee8}
+  .tag{font:600 10px var(--mono);border-radius:3px;padding:0 4px;margin-right:4px}
+  .tag.new{background:#dcfce7;color:var(--ok)}.tag.act{background:var(--accent-soft);color:#2b2780}
+  .log{font:12px var(--mono);color:#444;max-height:170px;overflow:auto;margin:0;padding:0;list-style:none}
+  .log li{padding:2px 0;border-bottom:1px solid #f4f2ec}
+  .react{color:var(--ink)}
+
+  /* Floating variant switcher, visibly not part of the design being judged. */
+  .switch{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#111;color:#fff;border-radius:999px;padding:6px 8px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.35);z-index:50}
+  .switch button{background:#333;color:#fff;border:none;border-radius:50%;width:30px;height:30px}
+  .switch span{min-width:150px;text-align:center;font-weight:600}
+  .toast{position:fixed;left:50%;bottom:66px;transform:translateX(-50%);background:#111;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <span class="banner">PROTOTYPE - THROWAWAY - WIPE ME</span>
+  <h1>Day in the life and rough interface</h1>
+  <p class="intro">Question: what does a day look like for the maker, and what is the rough interface to react to?
+    Pick a moment of the day, then type in the fake app (or press "Type it for me"). Notes the maker dumped earlier come back
+    inside the app they already have open. Flip the three versions with the bottom bar (or the <kbd>←</kbd> <kbd>→</kbd> keys).</p>
+  <details class="assume" open>
+    <summary>Things I assumed that you have not settled - react to these</summary>
+    <ol>
+      <li>The one click puts the note's text into the box you are typing in. Whether it should instead take you to another place is open in ticket 13.</li>
+      <li>A note appears after 4 typed words when it shares 2 or more words with them. Real retrieval is not defined yet.</li>
+      <li>The key combinations are placeholders: <kbd>Ctrl+;</kbd> capture, <kbd>Ctrl+Enter</kbd> new dialog beside, <kbd>Ctrl+]</kbd> link the selected phrase.</li>
+      <li>The split hint cuts at line breaks, or at sentences if there are none. You can join two thoughts by clicking the divider.</li>
+      <li>Related notes in capture are plain and not clickable: optional and easy to ignore.</li>
+    </ol>
+  </details>
+</div>
+
+<div class="layout">
+  <main>
+    <div class="day" id="day"></div>
+    <p class="blurb" id="blurb"></p>
+    <div class="tools" id="tools"></div>
+    <div class="stage" id="stage">
+      <div class="win" id="win">
+        <div class="titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span id="wtitle" style="margin-left:8px"></span></div>
+        <div class="wrow" id="wrow">
+          <div class="hostbody" id="hostbody"></div>
+          <aside class="margin" id="slotMargin" hidden></aside>
+        </div>
+      </div>
+      <!-- Capture overlay: hidden until Ctrl+; -->
+      <div class="ov" id="ov" hidden>
+        <div class="ovhead">Capture. Nothing to organise. <kbd>Esc</kbd> or <kbd>Ctrl+;</kbd> closes and keeps everything · <kbd>Ctrl+Enter</kbd> new dialog beside · select text, <kbd>Ctrl+]</kbd> link it</div>
+        <div class="dialogs" id="dialogs"></div>
+        <div class="splithint" id="splithint" hidden></div>
+        <div class="related" id="related"></div>
+      </div>
+    </div>
+  </main>
+
+  <aside>
+    <div class="panel"><h2>The dump (what the product holds)</h2>
+      <div class="stat"><span id="statN"></span><span id="statA"></span></div>
+      <ul class="dump" id="dump"></ul></div>
+    <div class="panel"><h2>What just happened</h2><ul class="log" id="log"></ul></div>
+    <div class="panel react"><h2>Judge this version</h2><div id="react"></div></div>
+  </aside>
+</div>
+
+<!-- Variant A card floats here, positioned at the text cursor. -->
+<div class="float" id="floatCue" hidden></div>
+
+<div class="switch" id="switch">
+  <button id="prev" aria-label="Previous version">←</button><span id="vlabel"></span><button id="next" aria-label="Next version">→</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================================================
+   PURE-ISH LOGIC: tokenising and matching. No DOM in this section, so it could lift into the
+   real product once the question is answered. Everything below it is throwaway page wiring.
+   ========================================================================================== */
+
+// Words too common to signal a shared idea; dropped before comparing.
+const STOP = new Set("a an the and or but if then so of to in on at for with from is are was were be been it its this that these those i you he she we they my your our their me him her us them not no do does did have has had just about into than as by can will would could should there here what when where why how who which more most very really also too dont cant wont thats because they them still even much many some any all each other only own same such then now out over up down off".split(" "));
+
+// Crude stemmer so "consistent" and "consistency", "quits" and "quit" count as the same idea.
+const stem = w => w.replace(/(ency|ent|ing|ed|es|s)$/, "");
+
+// Turns free text into a list of stems. Apostrophes vanish, punctuation splits, short/common words drop.
+function tokens(text){
+  return text.toLowerCase().replace(/'/g, "").replace(/[^a-z\s]/g, " ").split(/\s+/)
+    .filter(w => w.length > 2 && !STOP.has(w)).map(stem);
+}
+
+// Finds dumped notes that share ideas with what the maker just typed.
+// Returns up to 3 {note, shared[]} entries; skips notes already used in this box.
+function matchNotes(notes, text, skipIds){
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 4) return [];                       // too little typed to say anything useful
+  const typed = new Set(tokens(words.slice(-60).join(" ")));   // only the most recent words count
+  return notes.filter(n => !skipIds.has(n.id))
+    .map(n => ({ note:n, shared:[...new Set(tokens(n.text))].filter(t => typed.has(t)) }))
+    .filter(m => m.shared.length >= 2)
+    .sort((a, b) => b.shared.length - a.shared.length)
+    .slice(0, 3);
+}
+
+// Proposed thought boundaries for a big block: by line, or by sentence when it is one paragraph.
+function baseChunks(text){
+  let c = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  if (c.length < 2) c = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+  return c;
+}
+
+/* ============================================================================================
+   STATE AND SEED DATA
+   ========================================================================================== */
+
+// Notes the maker dumped on earlier days. src is the source reference capture keeps.
+const SEED = [
+  [1,"Most people don't quit because it's hard. They quit because nobody told them the middle is boring.","Notes, Tue 09:02"],
+  [2,"Newsletter idea: the 3am idea graveyard. What happens to ideas that never got a home.","Capture, Mon 23:40"],
+  [3,"Opening for the video: start on the mistake, not the intro. Cold open with me deleting a draft.","Capture, Sun 18:15"],
+  [4,"Ask Priya about the sponsor slot before locking the thumbnail.","Chat draft, Wed 10:05"],
+  [5,"Consistency is not the point. Return is the point. How fast do you come back after a week away?","Capture, Sat 08:30"],
+  [6,"Script beat: she finds the old notebook, half the pages are plans she never started.","Script editor, Thu 21:10"],
+  [7,"Thread idea: 5 tools I stopped using and what they had in common. Upkeep.","Capture, Fri 13:22"],
+  [8,"Pricing the course: charge for the finish line, not the hours.","Capture, Tue 16:48"],
+  [9,"Quote from that podcast: a plan you can't see is a plan you don't have.","Browser, Mon 07:55"],
+  [10,"Newsletter subject line: You already know what to do.","Capture, Wed 22:01"],
+].map(([id, text, src]) => ({ id, text, src }));
+
+// The day: each moment is a different app the maker already has open.
+const MOMENTS = [
+  { time:"08:50", host:"X", title:"Posting on X", app:"X - Compose post",
+    blurb:"Morning. The maker is writing a post. Nobody opened a notes app.",
+    sample:"Hot take: most creators don't quit because it's hard. They quit the boring middle." },
+  { time:"11:30", host:"Docs", title:"A burst mid-draft", app:"Newsletter draft #14 - Docs",
+    blurb:"A thought arrives while drafting the newsletter. Open capture, dump several thoughts without sorting them.",
+    sample:"I keep coming back to the graveyard of half-built ideas for the newsletter" },
+  { time:"14:15", host:"Chat", title:"Chatting with Priya", app:"Priya - Messages",
+    blurb:"Afternoon, in a chat with a collaborator. The maker forgot they had a question to ask.",
+    sample:"Hey Priya, can the sponsor slot wait until we lock the thumbnail?" },
+  { time:"17:40", host:"Script", title:"Writing the script", app:"Untitled short - Script editor",
+    blurb:"Evening, writing a script. The chat box, the post and the script are the same job: type, and your notes come back.",
+    sample:"INT. STUDY - NIGHT. She opens the old notebook and reads the pages of plans" },
+];
+
+const VARIANTS = {
+  A:{ name:"Cursor card",  react:"Does the card feel like it travels with you, or does it sit on top of the line you are writing? One note at a time: is that enough?" },
+  B:{ name:"Margin",       react:"Notes sit at the edge of the app all the time, like marginalia. Is that calm, or is it a home you have to remember to look at?" },
+  C:{ name:"Strip",        react:"A single row of suggestions under the box, like autocomplete. Is it easy enough to ignore, and is a clipped line enough to decide from?" },
+};
+
+const S = {
+  variant:"A", moment:0, notes:[...SEED], nextId:11,
+  matches:[], used:new Set(), cueHidden:false, aIndex:0, lastKey:"",
+  overlayOpen:false, dialogs:[], nextDialog:1, focusDialog:null, relatedHidden:false,
+  acts:0, log:[],
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const M = () => MOMENTS[S.moment];
+const field = () => $("#field");
+
+// Adds a line to the "what just happened" list so every action is visible.
+function log(msg){ S.log.unshift(`${M().time}  ${msg}`); S.log.length = Math.min(S.log.length, 30); renderPanel(); }
+
+// Small message near the bottom of the screen.
+let toastT;
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 1800); }
+
+// Highlights the words a note shares with what was typed, so it is clear why it appeared.
+function hl(text, shared){
+  const set = new Set(shared);
+  return text.split(/(\s+)/).map(w => { const t = tokens(w)[0]; return t && set.has(t) ? `<mark>${esc(w)}</mark>` : esc(w); }).join("");
+}
+
+/* ============================================================================================
+   THE HOST APP: the app the maker already has open (a different one at each moment of the day)
+   ========================================================================================== */
+
+// Builds the fake app for the current moment. Every app has the same #field (where the maker types)
+// and a #slotUnder slot that variant C fills.
+function buildHost(){
+  const m = M(), ph = "Start typing...";
+  const f = `<div class="field" id="field" contenteditable="true" data-ph="${ph}" spellcheck="false"></div><div class="under" id="slotUnder"></div>`;
+  let html = "";
+  if (m.host === "X") html = `<div class="x-row"><div class="avatar"></div><div style="flex:1">${f}<div class="x-foot"><span id="count">0 / 280</span><span class="x-post">Post</span></div></div></div>`;
+  if (m.host === "Docs") html = `<div class="doc"><h3>Newsletter draft #14</h3><div class="para">The first draft reads fine, but the middle sags. I want the ending to land on a single sentence the reader keeps.</div>${f}</div>`;
+  if (m.host === "Chat") html = `<div class="msg">Are we locking the thumbnail today?</div><div class="msg me">Almost, one sec.</div><div class="chatbox">${f}</div>`;
+  if (m.host === "Script") html = `<div class="script"><div class="ln">FADE IN:</div><div class="ln">INT. STUDY - NIGHT</div><div class="ln">A desk lamp. Rain on the window.</div>${f}</div>`;
+  $("#hostbody").innerHTML = html;
+  $("#wtitle").textContent = m.app;
+  field().addEventListener("input", onFieldInput);
+  field().addEventListener("focus", () => { S.cueHidden = false; renderCue(); });
+}
+
+// Runs on every keystroke in the host app: recompute which dumped notes are relevant, then draw the cue.
+function onFieldInput(){
+  S.cueHidden = false;
+  S.matches = matchNotes(S.notes, field().textContent, S.used);
+  S.aIndex = 0;
+  const c = $("#count"); if (c) c.textContent = field().textContent.length + " / 280";
+  // Log only when the set of surfaced notes changes, so the list stays readable.
+  const key = S.matches.map(m => m.note.id).join(",");
+  if (key !== S.lastKey){
+    S.lastKey = key;
+    if (S.matches.length) log(`Surfaced ${S.matches.length} note(s): ${S.matches.map(m => `#${m.note.id} (shares ${m.shared.join(", ")})`).join("; ")}`);
+  }
+  renderCue();
+}
+
+function placeCaretEnd(el){
+  el.focus();
+  const r = document.createRange(); r.selectNodeContents(el); r.collapse(false);
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+
+// The point of decision: one click puts the note into the box the maker is typing in.
+function useNote(id){
+  const n = S.notes.find(x => x.id === id); if (!n) return;
+  const f = field(); const cur = f.textContent;
+  f.textContent = cur + (cur && !/\s$/.test(cur) ? " " : "") + n.text;
+  placeCaretEnd(f);
+  S.used.add(id); n.acted = true; S.acts++;
+  log(`POINT OF DECISION: note #${id} used in ${M().app}`);
+  S.matches = S.matches.filter(m => m.note.id !== id);   // it is now in the text; do not offer it again
+  onFieldInput();
+}
+
+// Types the moment's sample text a character at a time, so a non-typist can see the cue arrive.
+let typer;
+function typeForMe(){
+  clearTimeout(typer);
+  if (S.overlayOpen) closeOverlay();
+  const f = field(); f.textContent = ""; S.used = new Set(); S.matches = []; S.lastKey = "";
+  placeCaretEnd(f);
+  const s = M().sample; let i = 0;
+  (function step(){ if (i >= s.length) return; f.textContent += s[i++]; placeCaretEnd(f); onFieldInput(); typer = setTimeout(step, 28); })();
+}
+
+/* ============================================================================================
+   THE THREE VERSIONS OF THE POINT-OF-DECISION SURFACE
+   ========================================================================================== */
+
+// Shared card markup for A and B: highlighted note text, its source, and the one-click action.
+function cardHTML(m){
+  return `<div class="card" data-use="${m.note.id}"><div>${hl(m.note.text, m.shared)}</div><div class="cs"><span>from ${esc(m.note.src)}</span><span class="use">Use here</span></div></div>`;
+}
+
+// Where the text cursor is on screen, so variant A can sit next to it.
+function caretRect(){
+  const f = field(), s = getSelection();
+  if (s.rangeCount && f.contains(s.anchorNode)){
+    const r = s.getRangeAt(0).cloneRange(); r.collapse(true);
+    const rects = r.getClientRects();
+    if (rects.length && rects[0].height) return rects[0];
+  }
+  return f.getBoundingClientRect();
+}
+
+// Clears every cue slot and draws the current version for the current matches.
+function renderCue(){
+  const fl = $("#floatCue"), mg = $("#slotMargin"), un = $("#slotUnder");
+  fl.hidden = true; fl.innerHTML = ""; mg.innerHTML = ""; if (un) un.innerHTML = "";
+  mg.hidden = S.variant !== "B";
+  $("#wrow").classList.toggle("has-margin", S.variant === "B");
+  const show = !S.overlayOpen && !S.cueHidden && S.matches.length;
+
+  if (S.variant === "B") {
+    // B: notes live in a column at the window edge; the column is present even when empty.
+    mg.innerHTML = `<h2>Your notes</h2>` + (show ? S.matches.map(cardHTML).join("") : `<div class="empty">Notes that fit what you are typing appear here.</div>`);
+  }
+  if (!show) return;
+
+  if (S.variant === "A") {
+    // A: one card next to the text cursor; "+N more" cycles through the rest.
+    const m = S.matches[Math.min(S.aIndex, S.matches.length - 1)];
+    fl.innerHTML = cardHTML(m) + (S.matches.length > 1 ? `<button class="more" data-more>+${S.matches.length - 1} more, show next</button>` : "");
+    fl.hidden = false;
+    const r = caretRect();
+    fl.style.left = Math.max(8, Math.min(r.left, innerWidth - 350)) + "px";
+    fl.style.top = Math.min(r.bottom + 8, innerHeight - 140) + "px";
+  }
+  if (S.variant === "C") {
+    // C: a row of clipped suggestions under the box; hover to read one in full; Alt+1..3 uses one.
+    un.innerHTML = `<div class="chips">${S.matches.map((m, i) => `<button class="chip" data-use="${m.note.id}" data-peek="${i}">${i + 1}. ${esc(m.note.text.slice(0, 46))}...</button>`).join("")}</div><div class="peek" id="peek">Alt+1 to Alt+${S.matches.length} uses a suggestion. Hover to read it.</div>`;
+  }
+}
+
+function setVariant(v){
+  S.variant = v;
+  const u = new URL(location.href); u.searchParams.set("variant", v); history.replaceState(null, "", u);
+  $("#vlabel").textContent = `${v} · ${VARIANTS[v].name}`;
+  $("#react").textContent = VARIANTS[v].react;
+  renderCue();
+}
+const order = ["A", "B", "C"];
+const cycle = d => setVariant(order[(order.indexOf(S.variant) + d + order.length) % order.length]);
+
+/* ============================================================================================
+   CAPTURE OVERLAY: adjacent dialogs, wikilink, split hint, optional related notes
+   ========================================================================================== */
+
+// A dialog is a writing space. from is the source reference capture keeps.
+function newDialog(extra = {}){
+  return { id:S.nextDialog++, text:"", from:`typed over ${M().app}, ${M().time}`, links:[], linkedFrom:null, merge:[], chunkCount:0, hintOff:false, ...extra };
+}
+
+function openOverlay(){
+  if (S.overlayOpen) return;
+  S.overlayOpen = true; S.dialogs = [newDialog()]; S.relatedHidden = false;
+  $("#ov").hidden = false; $("#stage").classList.add("blurred");
+  renderDialogs(); focusDialog(S.dialogs[0].id); renderCue();
+  log("Capture opened over " + M().app);
+}
+
+// Closing keeps everything typed. Nothing is filed or labelled: each non-empty dialog becomes a note.
+function closeOverlay(){
+  if (!S.overlayOpen) return;
+  const kept = S.dialogs.filter(d => d.text.trim());
+  kept.slice().reverse().forEach(d => {
+    const parentIdx = d.linkedFrom ? S.dialogs.findIndex(x => x.id === d.linkedFrom.fromId) : -1;
+    const src = d.linkedFrom ? `linked from “${d.linkedFrom.phrase}”, ${M().time}` : d.from;
+    S.notes.unshift({ id:S.nextId++, text:d.text.trim(), src, fresh:true });
+  });
+  S.overlayOpen = false; $("#ov").hidden = true; $("#stage").classList.remove("blurred");
+  log(kept.length ? `Capture closed: ${kept.length} note(s) added to the dump, none labelled` : "Capture closed: nothing typed");
+  renderPanel(); renderCue();
+  if (field()) placeCaretEnd(field());
+}
+
+function focusDialog(id){
+  S.focusDialog = id;
+  const t = document.querySelector(`[data-t="${id}"]`); if (t) t.focus();
+  updateHint(); updateRelated();
+}
+
+// Draws all dialogs. Only called when the set of dialogs changes, so typing does not lose focus.
+function renderDialogs(){
+  $("#dialogs").innerHTML = S.dialogs.map((d, i) => {
+    const pi = d.linkedFrom ? S.dialogs.findIndex(x => x.id === d.linkedFrom.fromId) + 1 : 0;
+    return `<div class="dlg"><div class="dh"><b>Dialog ${i + 1}</b><span class="src">${esc(d.from)}</span></div>
+      ${d.linkedFrom ? `<div class="lf">linked from “${esc(d.linkedFrom.phrase)}”${pi ? ` in Dialog ${pi}` : ""}</div>` : ""}
+      <textarea data-t="${d.id}" placeholder="Just write it down...">${esc(d.text)}</textarea>
+      <div class="lk">${d.links.map(l => `<button data-goto="${l.to}">→ “${esc(l.phrase)}”</button>`).join("")}</div></div>`;
+  }).join("") + `<button class="adddlg" data-add>+ new dialog beside</button>`;
+}
+
+// Opens a new dialog directly to the right of the focused one, so an unfinished thought stays put.
+function addDialogBeside(extra){
+  const at = Math.max(0, S.dialogs.findIndex(d => d.id === S.focusDialog));
+  const d = newDialog(extra);
+  S.dialogs.splice(at + 1, 0, d);
+  renderDialogs(); focusDialog(d.id);
+  return d;
+}
+
+// Wikilink: the selected phrase in the focused dialog becomes a link to a new, independent dialog.
+function makeWikilink(){
+  const cur = S.dialogs.find(d => d.id === S.focusDialog);
+  const t = document.querySelector(`[data-t="${S.focusDialog}"]`);
+  if (!cur || !t || t.selectionStart === t.selectionEnd){ toast("Select a word or phrase first, then link it"); return; }
+  const phrase = t.value.slice(t.selectionStart, t.selectionEnd).trim();
+  if (!phrase) return;
+  const d = addDialogBeside({ linkedFrom:{ phrase, fromId:cur.id } });
+  cur.links.push({ phrase, to:d.id });
+  renderDialogs(); focusDialog(d.id);
+  log(`Wikilink: “${phrase}” now links to a new independent dialog`);
+}
+
+// The split hint appears for a block holding 3+ thoughts. Accepting it is Explode.
+function updateHint(){
+  const el = $("#splithint"), d = S.dialogs.find(x => x.id === S.focusDialog);
+  if (!d) { el.hidden = true; return; }
+  const base = baseChunks(d.text);
+  if (base.length !== d.chunkCount){ d.merge = new Array(Math.max(base.length - 1, 0)).fill(false); d.chunkCount = base.length; }
+  if (base.length < 3 || d.text.length < 90 || d.hintOff){ el.hidden = true; return; }
+  const final = finalChunks(d, base);
+  el.hidden = false;
+  el.innerHTML = `<b>This looks like ${final.length} thoughts.</b> Suggested split. Click a divider to join or separate.` +
+    base.map((c, i) => `<div class="ch">${esc(c)}</div>` + (i < base.length - 1 ? `<button class="div ${d.merge[i] ? "joined" : ""}" data-join="${i}">${d.merge[i] ? "joined" : "split here"}</button>` : "")).join("") +
+    `<div style="margin-top:8px;display:flex;gap:6px"><button class="btn p" data-split>Split into ${final.length} notes</button><button class="btn" data-nosplit>Leave as one</button></div>`;
+}
+function finalChunks(d, base){
+  const out = [];
+  base.forEach((c, i) => { if (i > 0 && d.merge[i - 1]) out[out.length - 1] += " " + c; else out.push(c); });
+  return out;
+}
+function acceptSplit(){
+  const d = S.dialogs.find(x => x.id === S.focusDialog); if (!d) return;
+  const final = finalChunks(d, baseChunks(d.text));
+  const at = S.dialogs.indexOf(d);
+  d.text = final[0]; d.hintOff = true; d.chunkCount = 0;
+  const extra = final.slice(1).map(t => newDialog({ text:t, from:d.from, hintOff:true }));
+  S.dialogs.splice(at + 1, 0, ...extra);
+  renderDialogs(); focusDialog(d.id);
+  log(`Explode: one block became ${final.length} separate notes`);
+}
+
+// Optional related notes: at most two, plain, never in the way.
+function updateRelated(){
+  const el = $("#related"), d = S.dialogs.find(x => x.id === S.focusDialog);
+  const ms = d && !S.relatedHidden ? matchNotes(S.notes, d.text, new Set()).slice(0, 2) : [];
+  el.innerHTML = ms.length ? `<span>Related, if useful:</span>${ms.map(m => `<span class="r">${esc(m.note.text)}</span>`).join("")}<button data-hiderel>hide</button>` : "";
+}
+
+/* ============================================================================================
+   PANELS, DAY STRIP, AND WIRING
+   ========================================================================================== */
+
+// Right panel: the dump and counters. An "act" is a point of decision: a note actually used.
+function renderPanel(){
+  $("#statN").textContent = `Notes in dump: ${S.notes.length}`;
+  $("#statA").textContent = `Acts: ${S.acts}`;
+  $("#dump").innerHTML = S.notes.map(n => `<li>${n.fresh ? '<span class="tag new">NEW</span>' : ""}${n.acted ? '<span class="tag act">USED</span>' : ""}${esc(n.text)}<div class="cs"><span>${esc(n.src)}</span><span>#${n.id}</span></div></li>`).join("");
+  $("#log").innerHTML = S.log.map(l => `<li>${esc(l)}</li>`).join("");
+}
+
+// Day strip, moment blurb, and the helper buttons for the current moment.
+function renderDay(){
+  $("#day").innerHTML = MOMENTS.map((m, i) => `<button class="mo ${i === S.moment ? "on" : ""}" data-moment="${i}"><b>${m.time}</b>${m.title}</button>`).join("");
+  $("#blurb").textContent = M().blurb;
+  let t = `<button class="btn p" data-type>Type it for me</button><button class="btn" data-openov>Open capture <kbd>Ctrl+;</kbd></button>`;
+  if (S.moment === 1) t += `<button class="btn" data-burst>1. Paste a sample burst</button><button class="btn" data-selgrave>2. Select “graveyard”</button><span style="align-self:center;color:var(--mute);font-size:12px">then press <kbd>Ctrl+]</kbd></span>`;
+  $("#tools").innerHTML = t;
+}
+
+function setMoment(i){
+  clearTimeout(typer);
+  if (S.overlayOpen) closeOverlay();
+  S.moment = i; S.used = new Set(); S.matches = []; S.lastKey = "";
+  const u = new URL(location.href); u.searchParams.set("moment", i); history.replaceState(null, "", u);
+  buildHost(); renderDay(); renderCue(); log("Moment: " + M().title);
+}
+
+// Sample burst for moment 2: four unsorted thoughts in one block. Triggers the split hint.
+const BURST = "Idea: a newsletter about the graveyard of half-built projects\nAsk Priya whether the sponsor slot can move to Friday\nThumbnail: my face half erased, like a draft being deleted\nCourse pricing: charge for the finish line, not the hours";
+
+// One delegated click handler for the whole page.
+document.addEventListener("click", e => {
+  const g = sel => e.target.closest(sel);
+  if (g("[data-use]")) return useNote(+g("[data-use]").dataset.use);
+  if (g("[data-more]")) { S.aIndex = (S.aIndex + 1) % S.matches.length; return renderCue(); }
+  if (g("[data-moment]")) return setMoment(+g("[data-moment]").dataset.moment);
+  if (g("[data-type]")) return typeForMe();
+  if (g("[data-openov]")) return openOverlay();
+  if (g("[data-add]")) return addDialogBeside();
+  if (g("[data-goto]")) return focusDialog(+g("[data-goto]").dataset.goto);
+  if (g("[data-join]")) { const d = S.dialogs.find(x => x.id === S.focusDialog); const i = +g("[data-join]").dataset.join; d.merge[i] = !d.merge[i]; return updateHint(); }
+  if (g("[data-split]")) return acceptSplit();
+  if (g("[data-nosplit]")) { S.dialogs.find(x => x.id === S.focusDialog).hintOff = true; return updateHint(); }
+  if (g("[data-hiderel]")) { S.relatedHidden = true; return updateRelated(); }
+  if (g("[data-burst]")) { openOverlay(); const d = S.dialogs[0]; d.text = BURST; renderDialogs(); focusDialog(d.id); return log("Sample burst pasted into Dialog 1"); }
+  if (g("[data-selgrave]")) {
+    const t = document.querySelector(`[data-t="${S.focusDialog}"]`); if (!t) return toast("Open capture and paste the burst first");
+    const i = t.value.indexOf("graveyard"); if (i < 0) return toast("No “graveyard” in this dialog");
+    t.focus(); t.setSelectionRange(i, i + 9); return;
+  }
+  if (g("#prev")) return cycle(-1);
+  if (g("#next")) return cycle(1);
+});
+
+// Typing inside a dialog updates its text and refreshes the hint and related strip, without re-rendering.
+document.addEventListener("input", e => {
+  const id = e.target.dataset && e.target.dataset.t; if (!id) return;
+  const d = S.dialogs.find(x => x.id === +id); d.text = e.target.value; S.focusDialog = d.id;
+  updateHint(); updateRelated();
+});
+document.addEventListener("focusin", e => { const id = e.target.dataset && e.target.dataset.t; if (id){ S.focusDialog = +id; updateHint(); updateRelated(); } });
+
+// Hovering a variant-C chip shows the whole note under the strip.
+document.addEventListener("mouseover", e => {
+  const c = e.target.closest("[data-peek]"), p = $("#peek");
+  if (c && p) p.textContent = S.matches[+c.dataset.peek].note.text;
+});
+
+// Keyboard: Ctrl+; capture, Esc closes capture (or hides the cue), Ctrl+Enter new dialog, Ctrl+] wikilink,
+// Alt+1..3 uses a surfaced note, arrows flip versions unless the maker is typing.
+document.addEventListener("keydown", e => {
+  const typing = e.target.isContentEditable || /INPUT|TEXTAREA/.test(e.target.tagName);
+  if (e.ctrlKey && e.key === ";") { e.preventDefault(); return S.overlayOpen ? closeOverlay() : openOverlay(); }
+  if (e.key === "Escape") { if (S.overlayOpen) return closeOverlay(); S.cueHidden = true; return renderCue(); }
+  if (S.overlayOpen && e.ctrlKey && e.key === "Enter") { e.preventDefault(); return addDialogBeside(); }
+  if (S.overlayOpen && e.ctrlKey && e.key === "]") { e.preventDefault(); return makeWikilink(); }
+  if (e.altKey && /^Digit[1-3]$/.test(e.code) && !S.overlayOpen) { const m = S.matches[+e.code.slice(5) - 1]; if (m){ e.preventDefault(); return useNote(m.note.id); } }
+  if (!typing && e.key === "ArrowLeft") return cycle(-1);
+  if (!typing && e.key === "ArrowRight") return cycle(1);
+});
+// Keep variant A's card glued to the caret when the maker moves it with the mouse or arrow keys.
+document.addEventListener("selectionchange", () => { if (S.variant === "A" && !S.overlayOpen && S.matches.length) renderCue(); });
+addEventListener("resize", renderCue);
+
+// Start-up: read ?variant= and ?moment= so a reload or a shared link lands in the same place.
+(function init(){
+  const q = new URLSearchParams(location.search);
+  const v = q.get("variant"), m = +q.get("moment");
+  S.moment = m >= 0 && m < MOMENTS.length ? m : 0;
+  buildHost(); renderDay(); renderPanel();
+  setVariant(order.includes(v) ? v : "A");
+  log("Day starts. The dump already holds " + S.notes.length + " notes.");
+})();
+</script>
+</body>
+</html>
