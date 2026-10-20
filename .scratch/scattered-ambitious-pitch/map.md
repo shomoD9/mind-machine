@@ -54,3 +54,6 @@ Record both the product vision and an ambitious MVP whose product decisions are 
 - A buyer who is an employer, a school, a parent, or a clinician.
 - Building the product on this map. The destination is the pitch and a settled MVP scope.
 - Production visual design. The pitch stops at a rough interface.
+
+
+**20 October launch direction:** Q32–Q35 add linked due reminders in the continuing chat, conversational rescheduling, optional WhatsApp/SMS, Edit/Remove controls without a separate Snooze control, original time zones, and a new reminder offer when reopening. The human authorized MVP design and a launch attempt today. Detailed interviewing is paused; pilot audience and browser fallback are pending. See [MVP launch design](../../docs/MVP.md).

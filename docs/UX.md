@@ -2,7 +2,7 @@
 
 Save a thought when it arrives. Find material while using another app. Encounter selected material during existing browsing. Continue a chat without rebuilding its context.
 
-Working UX draft, 20 October 2026, after round eight. A whole-checklist due date also schedules its reminder; individual-item due dates are excluded. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require snoozing or explicit scheduling. Resurfacing uses captured material only, with selection priorities deferred. Details labeled **proposed** remain open. The [PRD](PRD.md) records requirements; the [decision ticket](../.scratch/scattered-ambitious-pitch/issues/20-headless-second-brain.md) tracks unresolved choices. These are ASCII blueprints; no Open Design board or app prototype has been created in this session.
+Working UX draft, 20 October 2026, after round nine; MVP design is authorized. A whole-checklist due date also schedules its reminder; individual-item due dates are excluded. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. Resurfacing uses captured material only, with selection priorities deferred. Details labeled **proposed** remain open. The [PRD](PRD.md) records requirements; the [decision ticket](../.scratch/scattered-ambitious-pitch/issues/20-headless-second-brain.md) tracks unresolved choices. The [interactive HTML design](prototypes/mvp.html) complements these ASCII blueprints. It uses sample state only; no Open Design board or connected app has been created.
 
 ## Surface responsibilities
 
@@ -51,7 +51,7 @@ Linked interactive checklist
   [ ] Send itinerary
 ```
 
-The rich-text editor lets the person deliberately create bullets and checkbox lists. A saved action sentence can get a soft reminder offer with date/time selectors. Open tasks in Find and Chat retrieves unfinished items; this app owns reminders. A checklist has one due date for the whole list, and choosing it also schedules the reminder. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require snoozing or explicit scheduling. Calendar timeboxing is a later integration direction.
+The rich-text editor lets the person deliberately create bullets and checkbox lists. A saved action sentence can get a soft reminder offer with date/time selectors. Open tasks in Find and Chat retrieves unfinished items; this app owns reminders. A checklist has one due date for the whole list, and choosing it also schedules the reminder. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. Calendar timeboxing is a later integration direction.
 
 ```text
 Save checklist → Saved, no reminder
@@ -66,12 +66,12 @@ Save checklist → Saved, no reminder
                                       |
                              Open tasks: overdue
                                       |
-                       Snooze / explicitly reschedule
+                       Edit date/time explicitly
                                       |
                               Next timed alert
 ```
 
-Reopening a completed list, delivery channels, reminder controls, and time-zone behavior remain Q32–Q35.
+Reopening a completed list offers a new reminder. Its cancelled reminder is not restored. Reminder controls are Edit and Remove, with rescheduling also available through Chat; no separate Snooze control. Existing reminders keep their original time zone and instant.
 
 ## 2. Find and reuse a prior thought
 
@@ -131,7 +131,7 @@ Save original → Offer reminder → Accept / decline
                            Due cue → open vault details
 ```
 
-**Confirmed:** timed messages require an accepted reminder. Declining the offered reminder does not authorize a later timed deadline message. Private details stay in the vault; a neutral private-deadline cue opens them there. The one-item rule does not prohibit repeats or create a once-ever delivery guarantee. Reminder destination, scheduling confirmation, edits, recurrence, and failure/retry behavior remain to design.
+**Confirmed:** timed messages require an accepted reminder. Declining the offered reminder does not authorize a later timed deadline message. Private details stay in the vault; a neutral private-deadline cue opens them there. The one-item rule does not prohibit repeats or create a once-ever delivery guarantee. The due reminder also appears in the continuing chat. The person can edit or remove it, including asking Chat to reschedule it; no separate Snooze control is included. Reminders retain their original time zone. Reopening a completed checklist offers a new reminder. Delivery and failure/retry behavior need validation.
 
 WhatsApp/SMS are distinct delivery channels with their own permission and content handling. A message service accepting a cue, delivering it, and the person reading it are different outcomes. A neutral message opening vault details is a proposed privacy option. Templates, opt-outs, and delivery failures belong in the design; no live message has been sent.
 
@@ -195,4 +195,4 @@ This choice introduces a browsing-habit and extension-setup cost. It does not au
 
 Q13 is settled: assess idea/bookmark eligibility automatically and keep private or uncertain material private. The person does not approve an excerpt before resurfacing. This is a product policy to test, rather than a claim that automatic sensitivity judgment is infallible.
 
-Q18 selection priorities are explicitly deferred. Q19–Q22 are answered: captured-material context only, interactive checklists, Chat as a keyboard mode, and Temporary segments. Round six settled the rich-editor/post-save-offer model, Open tasks in Find and Chat, app-owned reminders, and Temporary read access with no new retained content. Q27–Q28 set whole-checklist dates that also schedule reminders. Q29–Q31 confirm a visible default alert time, cancellation on whole-list completion, and overdue retention with repeats only by choice. Q32–Q35 ask about delivery channels, management controls, time zones, and reopening. Reminder channels/failure, keyboard layout, cadence, media capture, external imports, sync conflicts, and recovery remain visible branches. Pending recommendations are not acceptance criteria.
+Q18 selection priorities are explicitly deferred. Q19–Q22 are answered: captured-material context only, interactive checklists, Chat as a keyboard mode, and Temporary segments. Round six settled the rich-editor/post-save-offer model, Open tasks in Find and Chat, app-owned reminders, and Temporary read access with no new retained content. Q27–Q28 set whole-checklist dates that also schedule reminders. Q29–Q31 confirm a visible default alert time, cancellation on whole-list completion, and overdue retention with repeats only by choice. Q32–Q35 add reminder events in chat with conversational rescheduling, optional WhatsApp/SMS, Edit/Remove controls, original time zones, and a new reminder offer on reopening. Detailed interviewing is paused for MVP design; see [launch design](MVP.md). Reminder channels/failure, keyboard layout, cadence, media capture, external imports, sync conflicts, and recovery remain visible branches. Pending recommendations are not acceptance criteria.

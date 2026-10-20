@@ -1,0 +1,192 @@
+<!doctype html>
+<!-- This review-only MVP design shows Capture, Find, Chat and reminder editing.
+     docs/MVP.md links here. Sample edits exist only in memory and reset on reload. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Second brain — MVP design</title>
+<style>
+/* Tokens keep the preview consistent across desktop and phone layouts. */
+:root { color-scheme: light; --paper:#f6f5f0; --sheet:#fdfcf8; --ink:#242923; --muted:#62685f; --line:#dcded4; --accent:#254cbd; --tint:#e9edf9; font:16px/1.5 'Avenir Next','Segoe UI',sans-serif; }
+* { box-sizing:border-box; }
+/* Hidden offers and edit fields must stay hidden even when their layout uses flex. */
+[hidden] { display:none !important; }
+body { margin:0; background:var(--paper); color:var(--ink); }
+button,input,textarea { font:inherit; }
+button { cursor:pointer; color:inherit; }
+button:focus-visible,input:focus-visible,textarea:focus-visible,[contenteditable]:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+button { border:0; background:none; }
+.preview { padding:9px 24px; background:#e4e7df; font-size:12px; letter-spacing:.03em; display:flex; justify-content:space-between; gap:16px; }
+.shell { max-width:1140px; margin:auto; display:grid; grid-template-columns:200px 1fr; min-height:calc(100dvh - 36px); }
+.rail { padding:42px 24px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:42px; }
+.wordmark { font-family:'Palatino Linotype',Palatino,serif; font-size:25px; letter-spacing:-1px; }
+.wordmark span { color:var(--accent); }
+nav { display:grid; gap:8px; }
+nav button { display:flex; align-items:center; gap:12px; text-align:left; padding:11px 13px; border-radius:6px; }
+nav button[aria-selected=true] { background:var(--tint); color:var(--accent); }
+nav .number { opacity:.65; font-size:12px; }
+.rail-foot { margin-top:auto; color:var(--muted); font-size:12px; }
+main { width:100%; max-width:850px; padding:44px 48px 70px; }
+.page-top { display:flex; align-items:center; justify-content:space-between; gap:16px; color:var(--muted); font-size:13px; margin-bottom:56px; }
+.page-top p { margin:0; }
+.section-label { text-transform:uppercase; letter-spacing:.13em; font-size:11px; color:var(--muted); }
+h1 { font:normal clamp(30px,4vw,43px)/1.15 Palatino,'Palatino Linotype',serif; letter-spacing:-1.1px; margin:14px 0; }
+.lead { color:var(--muted); font-size:14px; margin:0 0 30px; }
+.panel[hidden] { display:none; }
+.editor { min-height:265px; padding:8px 0 24px; font-size:18px; line-height:1.8; overflow-wrap:anywhere; outline:none; }
+.editor:empty:before { content:attr(data-placeholder); color:#858a7f; pointer-events:none; }
+.editor p { margin:0 0 10px; }
+.tools { display:flex; gap:8px; align-items:center; border-top:1px solid var(--line); padding:14px 0; }
+.tools button { min-width:38px; min-height:38px; border-radius:4px; }
+.tools button:hover { background:#e8eae2; }
+.primary { background:var(--accent); color:var(--sheet); padding:10px 20px; border-radius:5px; }
+.tools .primary { margin-left:auto; min-width:90px; }
+.quiet { color:var(--muted); font-size:13px; }
+.offer { border-top:1px solid var(--line); padding:24px 0; margin-top:18px; }
+.offer h2 { font-size:16px; font-weight:600; margin:0 0 4px; }
+.fields { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin-top:18px; }
+label { font-size:12px; color:var(--muted); display:grid; gap:6px; }
+input[type=date],input[type=time] { border:1px solid var(--line); background:var(--sheet); border-radius:4px; padding:9px; min-height:43px; color:var(--ink); }
+.caption { margin-top:48px; display:flex; gap:9px; align-items:center; font-size:12px; color:var(--muted); }
+.dot { width:6px; height:6px; border-radius:50%; background:#527047; display:inline-block; }
+.query { width:100%; border:0; border-bottom:1px solid var(--line); background:none; padding:18px 0; font-size:21px; color:var(--ink); outline:none; }
+.filters { display:flex; gap:8px; margin:18px 0 26px; }
+.filters button { padding:6px 12px; border:1px solid var(--line); border-radius:20px; font-size:12px; }
+.filters button[aria-pressed=true] { border-color:var(--ink); background:var(--ink); color:var(--paper); }
+.result { display:block; width:100%; text-align:left; border-bottom:1px solid var(--line); padding:21px 0; }
+.result .meta { display:flex; gap:8px; font-size:11px; color:var(--muted); margin-bottom:6px; }
+.result h2 { margin:0 0 6px; font-size:17px; font-weight:500; }
+.result p { margin:0; color:var(--muted); font-size:14px; }
+.result:hover h2 { color:var(--accent); }
+.reading { padding:22px 0; border-bottom:1px solid var(--line); }
+.reading button { color:var(--accent); padding:4px 0; }
+.chat-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; }
+.chat-head .lead { margin:0; }
+.temp { font-size:12px; display:flex; flex-direction:row; align-items:center; gap:6px; }
+.message { max-width:90%; margin:0 0 27px; font-size:15px; }
+.message .section-label { font-size:10px; }
+.message p { margin:7px 0; }
+.message.user { margin-left:auto; padding:14px 18px; background:#e9eae2; border-radius:8px; }
+.event { border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:21px 0; margin:30px 0; }
+.event h2 { font-size:17px; font-weight:500; margin:8px 0; }
+.event p { margin:0; font-size:13px; color:var(--muted); }
+.event-actions { display:flex; gap:20px; margin-top:10px; font-size:13px; }
+.event-actions button { padding:0; color:var(--accent); }
+.composer { display:flex; gap:12px; padding:15px 0; border-top:1px solid var(--line); }
+.composer textarea { flex:1; min-width:0; resize:vertical; min-height:55px; border:0; background:none; outline:none; }
+.composer button:disabled { cursor:default; opacity:.5; }
+.notice { color:var(--muted); font-size:12px; }
+@media(max-width:700px) {
+ .preview { padding:8px 16px; font-size:10px; } .preview span:last-child { display:none; }
+ .shell { display:block; min-height:100dvh; }
+ .rail { border:0; padding:22px 22px 0; gap:0; }
+ .wordmark { font-size:23px; } .rail-foot { display:none; }
+ nav { position:fixed; z-index:5; bottom:0; left:0; right:0; display:flex; justify-content:space-around; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:var(--sheet); border-top:1px solid var(--line); }
+ nav button { padding:10px 16px; } nav .number { display:none; }
+ main { padding:24px 22px 110px; } .page-top { margin-bottom:36px; font-size:12px; }
+ h1 { font-size:34px; } .editor { min-height:245px; font-size:17px; } .caption { margin-top:30px; }
+ .fields { gap:10px; } .message { max-width:96%; }
+}
+@media(prefers-reduced-motion:no-preference) { .panel { animation:appear .18s ease-out; } @keyframes appear { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } } }
+</style>
+</head>
+<body>
+<!-- The preview banner makes sample behavior explicit before any interaction. -->
+<div class="preview"><span>INTERACTIVE DESIGN · Sample content · Changes reset on refresh</span><span>No AI, scheduling or saved data connected</span></div>
+<div class="shell">
+<aside class="rail">
+ <div class="wordmark">second<span>·</span>brain</div>
+ <nav aria-label="Work modes" role="tablist">
+  <button role="tab" id="tab-capture" aria-controls="capture" aria-selected="true" data-mode="capture"><span class="number">01</span>Capture</button>
+  <button role="tab" id="tab-find" aria-controls="find" aria-selected="false" data-mode="find"><span class="number">02</span>Find</button>
+  <button role="tab" id="tab-chat" aria-controls="chat" aria-selected="false" data-mode="chat"><span class="number">03</span>Chat</button>
+ </nav>
+ <div class="rail-foot">A place for what’s on your mind.<br>No filing required.</div>
+</aside>
+<main>
+ <header class="page-top"><p>Your thoughts, within reach.</p><span>Personal vault</span></header>
+ <!-- Capture uses a document surface; the reminder offer follows the save action. -->
+ <section class="panel" id="capture" role="tabpanel" aria-labelledby="tab-capture">
+  <span class="section-label">Clear a little headspace</span>
+  <h1>What’s on your mind?</h1>
+  <p class="lead">A thought, a link, a whole essay. Just put it here.</p>
+  <div id="editor" class="editor" contenteditable="true" role="textbox" aria-label="Capture document" aria-multiline="true" data-placeholder="Start anywhere…"></div>
+  <div class="tools" aria-label="Formatting"><button id="bold" aria-label="Bold"><b>B</b></button><button id="bullets" aria-label="Add bullet list">• List</button><button id="checks" aria-label="Add checklist">☐ List</button><button class="primary" id="save">Save</button></div>
+  <p id="save-status" class="quiet" role="status">No title. No folders. No sorting.</p>
+  <div id="offer" class="offer" hidden>
+   <h2>Give this a date and reminder?</h2><div class="quiet">Choose when to be reminded. A checklist’s date applies to the whole list.</div>
+   <div class="fields"><label>Date<input id="due-date" type="date"></label><label>Time<input id="due-time" type="time" value="09:00"></label><button id="set-reminder" class="primary">Set date & reminder</button><button id="not-now">Not now</button></div>
+   <p class="notice">Time zone: <span class="zone"></span> · Edit the time before setting.</p>
+  </div>
+  <div class="caption"><span class="dot"></span>Writing is enough. Everything stays connected to its original.</div>
+ </section>
+ <!-- Find displays sample originals and an explicit Open tasks filter, not a folder tree. -->
+ <section class="panel" id="find" role="tabpanel" aria-labelledby="tab-find" hidden>
+  <span class="section-label">Pick up a thread</span><h1>What do you remember?</h1>
+  <input id="query" class="query" type="search" aria-label="Search sample captures" placeholder="A phrase, a person, the gist of an idea…">
+  <div class="filters"><button id="all" aria-pressed="true">Everything</button><button id="open" aria-pressed="false">Open tasks</button></div>
+  <p class="notice">Sample originals · Preview filtering matches words only</p>
+  <div id="results"></div><div id="reading" class="reading" hidden></div>
+ </section>
+ <!-- Chat presents one continuing conversation and a due reminder as an app event. -->
+ <section class="panel" id="chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
+  <span class="section-label">One continuing conversation</span><h1>Where were we?</h1>
+  <div class="chat-head"><p class="lead" id="chat-state">This conversation is remembered.</p><label class="temp"><input id="temporary" type="checkbox">Temporary</label></div>
+  <div class="message user"><div class="section-label">You · sample exchange</div><p>I keep saving ideas and forgetting I saved them.</p></div>
+  <div class="message"><div class="section-label">Assistant · sample exchange</div><p>You wanted useful things to find their way back into your day. Your thought about a browser new tab is a place to start.</p><button id="source" class="quiet" style="color:var(--accent);padding:0">↗ Original thought · 19 October</button></div>
+  <div class="event" id="reminder-event"><span class="section-label">Reminder · sample event</span><h2>Buy a gift for mum’s birthday</h2><p id="event-time">Today, 9:00 AM · <span class="zone"></span></p><div class="event-actions"><button id="edit-event">Edit reminder</button><button id="remove-event">Remove reminder</button></div>
+   <div id="edit-fields" class="fields" hidden><label>New date<input id="edit-date" type="date"></label><label>Time<input id="edit-time" type="time" value="10:00"></label><button id="apply-edit" class="primary">Update reminder</button></div>
+  </div>
+  <div class="composer"><textarea aria-label="Message draft" placeholder="Move the birthday reminder to tomorrow at 10…"></textarea><button class="primary" disabled>Send</button></div>
+  <p class="notice">Design preview: message sending is disabled. A connected app will show the actual rescheduling result here.</p>
+ </section>
+</main>
+</div>
+<script>
+/* The preview controller switches views and edits sample state only. It makes no
+   network calls and intentionally does not persist user-entered material. */
+const byId = id => document.getElementById(id);
+const modeButtons = [...document.querySelectorAll('[data-mode]')];
+function showMode(mode) {
+ modeButtons.forEach(button => { const active=button.dataset.mode===mode; button.setAttribute('aria-selected',String(active)); byId(button.dataset.mode).hidden=!active; });
+}
+modeButtons.forEach(button=>button.addEventListener('click',()=>showMode(button.dataset.mode)));
+// Local zone labels describe the proposed scheduling control without scheduling anything.
+const zone=Intl.DateTimeFormat().resolvedOptions().timeZone;
+document.querySelectorAll('.zone').forEach(label=>label.textContent=zone);
+// Formatting is limited to the editable document; sample checklist boxes are explicit.
+byId('bold').onclick=()=>{byId('editor').focus(); document.execCommand('bold');};
+byId('bullets').onclick=()=>{byId('editor').focus(); document.execCommand('insertUnorderedList');};
+byId('checks').onclick=()=>{byId('editor').focus(); document.execCommand('insertHTML',false,'<p><input type="checkbox" aria-label="Checklist item"> New item</p>');};
+byId('save').onclick=()=>{
+ if(!byId('editor').textContent.trim()) {byId('save-status').textContent='Write something first.'; return;}
+ byId('save-status').textContent='Preview captured · not persisted'; byId('offer').hidden=false;
+};
+byId('not-now').onclick=()=>{byId('offer').hidden=true;};
+byId('set-reminder').onclick=()=>{
+ if(!byId('due-date').value){byId('save-status').textContent='Choose a date for the preview reminder.'; return;}
+ byId('save-status').textContent='Preview only · '+byId('due-date').value+' at '+byId('due-time').value+' · '+zone+' · No alert scheduled'; byId('offer').hidden=true;
+};
+// Search uses an explicit sample corpus; textContent prevents capture-like strings becoming markup.
+const samples=[{title:'The thought about browser new tabs',text:'A useful idea could return when I open a new tab, before I start scrolling.',date:'19 October · Thought',task:false},{title:'Buy a gift for mum’s birthday',text:'A small sketchbook and something for her garden.',date:'Today · Checklist · 2 open items',task:true},{title:'Keep the original thought',text:'The rough version carries context that a polished summary can lose.',date:'18 October · Thought',task:false}];
+let tasksOnly=false;
+function renderResults(){
+ const q=byId('query').value.toLowerCase(); const matches=samples.filter(item=>(!tasksOnly||item.task)&& (item.title+' '+item.text).toLowerCase().includes(q));
+ const container=byId('results'); container.replaceChildren();
+ matches.forEach(item=>{const button=document.createElement('button'); button.className='result'; const meta=document.createElement('div'); meta.className='meta';meta.textContent=item.date; const title=document.createElement('h2');title.textContent=item.title;const excerpt=document.createElement('p');excerpt.textContent=item.text;button.append(meta,title,excerpt);button.onclick=()=>openSample(item);container.append(button);});
+ if(!matches.length){const empty=document.createElement('p');empty.className='quiet';empty.textContent='No sample matches. Try “gift” or “thought”.';container.append(empty);}
+}
+function openSample(item){const reader=byId('reading');reader.replaceChildren();reader.hidden=false;const heading=document.createElement('h2');heading.textContent=item.title;const body=document.createElement('p');body.textContent=item.text;const close=document.createElement('button');close.textContent='Close original';close.onclick=()=>{reader.hidden=true;};reader.append(heading,body,close);}
+byId('query').oninput=renderResults;
+function setFilter(tasks){tasksOnly=tasks;byId('all').setAttribute('aria-pressed',String(!tasks));byId('open').setAttribute('aria-pressed',String(tasks));renderResults();}
+byId('all').onclick=()=>setFilter(false);byId('open').onclick=()=>setFilter(true);renderResults();
+// Reminder actions modify only the sample event and keep the source capture intact.
+byId('edit-event').onclick=()=>{byId('edit-fields').hidden=!byId('edit-fields').hidden;};
+byId('apply-edit').onclick=()=>{if(!byId('edit-date').value)return;byId('event-time').textContent='Preview: '+byId('edit-date').value+' at '+byId('edit-time').value+' · '+zone;byId('edit-fields').hidden=true;};
+byId('remove-event').onclick=()=>{byId('reminder-event').hidden=true;};
+byId('source').onclick=()=>{showMode('find');openSample(samples[0]);};
+byId('temporary').onchange=()=>{byId('chat-state').textContent=byId('temporary').checked?'Temporary · new messages would not be retained.':'This conversation is remembered.';};
+</script>
+</body>
+</html>

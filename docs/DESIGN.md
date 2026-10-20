@@ -1,6 +1,6 @@
 # Design
 
-This project is defining a headless second brain: capture without filing, then find and reuse saved material inside the apps the person already uses. Product and UX design are in progress; no app has been implemented.
+This project is defining a headless second brain: capture without filing, then find and reuse saved material inside the apps the person already uses. The human has authorized MVP design and a launch attempt on 20 October 2026. The repository contains research, documentation and a review-only HTML design preview; app implementation has not begun. See [MVP launch design](MVP.md) for today’s proposed slice and release decisions.
 
 ## Current research and requirements effort — 2026-10-19
 
@@ -12,6 +12,8 @@ The decision frontier is recorded through selectable interview questions. Resear
 
 ### Current documents
 
+- [Interactive MVP preview](prototypes/mvp.html): responsive Capture/Find/Chat design with sample data and no connected persistence, AI or scheduling.
+- [MVP launch design](MVP.md): today’s proposed pilot, screens, implementation gates and release decisions.
 - [PRD](PRD.md): current vision, jobs to be done, proposed acceptance examples, rough ASCII blueprints, platform constraints, and open decisions.
 - [UX journeys](UX.md): keyboard capture/search, feed/new-tab/message encounters, continuous chat, and the selected browser-based phone journey.
 - [Research synthesis](RESEARCH-2026-10-19.md): findings, counterevidence, coverage limits, and links to seven detailed reports, including direct X, UniiChat, and resurfacing-surface follow-ups.
@@ -72,9 +74,17 @@ After asking for clarification, the human chose automatic idea/bookmark eligibil
 
 ### Confirmed in round eight — 2026-10-20
 
-A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require snoozing or explicit scheduling.
+A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control.
 
-The current questions are Q32 reminder channels, Q33 reminder controls, Q34 time zones, and Q35 reopening a completed checklist. Selection priorities remain deferred. The platform follow-up supports a compact keyboard-Chat concept for testing but supplies no supported keyboard-to-companion launch. No such handoff is promised.
+### Confirmed and redirected in round nine — 2026-10-20
+
+- Due reminders also appear in the continuing app chat; the person can ask Chat to reschedule them. WhatsApp/SMS remain optional connected channels.
+- Reminder controls are Edit and Remove. A separate Snooze control is excluded; conversational rescheduling edits the reminder.
+- Preserve the original time zone and scheduled instant during travel.
+- Reopening a completed checklist offers a new reminder without restoring the cancelled one.
+- The human asked to begin MVP design and launch by the end of today. Pause detailed interviewing and make the core loop reviewable. Private versus public release and browser fallback acceptance are the two pending launch decisions.
+
+Environment check: no app/package exists yet; Xcode 26.2 is installed, and `security find-identity -v -p codesigning` returned zero valid identities. This does not establish that native signing can never be configured; native installation cannot yet be claimed. No release route is silently substituted. Selection priorities remain deferred. The platform follow-up supports a compact keyboard-Chat concept for testing but supplies no supported keyboard-to-companion launch. No such handoff is promised.
 
 The UniiChat reference is verified as Victor Taelin's official Apache-2.0 project and creator announcement. Its original-log plus navigable-summary approach informs the chat refinement: history is retained without save prompts, while retrieval preserves attribution and tentative statements. Its server/inference/client arrangement has not been chosen for this product. The source report is pinned to an inspected commit and distinguishes retention from measured recall.
 

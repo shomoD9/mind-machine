@@ -2,6 +2,14 @@
 
 ## 2026-10-20 - GPT-6 - Codex App
 
+- Publication checks passed for 11 changed/new files: balanced Markdown fences, no new broken local links, clean diff whitespace, and valid preview JavaScript syntax. Requested the launch-design file in Codex for review. Publishing the design and latest decisions as `docs: design the first MVP launch loop`; the preview is not a deployed application.
+
+- Rechecked the corrected preview in Chrome: post-save date/time offer appears after sample capture, Chat edit fields stay collapsed until requested, and message sending is explicitly disabled. JavaScript syntax validation passed. The desktop screen was visually inspected; phone layout rules exist but physical iPhone behavior is untested. Preparing the design checkpoint for validation and publication; launch audience/surface questions remain pending.
+
+- Received Q32–Q35 and the redirect to begin MVP design and launch today. Pulled first; already up to date. Recorded linked due reminders in app Chat and conversational rescheduling, optional WhatsApp/SMS, Edit/Remove only, original time zones, and new reminder offers on reopening. Reconciled earlier Snooze proposals with the newer answer.
+- Paused detailed grilling, asking only the launch audience and acceptable release surface; both remain pending. Inspected the repo: no application package. Xcode 26.2 is installed; local signing check found zero valid identities. This does not prove an Apple account cannot be configured. Did not silently substitute browser delivery for native keyboard/hotkey.
+- Read frontend-design and deployment skill instructions. Created docs/MVP.md with the core loop, launch gates and explicit scope proposals, plus a narrated responsive HTML design preview. Started a loopback-only server scoped to docs/prototypes and opened a new Chrome tab. No account, AI or reminder delivery is connected; the preview says so. Verified desktop Capture, Find, Open tasks filtering and Chat by Chrome UI. Found and fixed CSS overriding hidden reminder edit fields.
+
 - Added the checklist reminder lifecycle blueprint. Checked nine Markdown files for balanced fences and new local-link failures; passed. Corrected diagram whitespace found by the first diff check. Publishing `docs: settle checklist reminder lifecycle`, followed by working-tree and remote-head verification.
 
 - Received Q29–Q31 and pulled the remote first; already up to date. Recorded the visible editable default time, cancellation on whole-checklist completion, and overdue lists with repeated alerts only by explicit choice. Updated PRD, UX, DESIGN, glossary, decision tree and scope/research indexes.

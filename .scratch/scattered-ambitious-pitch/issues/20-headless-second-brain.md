@@ -86,7 +86,18 @@ A researched product vision and PRD for the human's whole-day capture, search, a
 | --- | --- | --- |
 | Q29: date-only time | Use a visible default time. | Configurable and editable before scheduling. |
 | Q30: whole-list completion | Cancel when the whole list is complete. | Cancel the pending reminder; unfinished items keep it scheduled. |
-| Q31: overdue | Show overdue; repeat alerts only by choice. | Remain in Open tasks; snooze or explicit scheduling permits another alert. |
+| Q31: overdue | Show overdue; repeat alerts only by choice. | Remain in Open tasks; further alerts require explicit rescheduling. Q33 later excludes the proposed separate Snooze control. |
+
+## Round 9 — answered and redirected 2026-10-20
+
+| Question | Human answer | Recorded meaning |
+| --- | --- | --- |
+| Q32: channels | Perhaps in app chat as well; optional WhatsApp/SMS. | Add a linked due reminder event in continuing chat; conversational rescheduling. External device notifications remain proposed, not runtime verified. |
+| Q33: controls | Only edit or remove. | Preserve original capture; no separate Snooze control. Chat rescheduling edits the reminder. |
+| Q34: travel | Keep original time zone. | Preserve scheduled instant; display zone. |
+| Q35: reopening | Offer a new reminder. | Do not automatically restore cancelled reminder. |
+
+The human authorized beginning MVP design and launching today. Pause detailed interview; see [MVP launch design](../../../docs/MVP.md). Two launch questions are pending: private/public pilot, and browser fallback versus native surfaces today.
 
 ## Design tree and current frontier
 
@@ -111,8 +122,8 @@ Whole-day personal vault [settled]
 │   ├── Timed messages require accepted reminder [settled Q11]
 │   ├── This app owns reminders [settled Q25]
 │   ├── Soft post-save reminder prompt [Q23 refinement]
-│   ├── Q32 channels / Q33 controls / Q34 time zones [pending]
-│   ├── Q35 reopening completed checklists [pending]
+│   ├── Chat reminder events; edit/remove; fixed time zone [settled Q32–Q34]
+│   ├── Offer new reminder on reopening [settled Q35]
 │   └── Delivery failure [next]
 ├── Continuous chat + retained history [settled Q7]
 │   ├── Forget original + derived memory [settled Q17]
@@ -140,10 +151,10 @@ Round four is complete. Q13's clarified excerpt-approval recommendation was reje
 
 Round five is answered; Q18 is explicitly deferred. The current-page-context recommendation was rejected in favor of captured material only, and Chat is added to the keyboard. Checklist and Temporary behavior are accepted as above.
 
-Round seven is answered: the whole-checklist due date also schedules its reminder. The separate-reminder-toggle and optional-item-date recommendations were not chosen. Round eight confirms Q29–Q31: a visible editable default time, cancellation when every item is complete, and overdue retention with repeats only by choice. Round nine asks Q32–Q35 about channels, editing/snoozing/removal, time zones, and reopened checklists. Those recommendations remain unanswered. Selection priorities and calendar integration/timeboxing remain deferred.
+Round seven is answered: the whole-checklist due date also schedules its reminder. The separate-reminder-toggle and optional-item-date recommendations were not chosen. Round eight confirms Q29–Q31: a visible editable default time, cancellation when every item is complete, and overdue retention with repeats only by choice. Round nine settles reminder events in Chat, conversational rescheduling, optional WhatsApp/SMS, Edit/Remove controls without Snooze, fixed time zones, and a new reminder offer on reopening. The human redirected the session to MVP design and launch today. Selection priorities and calendar integration/timeboxing remain deferred.
 
 Research references: [UniiChat identity and memory](../research/22-uniichat-identity-and-memory-2026-10-20.md), [surface contracts](../research/23-resurfacing-surface-contracts-2026-10-20.md). Chrome verified the creator's source-release X post. Browser feed/new-tab capability is documented; native iPhone feed insertion has no supported route. These findings do not select an implementation or substitute an experience without the human's answer.
 
 ## Completion condition
 
-Every included behavior is concretized with the human, contradictions with the older scope are reconciled, and the human confirms shared understanding. Until then this ticket remains claimed and the PRD remains a draft. No implementation work has begun.
+Every included behavior is concretized with the human, contradictions with the older scope are reconciled, and the human confirms shared understanding. Until then this ticket remains claimed and the PRD remains a draft. The human has authorized MVP design and launch preparation. A review-only HTML design now exists; connected app implementation awaits the launch-surface decision.

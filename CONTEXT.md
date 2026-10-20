@@ -49,7 +49,7 @@ The date by which a captured task or checklist is intended to be completed. A ch
 _Avoid_: reminder time, timebox
 
 **Overdue checklist**:
-An unfinished checklist whose due time has passed. It remains in Open tasks; another timed alert requires snoozing or explicit scheduling.
+An unfinished checklist whose due time has passed. It remains in Open tasks; another timed alert requires explicit rescheduling.
 _Avoid_: automatic repeating alert
 
 **Timebox**:
@@ -67,6 +67,10 @@ _Avoid_: a guarantee of perfect recall, a requirement to paste all history into 
 **Reminder**:
 A commitment the person chooses to schedule so it can prompt them later. Saving a task-like thought alone does not create one.
 _Avoid_: task-like capture (as proof of scheduling), resurfacing (as a synonym)
+
+**Reminder event**:
+An app-authored entry in the continuing chat, linked to a due reminder and its original capture. The person can refer to it when requesting an edit or reschedule.
+_Avoid_: a new user statement, proof that an external notification was delivered
 
 **Stop showing this**:
 A control that excludes an item from future resurfacing while retaining the saved material. Scrolling past an item leaves it eligible to return.
