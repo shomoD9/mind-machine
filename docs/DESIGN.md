@@ -1,14 +1,14 @@
 # Design
 
-This project is defining a headless second brain: capture without filing, then find and reuse saved material inside the apps the person already uses. The human has authorized MVP design and a launch attempt on 20 October 2026. The repository now contains an editable FigCraft native MVP design. The human approved a private pilot with sync and requires native iPhone keyboard plus Mac hotkey today. Browser fallback is rejected. Native implementation is beginning; installation, sync and release are not yet verified. See [MVP launch design](MVP.md) for today’s proposed slice and release decisions.
+This project is defining a headless second brain: capture without filing, then find and reuse saved material inside the apps the person already uses. The human has authorized MVP design and a launch attempt on 20 October 2026. The repository now contains an editable FigCraft native MVP design. The human approved a private pilot with sync and requires native iPhone keyboard plus Mac hotkey today. Browser fallback is rejected. The human explicitly authorized starting the native build after design review, including both UI and supporting behavior. The existing core is the baseline; new engineering work is routing through the requested ask-matt stack. Installation, sync and release are not yet verified. See [MVP launch design](MVP.md) for today’s proposed slice and release decisions.
 
 ## Current research and requirements effort — 2026-10-19
 
 The human's latest direction is a **headless second brain**: capture thoughts, reflections, memories, tasks, lists, events, reminders, links, pictures, and voice without filing them, then retrieve them through simple, strong search. Everyday access lives in a secondary iPhone keyboard with Capture/Find/Chat and a Mac hotkey surface. A continuing remembered chat and external LLM access use the same vault; Temporary chat segments are excluded from retained memory.
 
-This session is producing evidence and a draft product requirements document before implementation. The latest brief and interview answers take precedence over the earlier scope; decisions and remaining boundaries are recorded explicitly. Earlier sections below remain a historical record. Mac-only, typing-only, maker/publishing-only, and the two-wiki proposal are not the current release specification; natural resurfacing now explicitly includes feed encounters.
+The research/design stage has produced a PRD and native FigCraft states. The current stage is preparing the native implementation through a build spec, vertical tickets, TDD and review. The latest brief and interview answers take precedence over the earlier scope; decisions and remaining boundaries are recorded explicitly. Earlier sections below remain a historical record. Mac-only, typing-only, maker/publishing-only, and the two-wiki proposal are not the current release specification; natural resurfacing now explicitly includes feed encounters.
 
-The decision frontier is recorded through selectable interview questions. Research covers firsthand public discussions, first-party alternatives, and Apple platform constraints. Product recommendations stay visibly provisional until the human answers and confirms shared understanding. No implementation stack has been selected.
+The decision frontier is recorded through selectable interview questions. Research covers firsthand public discussions, first-party alternatives, and Apple platform constraints. Product recommendations stay visibly provisional until the human answers and confirms shared understanding. The native foundation currently uses Swift, SwiftUI, Foundation and XCTest. CloudKit with app-side encryption remains a sync proposal requiring configuration and verification.
 
 ### Keyboard-first clarification and writing space — 2026-10-20
 
@@ -25,6 +25,14 @@ Native foundation status: shared Swift models/storage, eight domain tests, and a
 The human pointed out that the mock host composer should move with the keyboard workspace. The generator now anchors it above the full extension at each size, rather than at one fixed screen coordinate; the expanded example keeps the composer visible while its conversation viewport shrinks. This is a representative host layout, not authority to control another app’s composer.
 
 Tap-host-to-type-in-host and tap-note-to-type-in-note are the desired interaction. Initial Capture selects Note; size changes preserve whichever destination is active. The new Typing destination page shows both carets/drafts and an active-field indication. The indicator is tappable as a proposed fallback because callbacks do not guarantee every unchanged-caret host tap. A first-responder solution remains plausible and untested. No new native feature implementation occurred during this correction. [Research](../.scratch/scattered-ambitious-pitch/research/25-keyboard-focus-and-host-layout-2026-10-20.md).
+
+### Engineering workflow requested — 2026-10-20
+
+The human explicitly requested the local ask-matt skill stack. Its route for this multi-session native build is setup → spec → vertical tickets → implement/TDD → Standards/Spec review. The existing local Markdown tracker convention is retained. The setup files, test boundaries, ticket breakdown and fixed review baseline are drafted for the skill-required confirmations; new feature implementation and new tests wait for those answers. No root instruction file or ready-for-agent ticket has been created yet.
+
+Review [engineering plan draft](../.scratch/native-mvp/review-plan.md) and [build spec draft](../.scratch/native-mvp/spec-draft.md). The proposed public test boundaries cover keyboard workspace state, saved-vault behavior, and two-vault encrypted replication. Existing eight tests remain prior evidence, not a claim that the newly proposed test boundaries were already approved.
+
+The human asked about automatic categorisation. The current proposal is to preserve originals and build an automatic index with provenance, dates, links, explicit structure and local retrieval, adding replaceable topic/tag inference only where it improves outcomes. No mandatory category taxonomy has been chosen. This proposal does not settle resurfacing ranking or privacy eligibility.
 
 ### Current documents
 
@@ -101,7 +109,7 @@ A date-only choice uses a visible, configurable default time that can be changed
 - Reopening a completed checklist offers a new reminder without restoring the cancelled one.
 - The human asked to begin MVP design and launch by the end of today. Pause detailed interviewing and make the core loop reviewable. Subsequently, the human agreed to the private-pilot recommendation with sync, required both native surfaces today, rejected browser design/delivery, and selected FigCraft. They requested functional greyscale industrial minimalism with no brand exploration.
 
-Environment check: no app/package exists yet; Xcode 26.2 is installed, and `security find-identity -v -p codesigning` returned zero valid identities. This does not establish that native signing can never be configured; native installation cannot yet be claimed. No release route is silently substituted. Selection priorities remain deferred. The platform follow-up supports a compact keyboard-Chat concept for testing but supplies no supported keyboard-to-companion launch. No such handoff is promised.
+Environment check at the earlier design kickoff: no app/package existed then; Xcode 26.2 is installed, and `security find-identity -v -p codesigning` returned zero valid identities. This does not establish that native signing can never be configured; native installation cannot yet be claimed. No release route is silently substituted. Selection priorities remain deferred. The platform follow-up supports a compact keyboard-Chat concept for testing but supplies no supported keyboard-to-companion launch. No such handoff is promised.
 
 The UniiChat reference is verified as Victor Taelin's official Apache-2.0 project and creator announcement. Its original-log plus navigable-summary approach informs the chat refinement: history is retained without save prompts, while retrieval preserves attribution and tentative statements. Its server/inference/client arrangement has not been chosen for this product. The source report is pinned to an inspected commit and distinguishes retention from measured recall.
 
