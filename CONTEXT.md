@@ -4,6 +4,74 @@ The people this product is for: ambitious, many things open at once, and a mind 
 
 ## Language
 
+**Headless second brain**:
+A personal collection whose everyday capture and retrieval are available inside the interfaces the person already uses, without requiring a separate organizing workspace. This is the human's current product description as of 2026-10-19; optional chat and administration surfaces can still exist.
+_Avoid_: a system with no user interface, an autonomous agent (as a synonym)
+
+**Search**:
+A person-initiated request to find something in their captured material, using whatever wording or clues they remember. This is an explicit part of the 2026-10-19 vision; earlier entries below use Retrieval more narrowly around a maker's point of decision.
+_Avoid_: automatic resurfacing (as a synonym), chat (as a prerequisite)
+
+**Resurfacing**:
+An optional encounter with one item of previously saved material, without first remembering and searching for it. Different strategies can create encounters, and the same item may appear again.
+_Avoid_: a menu of competing ideas, a guarantee that an item appears only once, search (as a synonym)
+
+**Resurfacing surface**:
+A place in the person's existing activity where saved material can appear: a browsing feed, a browser new tab, or a permitted message. The capture/search keyboard is not a resurfacing surface in the current vision.
+_Avoid_: a review destination the person must remember to visit
+
+**Resurfacing eligibility**:
+Whether material can be shown through an enabled resurfacing surface. Ideas and bookmarks are assessed automatically; private or uncertain material stays private, with no per-item excerpt approval.
+_Avoid_: mandatory approval queue, automatic permission for timed messages
+
+**Resurfacing context**:
+The person's captured material available for choosing what to resurface, including retained conversation history. Current webpage content and general browsing history are excluded from this selection context.
+_Avoid_: passive browsing capture, current-page topic matching
+
+**Chat**:
+One continuing conversation with an assistant, retaining its conversation history by default. The history can contribute to the person's wider captured material without per-passage save requests.
+_Avoid_: dialog (as a synonym), a separate new chat for each topic
+
+**Temporary chat segment**:
+An explicitly temporary part of a conversation that can read relevant saved material but adds nothing to the vault's retained history or derived memory. Ordinary chat remains retained by default.
+_Avoid_: hidden-but-retained chat, a promise about an external provider's retention
+
+**Checklist**:
+An interactive list tied to its original capture, whose items the person can mark complete. Capturing the list alone does not schedule reminders.
+_Avoid_: searchable prose only, an automatically scheduled commitment
+
+**Rich-text capture**:
+A document the person can write as a short thought or an essay using simple visual Markdown-style formatting, including bullets and explicit checkboxes. Its format does not require a separate filing decision.
+_Avoid_: a plain-text-only entry box, a mandatory task form
+
+**Due date**:
+The date by which a captured task or checklist is intended to be completed. Whether setting it also creates an alert is a separate product decision.
+_Avoid_: reminder time, timebox
+
+**Timebox**:
+A scheduled activity occupying a particular period in a calendar. It is distinct from a cue that reminds the person about an intention.
+_Avoid_: reminder, due date
+
+**Conversation history**:
+The record of what the person and the assistant said, with their roles and conversational context. A recorded speculation, quotation, or assistant response is not by itself a fact about the person.
+_Avoid_: personal facts (as a synonym), an assistant-written summary as the complete original
+
+**Chat memory**:
+The assistant's ability to use prior conversation in a later exchange. Its usefulness depends on retaining the relevant history and returning the appropriate context.
+_Avoid_: a guarantee of perfect recall, a requirement to paste all history into every answer
+
+**Reminder**:
+A commitment the person chooses to schedule so it can prompt them later. Saving a task-like thought alone does not create one.
+_Avoid_: task-like capture (as proof of scheduling), resurfacing (as a synonym)
+
+**Stop showing this**:
+A control that excludes an item from future resurfacing while retaining the saved material. Scrolling past an item leaves it eligible to return.
+_Avoid_: forget, delete, mark complete
+
+**Forget this**:
+Remove a selected conversation exchange and its derived memory across synced devices so it no longer returns through history, search, answers, or resurfacing.
+_Avoid_: hide from the chat view, stop showing this
+
 **Scattered ambitious**:
 A person with serious ambition who holds many open projects, switches context often, and whose intentions stop governing what they do. Hyperactivity and attention deficit describe the texture of that mind. The pattern is common now, including among people who are neurodivergent, and that prevalence is why the problem is urgent. A diagnosis is not required to be this person.
 _Avoid_: ADHD user, modern mind, young person, neurodivergent (as the name of the audience)
@@ -25,7 +93,7 @@ Put a piece out where other people can reach it: publish, release, post. The exi
 _Avoid_: launch metrics, engagement, finished (as a quality claim)
 
 **Capture**:
-A burst the person puts in by typing or speech, often several at once, without classifying it; separate thoughts and the maker's wording are preserved, allowing minor corrections for legibility. A capture retains a source or draft reference when available, and inferred connections remain revisable.
+Material the person deliberately saves without classifying it, including text, links, images, voice, or several thoughts together. It preserves the person's wording and original material, keeps a source reference when available, and allows inferred connections to change.
 _Avoid_: note-taking session, inbox zero
 
 **Dialog**:
@@ -41,24 +109,24 @@ An action that divides a large captured block of text into constituent atomic no
 _Avoid_: summarize, rewrite
 
 **Retrieval**:
-A dumped note offered back so the maker can take a point of decision. A note that only sits there has not retrieved anything. The product's second moment.
-_Avoid_: browse, knowledge base, search (as the job), inspiration
+Captured material returned to the person through search or optional resurfacing so they can recognize and use it. The returned material remains traceable to its original capture.
+_Avoid_: storage (as proof of retrieval), generated answer without sources
 
 **Act**:
 A point of decision. One click takes a dumped note to a place the maker chose. The piece is made after that. A dump without a point of decision has not succeeded.
 _Avoid_: engagement, review, streak, finished piece (as the act)
 
 **Buyer**:
-The maker. They use the product and they pay for it. An employer, school, parent, or clinician is not the buyer in this effort. Other scattered ambitious people are not the first buyer.
+The person who pays to use the product for their own personal information. A person using only the free local version is a user without yet being a buyer.
 _Avoid_: account, customer, enterprise seat
 
 **Maker**:
-A scattered ambitious person whose work is to ideate and then create or publish. The first buyer.
+A scattered ambitious person whose work is to ideate and then create or publish. Making is one part of the founder's whole-day use.
 _Avoid_: techbro, creative (as the whole audience), productivity user
 
 **Dump**:
-Thoughts a maker puts in when they arrive, as a stream, without organizing them. This is the point of thinking.
-_Avoid_: inbox, second brain, system
+Thoughts the person saves when they arrive, as a stream, without organizing them. This is the point of thinking.
+_Avoid_: inbox-zero process
 
 **Point of thinking**:
 The dump. A thought arrives, the maker puts it in, and does not organize it.

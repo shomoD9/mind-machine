@@ -1,6 +1,79 @@
 # Design
 
-This repo is finding its way to a product pitch. The product is not specified yet.
+This project is defining a headless second brain: capture without filing, then find and reuse saved material inside the apps the person already uses. Product and UX design are in progress; no app has been implemented.
+
+## Current research and requirements effort — 2026-10-19
+
+The human's latest direction is a **headless second brain**: capture thoughts, reflections, memories, tasks, lists, events, reminders, links, pictures, and voice without filing them, then retrieve them through simple, strong search. Everyday access lives in a secondary iPhone keyboard with Capture/Find/Chat and a Mac hotkey surface. A continuing remembered chat and external LLM access use the same vault; Temporary chat segments are excluded from retained memory.
+
+This session is producing evidence and a draft product requirements document before implementation. The latest brief and interview answers take precedence over the earlier scope; decisions and remaining boundaries are recorded explicitly. Earlier sections below remain a historical record. Mac-only, typing-only, maker/publishing-only, and the two-wiki proposal are not the current release specification; natural resurfacing now explicitly includes feed encounters.
+
+The decision frontier is recorded through selectable interview questions. Research covers firsthand public discussions, first-party alternatives, and Apple platform constraints. Product recommendations stay visibly provisional until the human answers and confirms shared understanding. No implementation stack has been selected.
+
+### Current documents
+
+- [PRD](PRD.md): current vision, jobs to be done, proposed acceptance examples, rough ASCII blueprints, platform constraints, and open decisions.
+- [UX journeys](UX.md): keyboard capture/search, feed/new-tab/message encounters, continuous chat, and the selected browser-based phone journey.
+- [Research synthesis](RESEARCH-2026-10-19.md): findings, counterevidence, coverage limits, and links to seven detailed reports, including direct X, UniiChat, and resurfacing-surface follow-ups.
+- [Private sync and optional AI decision](adr/0001-private-sync-and-optional-cloud-ai.md): the accepted privacy contract, with implementation unchosen.
+- [Headless second brain decision ticket](../.scratch/scattered-ambitious-pitch/issues/20-headless-second-brain.md): design tree and interview answers. It remains claimed until the product decisions are complete.
+- [Glossary](../CONTEXT.md): resolved domain language.
+
+### Confirmed in the first round — 2026-10-20
+
+- Design around the founder's whole day, including personal and creative material.
+- Include optional resurfacing and explore different strategies. Whether it is premium is undecided.
+- Save task-like thoughts immediately, then offer reminder creation. Do not equate a stored thought with a scheduled reminder.
+- Provide a free local experience with storage/retrieval and compatible local assistant access where feasible. Monetize sync. The human wants guidance on processing/privacy while keeping this stage focused on design and user experience.
+
+### Confirmed and redirected in round two — 2026-10-20
+
+- Sync is private: the sync service cannot read the content. Cloud AI is opt-in. Encryption/recovery implementation remains undecided.
+- The iPhone surface is a secondary capture/search keyboard. iPhone and Mac belong in the first release together.
+- Resurfacing appears naturally in the person's existing activity: X scrolling, YouTube Shorts, browser new tabs, and WhatsApp/SMS deadline cues. A resurfacing card in the keyboard was explicitly rejected. The phrase “once” was clarified in round three as one item per encounter, with repeats allowed.
+- Chat is one continuing conversation with its own retained history by default. The history can be used within the wider corpus. Per-passage inferred-save receipts and repeated save-approval prompts were rejected. UNIIChAT is a named research reference, with adoption and fit still unchosen.
+
+### Confirmed in round three — 2026-10-20
+
+- Each resurfacing encounter shows one item; the person does not choose between multiple ideas or bookmarks. Repeats are allowed. There is no once-ever or cross-surface once-only delivery requirement.
+- Ideas/bookmarks may be eligible for external resurfacing; private details stay in the vault. Personal chat passages and private reflections are excluded by default; private-deadline cues use neutral wording.
+- Timed messages require an accepted reminder. A captured deadline alone does not grant timed-message authority.
+- The iPhone browsing journey uses browser feeds plus new-tab/messages. Native X/YouTube feed insertion is outside the first-release promise; browser integrations remain to be tested.
+
+### Confirmed in round four — 2026-10-20
+
+- Tapping a thought opens its original private reading view, with Continue in chat available. A bookmark opens its saved destination.
+- Passing a resurfaced item leaves it eligible to return. Stop showing this excludes it from resurfacing while retaining the saved material.
+- Capture opens by default through the Mac hotkey or secondary keyboard; a single toggle reaches Find, preserving drafts.
+- Forget this removes the selected conversation exchange and derived memory across synced devices. Already-shared external copies have a separate boundary.
+
+After asking for clarification, the human chose automatic idea/bookmark eligibility with uncertain items kept private (Q13). The proposed per-item excerpt-approval step was rejected. This preserves immediate capture and automatic resurfacing; sensitivity quality, mixed captures, and correction behavior still need validation.
+
+### Confirmed and deferred in round five — 2026-10-20
+
+- Selection priorities (Q18) are deferred at the human's request. No recent-interest, neglected-item, or random-selection strategy is chosen; do not reopen that branch now.
+- Resurfacing uses captured material only. Do not use the current webpage/topic for relevance or retain general browsing history. The integration still needs to recognize an enabled surface to display its cue.
+- Captured to-do lists are interactive checklists linked to their originals. Capture alone creates no timed reminder.
+- Chat is also a keyboard mode. The keyboard now offers Capture, Find, and Chat; a resurfacing card remains excluded. Detailed keyboard Chat layout and Mac chat placement remain open.
+- Offer explicit Temporary chat segments excluded from retained vault history and derived memory. Ordinary chat remains saved by default; access to existing memory and segment lifecycle remain to design.
+
+### Confirmed and refined in round six — 2026-10-20
+
+- Capture is a full, lightweight, visual Markdown-style rich-text document, usable for an essay, bullets, or explicit checkbox lists. Respect author-chosen formatting. The earlier “clearly written lists” conversion proposal is superseded by this editor-and-post-save-offer model.
+- A saved action sentence can receive a non-blocking soft reminder prompt, with date/time selectors beneath it. Checklists remain interactive; a due-date offer is proposed, with date-versus-alert and list-versus-item scope still Q27–Q28.
+- Unfinished items are available through Open tasks in Find and through Chat, retaining links to original captures.
+- This app owns reminders. Optional Apple/Google Calendar connections and calendar timeboxing are a later direction; the human asked to solve the current problems first. No calendar synchronization or automatic timeboxing is added to current scope.
+- Temporary chat can read relevant saved material and saves no new segment content or derived memory.
+
+The current questions are Q27 due date versus alert and Q28 checklist date scope. Selection priorities remain deferred. The platform follow-up supports a compact keyboard-Chat concept for testing but supplies no supported keyboard-to-companion launch. No such handoff is promised.
+
+The UniiChat reference is verified as Victor Taelin's official Apache-2.0 project and creator announcement. Its original-log plus navigable-summary approach informs the chat refinement: history is retained without save prompts, while retrieval preserves attribution and tentative statements. Its server/inference/client arrangement has not been chosen for this product. The source report is pinned to an inspected commit and distinguishes retention from measured recall.
+
+The keyboard is a frequent access surface rather than a guarantee of universal availability. Share-sheet and companion capture cover media and contexts the keyboard cannot support. The PRD records those constraints without choosing a technical stack. Open Design CLI help works, but the default daemon endpoint was unreachable; this draft uses ASCII blueprints and has no Open Design board.
+
+## Earlier design baseline — through 2026-10-02
+
+The sections below preserve the earlier pitch and its reasoning. Where they conflict with the current whole-day direction, the PRD and ticket 20 identify the change. They are not the current complete release specification.
 
 ## Where this is going
 

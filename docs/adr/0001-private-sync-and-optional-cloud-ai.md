@@ -1,0 +1,3 @@
+# Private synchronization and optional cloud AI
+
+The vault includes personal captures and retained conversation history, while the product needs both usable local copies and paid cross-device synchronization. On 20 October 2026 the human chose sync whose service cannot read the content, with cloud AI available only after explicit opt-in, over default server processing of synced captures. This privacy promise constrains future organization, retrieval, recovery, and sync designs; no encryption protocol, model, or hosting provider is selected here. Disclosure through an external chat client, feed, or message channel has its own permission boundary and must be designed separately.
