@@ -10,23 +10,104 @@
     "Phone / Open tasks": 184,
     "Phone / Temporary": 210,
     "Keyboard / Capture": 230,
-    "Keyboard / Find": 319,
-    "Keyboard / Chat": 407,
-    "Keyboard / Saved": 495,
-    "Keyboard / Original": 583,
-    "Keyboard / Inserted": 672,
-    "Sizing / Minimised": 758,
-    "Sizing / Default": 844,
-    "Sizing / Expanded": 934,
-    "Mac / Capture": 1024,
-    "Mac / Find": 1040,
-    "Mac / Chat": 1057
+    "Keyboard / Find": 320,
+    "Keyboard / Chat": 409,
+    "Keyboard / Saved": 498,
+    "Keyboard / Original": 587,
+    "Keyboard / Inserted": 677,
+    "Sizing / Minimised": 764,
+    "Sizing / Default": 851,
+    "Sizing / Expanded": 942,
+    "Focus / Note": 1029,
+    "Focus / Host app": 1119,
+    "Mac / Capture": 1209,
+    "Mac / Find": 1225,
+    "Mac / Chat": 1242
   },
   "components": {
     "primary": 6,
     "secondary": 8,
     "key": 14
   },
-  "expectedNodes": 1079,
-  "commandCount": 1579
+  "expectedNodes": 1265,
+  "commandCount": 1852,
+  "hostLayout": {
+    "230": {
+      "composer": 239,
+      "composer_text": 240,
+      "composer_y": 294,
+      "pad_top": 356,
+      "target": "note"
+    },
+    "320": {
+      "composer": 329,
+      "composer_text": 330,
+      "composer_y": 294,
+      "pad_top": 356,
+      "target": "note"
+    },
+    "409": {
+      "composer": 418,
+      "composer_text": 419,
+      "composer_y": 294,
+      "pad_top": 356,
+      "target": "note"
+    },
+    "498": {
+      "composer": 507,
+      "composer_text": 508,
+      "composer_y": 294,
+      "pad_top": 356,
+      "target": "note"
+    },
+    "587": {
+      "composer": 596,
+      "composer_text": 597,
+      "composer_y": 294,
+      "pad_top": 356,
+      "target": "note"
+    },
+    "677": {
+      "composer": 686,
+      "composer_text": 687,
+      "composer_y": 294,
+      "pad_top": 356,
+      "target": "note"
+    },
+    "764": {
+      "composer": 773,
+      "composer_text": 774,
+      "composer_y": 462,
+      "pad_top": 524,
+      "target": "note"
+    },
+    "851": {
+      "composer": 860,
+      "composer_text": 861,
+      "composer_y": 294,
+      "pad_top": 356,
+      "target": "note"
+    },
+    "942": {
+      "composer": 947,
+      "composer_text": 948,
+      "composer_y": 102,
+      "pad_top": 164,
+      "target": "note"
+    },
+    "1029": {
+      "composer": 1038,
+      "composer_text": 1039,
+      "composer_y": 294,
+      "pad_top": 356,
+      "target": "note"
+    },
+    "1119": {
+      "composer": 1128,
+      "composer_text": 1129,
+      "composer_y": 294,
+      "pad_top": 356,
+      "target": "app"
+    }
+  }
 }

@@ -2,7 +2,7 @@
 
 Open [native-mvp.figcraft](native-mvp.figcraft) in FigCraft. The canvas is the current design source. The earlier browser preview is superseded.
 
-The human requested functional, clean industrial minimalism, entirely greyscale, with no brand-kit work. This pass concentrates on state and controls. It contains 21 top-level frames: six primary keyboard states, three pad-size states, eight secondary companion states, three Mac panels, and a component shelf. Five actual components are used by linked instances; four prototype flows connect the main states. The canvas has 1,079 editable nodes. The opening page is **01 · Keyboard first**, followed by **02 · Pad sizes**, **03 · Mac hotkey**, **04 · Companion and setup**, and **05 · Components**.
+The human requested functional, clean industrial minimalism, entirely greyscale, with no brand-kit work. This pass concentrates on state and controls. It contains 23 top-level frames: six primary keyboard states, three pad-size states, two typing-destination states, eight secondary companion states, three Mac panels, and a component shelf. Five actual components are used by linked instances; five prototype flows connect the main states. The canvas has 1,265 editable nodes. The opening page is **01 · Keyboard first**, followed by **02 · Pad sizes**, **03 · Typing destination**, **04 · Mac hotkey**, **05 · Companion and setup**, and **06 · Components**.
 
 ![Keyboard Capture](<exports/Keyboard _ Capture.png>)
 
@@ -10,7 +10,13 @@ The human requested functional, clean industrial minimalism, entirely greyscale,
 
 The notepad is the everyday capture surface, inside the keyboard extension above the keys. Find opens the original within the keyboard; Insert is explicit. Maya in the earlier mock was a fictional contact in the host app, never the app name. Current screens use EXAMPLE HOST APP.
 
-[Compare pad sizes](pad-sizes.png): Minimised, Default and Expanded show the same note/caret. The collapsed note still receives typing. These are sizing targets, not measured iPhone height limits. The Size prototype hotspot cycles through the three examples; final control presentation still needs implementation. Mac window resizing/fullscreen and inheriting another keyboard are described in the [roadmap](../ROADMAP.md).
+[Compare pad sizes](pad-sizes.png): Minimised, Default and Expanded show the same note/caret. The collapsed note still receives typing when Note is active; minimising alone does not switch to App. These are sizing targets, not measured iPhone height limits. The Size prototype hotspot cycles through the three examples; final control presentation still needs implementation. Mac window resizing/fullscreen and inheriting another keyboard are described in the [roadmap](../ROADMAP.md).
+
+## Composer and focus correction
+
+The host composer now follows the top of the complete keyboard workspace in every size, including Expanded. It stays visible in these representative mocks; actual host layout belongs to that app. [Compare destinations](typing-destination.png): tap the host field to select App or tap the note to select Note. The caret, active border and destination indicator change together. Size changes preserve the selected destination. These are designed states; native focus handling is not validated.
+
+The tappable Typing indicator is a proposed safeguard for cases where host taps are not observable. The native experiment must check unchanged-caret taps and a private text view’s responder transitions before promising tap-only switching across all hosts. [Platform research](../../.scratch/scattered-ambitious-pitch/research/25-keyboard-focus-and-host-layout-2026-10-20.md).
 
 ## Files
 

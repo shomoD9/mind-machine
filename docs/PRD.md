@@ -67,7 +67,11 @@ These are rough interaction sketches. The platform review found a callable Open 
 
 The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Find, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
 
-Minimised, Default and Expanded sizes preserve the same draft and cursor. Minimised retains a single visible note line and continues typing into the note; it does not redirect input to the host app. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified. See [experience roadmap](ROADMAP.md). The first FigCraft page is Keyboard first; companion screens follow on a secondary page.
+Minimised, Default and Expanded sizes preserve both drafts, their cursor positions and the active typing destination. Minimised retains a single visible note line. Minimising alone does not redirect note input into the host app; the person can explicitly select the host field or return to the notepad. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified. See [experience roadmap](ROADMAP.md). The first FigCraft page is Keyboard first; companion screens follow on a secondary page.
+
+### Host field and note focus
+
+The host composer should remain immediately above the complete keyboard/notepad workspace as it grows or shrinks. The person can tap the host field to type there, then tap the note to type in the note, without switching keyboards. Initial Capture focus is Note; a size change preserves the current destination. The active destination must be visible. These are the desired interactions; host layout and unchanged-caret focus transitions require native validation. A destination-selector safeguard is shown as a proposal. See [layout/focus details](ROADMAP.md#host-composer-and-typing-destination--20-october-clarification).
 
 ### The captured note is a rich document
 

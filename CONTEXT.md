@@ -41,8 +41,12 @@ The phone's primary Capture/Find/Chat surface, with a private notepad above the 
 _Avoid_: a required trip to a standalone notes app, an overlay with unrestricted access to other apps
 
 **Pad size**:
-The person-chosen amount of writing or retrieval space: Minimised, Default or Expanded. Minimising keeps note input active and the host draft unchanged; resizing preserves the same draft and caret.
+The person-chosen amount of writing or retrieval space: Minimised, Default or Expanded. Resizing preserves the current typing destination and both drafts/cursors. Minimising alone keeps an active note input directed into the note; explicit host-field selection changes the destination.
 _Avoid_: changing typing destination, saving or discarding a draft
+
+**Typing destination**:
+The field receiving the keyboard’s current input: the host app’s field or the private Capture, Find or Chat input. Initial Capture selects the note; explicit selection can change the destination without changing keyboards.
+_Avoid_: changing destination merely because the notepad changes size, capturing host keystrokes as notes automatically
 
 **Checklist**:
 An interactive list tied to its original capture, whose items the person can mark complete. Capturing the list alone does not schedule reminders.

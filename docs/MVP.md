@@ -33,9 +33,13 @@ The app uses greyscale surfaces, one neutral type family, thin dividers, a writi
 
 ## Writing-space control
 
-Minimised, Default and Expanded sizes preserve the same draft and cursor. Minimised retains a single visible note line and continues typing into the note; it does not redirect input to the host app. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified.
+Minimised, Default and Expanded sizes preserve both drafts, their cursor positions and the active typing destination. Minimised retains a single visible note line. Minimising alone does not redirect note input into the host app; the person can explicitly select the host field or return to the notepad. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified.
 
 See the [size comparison](design/pad-sizes.png) and [platform/roadmap boundaries](ROADMAP.md). Inheritance of the person’s preferred keyboard is a future research item.
+
+## Host-field focus
+
+The host composer follows the top of the complete keyboard workspace. The person should be able to select App input by tapping it and return to Note input by tapping the pad, using the same keys. Initial Capture selects Note; resizing preserves the active target and both drafts/cursors. Show the destination clearly. The [focus design](design/typing-destination.png) includes an explicit destination switch as a proposed fallback; native tap/responder behavior is unverified. See [focus research](../.scratch/scattered-ambitious-pitch/research/25-keyboard-focus-and-host-layout-2026-10-20.md).
 
 ## Capture and reminder flow
 

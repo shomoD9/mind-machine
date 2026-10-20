@@ -14,11 +14,17 @@ The decision frontier is recorded through selectable interview questions. Resear
 
 The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Find, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
 
-Minimised, Default and Expanded sizes preserve the same draft and cursor. Minimised retains a single visible note line and continues typing into the note; it does not redirect input to the host app. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified. The human requested future inheritance of their existing default keyboard; public iOS APIs do not establish a universal overlay over another keyboard. This remains a roadmap investigation, without changing the current custom-extension route.
+Minimised, Default and Expanded sizes preserve both drafts, their cursor positions and the active typing destination. Minimised retains a single visible note line. Minimising alone does not redirect note input into the host app; the person can explicitly select the host field or return to the notepad. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified. The human requested future inheritance of their existing default keyboard; public iOS APIs do not establish a universal overlay over another keyboard. This remains a roadmap investigation, without changing the current custom-extension route.
 
-The FigCraft file is reorganized into Keyboard first, Pad sizes, Mac hotkey, Companion and setup, and Components pages. “Maya” was a fictional host-app contact in the previous mock; it was never an app name. It is removed from current screens. Functional greyscale styling remains. No native feature work was added during this design clarification.
+The FigCraft file is reorganized into Keyboard first, Pad sizes, Typing destination, Mac hotkey, Companion and setup, and Components pages. “Maya” was a fictional host-app contact in the previous mock; it was never an app name. It is removed from current screens. Functional greyscale styling remains. No native feature work was added during this design clarification.
 
 Native foundation status: shared Swift models/storage, eight domain tests, and a preliminary unconnected presentation model exist. No app executable, registered hotkey, installed keyboard or working sync exists. The empty Mac executable declaration was removed so the source checkpoint can be validated honestly. See [native status](../native/README.md).
+
+### Host composer and focus correction — 2026-10-20
+
+The human pointed out that the mock host composer should move with the keyboard workspace. The generator now anchors it above the full extension at each size, rather than at one fixed screen coordinate; the expanded example keeps the composer visible while its conversation viewport shrinks. This is a representative host layout, not authority to control another app’s composer.
+
+Tap-host-to-type-in-host and tap-note-to-type-in-note are the desired interaction. Initial Capture selects Note; size changes preserve whichever destination is active. The new Typing destination page shows both carets/drafts and an active-field indication. The indicator is tappable as a proposed fallback because callbacks do not guarantee every unchanged-caret host tap. A first-responder solution remains plausible and untested. No new native feature implementation occurred during this correction. [Research](../.scratch/scattered-ambitious-pitch/research/25-keyboard-focus-and-host-layout-2026-10-20.md).
 
 ### Current documents
 

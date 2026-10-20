@@ -15,6 +15,7 @@ next_id = 2
 children = {}
 frames = {}
 hotspots = []
+screen_parts = {}
 C = {'canvas':'#E8E8E8','paper':'#F5F5F5','surface':'#FBFBFB',
      'ink':'#242424','muted':'#666666','line':'#D6D6D6','soft':'#E9E9E9',
      'inverse':'#F9F9F9','key':'#FCFCFC','keybed':'#DADADA'}
@@ -252,7 +253,7 @@ button(f,24,584,'Return to remembered chat',quiet=True)
 rect(f,24,666,345,60,'surface',4,stroke='line');text(f,38,683,'Message…',14,w=290,color='muted')
 
 # Keyboard screens include a fictional host app to expose the private-input boundary.
-def keys(parent,y):
+def keys(parent,y,destination="Note"):
     """Place linked key instances; the extension owns this typing plane."""
     rect(parent,0,y,393,218,'keybed')
     for row,letters in enumerate(['QWERTYUIOP','ASDFGHJKL','ZXCVBNM']):
@@ -267,19 +268,30 @@ def keys(parent,y):
     rect(parent,82,y+152,228,42,'key',4);text(parent,160,y+162,'space',13,w=90)
     rect(parent,318,y+152,68,42,'soft',4);text(parent,328,y+162,'return',12,w=58)
     text(parent,18,y+198,'◉',14,w=30)
-    text(parent,85,y+199,'Private pad · host draft stays unchanged',10,w=275,color='muted')
+    toggle=text(parent,85,y+199,'Typing: '+destination+' · tap to switch',11,w=275,color='muted')
+    hotspots.append((toggle,'Focus / Note' if destination=='App' else 'Focus / Host app'))
 
 
-def keyboard(name,x,mode,pad_top=356):
+def keyboard(name,x,mode,pad_top=356,target="note"):
     """A compact three-mode extension leaves room for actual keyboard keys."""
     f=frame(name,x,1880)
     status(f)
     text(f,24,78,'EXAMPLE HOST APP',11,w=260,color='muted')
-    text(f,24,123,'Your conversation stays here',17,w=345,weight=500)
-    rect(f,24,190,285,72,'soft',12)
-    text(f,40,206,'Do you have the link to that\nweekend project?',15,w=252,h=54)
-    rect(f,24,294,345,48,'surface',20,stroke='line')
-    text(f,40,307,'Let me find it…',14,color='muted')
+    # This host illustration reflows independently of our workspace. The host
+    # owns its composer; the design shows an anchor above the extension, not an
+    # overlay drawn by our app. Short viewports clip conversation history first.
+    conversation_h=max(0,pad_top-186)
+    if conversation_h>0:
+        conversation=node('frame',f,0,112,393,conversation_h,'Host conversation viewport',fill=C['paper'],clip=True)
+        text(conversation,24,11,'Your conversation stays here',17,w=345,weight=500)
+        rect(conversation,24,65,285,72,'soft',12)
+        text(conversation,40,81,'Do you have the link to that\nweekend project?',15,w=252,h=54)
+    composer_y=pad_top-62
+    composer=rect(f,24,composer_y,345,48,'surface',20,stroke='ink' if target=='app' else 'line')
+    composer_text=text(f,40,composer_y+13,'Let me find it…│' if target=='app' else 'Let me find it…',14,color='ink' if target=='app' else 'muted')
+    hotspots.append((composer,'Focus / Host app'))
+    hotspots.append((composer_text,'Focus / Host app'))
+    screen_parts[f]={'composer':composer,'composer_text':composer_text,'composer_y':composer_y,'pad_top':pad_top,'target':target}
     # The note grows upward inside a taller requested extension. It never draws
     # a separate window over the host; the letter keys retain their positions.
     rect(f,0,pad_top,393,852-pad_top,'paper')
@@ -290,12 +302,13 @@ def keyboard(name,x,mode,pad_top=356):
         hotspots.append((ident,'Keyboard / '+label))
     resize=text(f,302,pad_top+17,'Size ↕',12,w=82)
     hotspots.append((resize,{'Sizing / Expanded':'Sizing / Minimised','Sizing / Minimised':'Sizing / Default'}.get(name,'Sizing / Expanded')))
-    keys(f,612)
+    keys(f,612,'App' if target=='app' else {'Capture':'Note','Find':'Search','Chat':'Chat'}[mode])
     rect(f,132,841,129,4,'ink',2)
     return f
 
 f=keyboard('Keyboard / Capture',0,'Capture')
-rect(f,16,414,361,130,'surface',4,stroke='line')
+note_input=rect(f,16,414,361,130,'surface',4,stroke='line')
+hotspots.append((note_input,'Focus / Note'))
 text(f,28,426,'Write a note here…',17,w=337,color='muted')
 text(f,28,516,'B   I   • List   ☐ Checklist',12,w=337,color='muted')
 b=button(f,272,550,'Save',103);hotspots.append((b,'Keyboard / Saved'))
@@ -329,7 +342,7 @@ b=button(f,272,554,'Insert',103);hotspots.append((b,'Keyboard / Inserted'))
 f=keyboard('Keyboard / Inserted',2150,'Find')
 text(f,18,423,'Inserted into your host draft',15,w=357,weight=500)
 text(f,18,468,'Your original stays in the vault.',12,w=357,color='muted')
-text(f,18,560,'Switch keyboard to continue your reply.',12,w=357,color='muted')
+text(f,18,560,'Tap the app’s text box to continue your reply.',11,w=357,color='muted')
 # Replace the fictional host draft only in this explicit-insertion state.
 # The host label is presentation context, not the app's name.
 for entry in reversed(commands):
@@ -356,6 +369,19 @@ for state,x,top,editor_y,editor_h in [('Minimised',0,524,574,30),('Default',430,
         text(editor,12,editor_h-29,'B   I   • List   ☐ Checklist',12,w=337,color='muted')
         button(f,272,550,'Save',103)
         text(f,18,563,'Note input · '+state.lower(),11,w=237,color='muted')
+# Two states expose the destination independently of pad size. Tap transitions
+# are the desired interaction; the explicit footer switch is a supported fallback
+# if a host does not emit a usable text/selection change callback.
+for label,x,target in [('Note',0,'note'),('Host app',430,'app')]:
+    f=keyboard('Focus / '+label,x,'Capture',target=target)
+    editor=node('frame',f,16,414,361,130,'Private note input',fill=C['surface'],
+                cornerRadius=4,stroke=C['ink'] if target=='note' else C['line'],strokeWeight=2 if target=='note' else 1,clip=True)
+    text(editor,12,12,'Maybe add a second shelf later.'+('│' if target=='note' else ''),14,w=337,h=70)
+    text(editor,12,101,'B   I   • List   ☐ Checklist',12,w=337,color='muted')
+    hotspots.append((editor,'Focus / Note'))
+    text(f,18,563,'Note draft is kept.' if target=='app' else 'App draft is kept.',11,w=237,color='muted')
+    button(f,272,550,'Save',103)
+
 # Mac is a dismissible native panel over the current app, not a dashboard.
 def mac(name,x,mode):
     """Keep one small panel with modes, status, and an Escape exit cue."""
@@ -400,9 +426,10 @@ cmd('proto.flow.add',start=frames['Keyboard / Capture'],name='START HERE · Keyb
 cmd('proto.flow.add',start=frames['Phone / Capture'],name='Secondary · Companion app')
 cmd('proto.flow.add',start=frames['Mac / Capture'],name='Mac hotkey panel')
 cmd('proto.flow.add',start=frames['Sizing / Default'],name='Same draft · three pad sizes')
+cmd('proto.flow.add',start=frames['Focus / Note'],name='Note input ↔ host input')
 # Separate primary and supporting surfaces into named pages. Opening the file
 # starts with keyboard flows; companion screens no longer lead the presentation.
-for page_name,prefix in [('02 · Pad sizes','Sizing /'),('03 · Mac hotkey','Mac /'),('04 · Companion and setup','Phone /'),('05 · Components','Components /')]:
+for page_name,prefix in [('02 · Pad sizes','Sizing /'),('03 · Typing destination','Focus /'),('04 · Mac hotkey','Mac /'),('05 · Companion and setup','Phone /'),('06 · Components','Components /')]:
     page_id=next_id
     next_id+=1
     cmd('page.add',name=page_name)
@@ -424,5 +451,5 @@ cmd('inspect.code',id=primary,language='swiftui')
 # Keep the command stream and node manifest next to the native file for handoff.
 OUT.mkdir(exist_ok=True)
 (OUT/'native-mvp.commands.json').write_text(json.dumps(commands,indent=2,ensure_ascii=False)+'\n')
-(OUT/'native-mvp.manifest.json').write_text(json.dumps({'frames':frames,'components':{'primary':primary,'secondary':secondary,'key':key},'expectedNodes':next_id-1,'commandCount':len(commands)},indent=2)+'\n')
+(OUT/'native-mvp.manifest.json').write_text(json.dumps({'frames':frames,'components':{'primary':primary,'secondary':secondary,'key':key},'expectedNodes':next_id-1,'commandCount':len(commands),'hostLayout':screen_parts},indent=2)+'\n')
 print(f'{len(commands)} commands; {len(frames)} top-level frames; {next_id-1} expected nodes')
