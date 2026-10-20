@@ -1,11 +1,11 @@
 # Native capture/refind checkpoint — 2026-10-20
 
-Ticket 01 is implemented in source and remains claimed until the custom keyboard capture/Find/Insert interaction is verified. Mac hotkey and companion capture/refind now have runtime evidence. This report records current evidence without treating compilation as launch.
+Ticket 01 is resolved after the human confirmed the complete custom-keyboard capture/Find/original/Insert flow. Mac hotkey and companion capture/refind now have runtime evidence. This report records current evidence without treating compilation as launch.
 
 ## Build and tests
 
 - Xcode 26.2 / Swift native targets: SecondBrain, SecondBrainKeyboard and SecondBrainMac compile.
-- SwiftPM: ten tests pass at the saved-vault and public workspace boundaries.
+- At the ticket-01 checkpoint, SwiftPM: ten tests passed at the saved-vault and public workspace boundaries.
 - Test-first save/reopen/refind cycle: missing API failed compilation, then the implemented retrieval returned the exact persisted original. Unrelated search returned nothing and capture created no reminder.
 - Test-first activation cycle: missing activation API failed compilation, then the shared operation returned to Capture without destroying Capture/Find/Chat drafts.
 - Commands are in [native README](../../native/README.md). Build outputs/logs remain under /tmp, outside Git.
@@ -21,7 +21,7 @@ The embedded keyboard was initially registered in PlugInKit but absent from Sett
 
 The keyboard is enabled and renders its private Capture workspace. Full Access was granted **only in the simulator**, after automatic approval review required and the human supplied explicit action-time permission. The companion's setup content now scrolls while a bottom safe-area inset keeps its composer immediately above the complete extension; verified in the running simulator.
 
-The UI tool does not expose this extension's controls in its simulator AX tree and returns noWindowsAvailable for coordinate actions on its custom keys. Explicit accessibility-order instrumentation did not improve that and was removed. A human-assisted custom-key capture → Find → Insert check is pending. The ticket remains claimed. Real-phone installation/sync still need signing, account and device proof.
+The UI tool does not expose this extension's controls in its simulator AX tree and returns noWindowsAvailable for coordinate actions on its custom keys. Explicit accessibility-order instrumentation did not improve that and was removed. The human confirmed that custom-key capture → Find → original → Insert passed: the host field stayed unchanged until explicit Insert and then received the saved text. Ticket 01 is resolved. Real-phone installation/sync still need signing, account and device proof.
 
 ## Standards
 
@@ -29,7 +29,7 @@ Independent review required by the invoked code-review skill found stale living-
 
 ## Spec
 
-Independent review found keyboard reactivation could retain Find/Chat. Both native entry points now call the shared tested activateCapture operation, and the keyboard restores its visible Capture/private-note controls. Recheck found zero remaining code findings for ticket 01; interaction evidence remains outstanding.
+Independent review found keyboard reactivation could retain Find/Chat. Both native entry points now call the shared tested activateCapture operation, and the keyboard restores its visible Capture/private-note controls. Recheck found zero remaining code findings for ticket 01; the human subsequently confirmed the remaining keyboard interaction evidence.
 
 ## Release boundaries
 

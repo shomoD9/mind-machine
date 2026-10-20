@@ -47,12 +47,14 @@ public struct WorkspaceView: View {
     private var capture: some View {
         VStack(alignment: .leading) {
             Text("What’s on your mind?").font(.headline)
-            TextEditor(text: $model.draft).accessibilityLabel("Private note").accessibilityIdentifier("capture-editor")
+            RichNoteEditor(text: $model.draft, richText: $model.richDraft)
                 .font(.body).frame(minHeight: 150)
             HStack {
                 Text("No filing needed").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Save") { model.saveCapture() }.keyboardShortcut(.return, modifiers: .command)
+                    .buttonStyle(.plain).padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Color.primary.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 6))
                     .disabled(model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("save-capture")
             }
@@ -88,7 +90,15 @@ public struct WorkspaceView: View {
         VStack(alignment: .leading, spacing: 12) {
             Button("Back to Find") { model.selectedCapture = nil; model.mode = 1 }
             Text(original.createdAt, style: .date).font(.caption)
-            ScrollView { Text(original.text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+            ScrollView {
+                if let rich = original.richText,
+                   let content = try? NSAttributedString(data: rich, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil),
+                   content.string == original.text {
+                    Text(AttributedString(content)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text(original.text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
         }
     }
 

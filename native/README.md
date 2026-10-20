@@ -24,8 +24,14 @@ The keyboard refuses to create an isolated vault when the shared container is un
 
 ## Remaining work
 
-Ticket 01 remains in progress pending custom-keyboard capture → Find → original → Insert verification. Mac and companion save/refind/original UI checks passed, and the human confirmed the real global hotkey. The keyboard is enabled and renders in the simulator, with Full Access explicitly authorized for this simulator only. The corrected host composer stays above the complete keyboard workspace. Ten package tests pass; the UI tool cannot target custom keys (noWindowsAvailable), so a human-assisted keyboard check is pending. Pad sizes, rich editing, reliable tap-to-host routing, reminder controls/delivery, searchable remembered chat/Forget, encrypted sync, media and release validation remain subsequent tickets. Chat UI calls the initial real Ollama-compatible adapter when configured; no bundled model or server is provided. Its existing model is not yet a complete remembered-chat implementation. Never infer feature completion from a control being present.
+Ticket 01 is resolved: the human confirmed keyboard capture → Find → original → Insert, with the host unchanged until Insert. Mac and companion UI checks passed and the real global hotkey was confirmed. Full Access was authorized only in the simulator. Real-phone proof remains a release gate.
+
+Ticket 02 is in progress. The keyboard now offers Min/Default/Expanded through its Size control and preserves independent mode drafts, selections, formatting and destination. Native visual editors provide Bold, Italic, Bullet and Checkbox controls, preserving RTF beside exact original text. The original reader renders matching saved RTF with a text fallback. Selected paragraphs can become a complete authored checklist; capturing alone schedules nothing. The Mac visual bold → Save → Find → reopen path was exercised and retained its formatting. The full package suite now passes 16 tests. New keyboard size/focus interactions still need native observation; the simulator tool cannot reliably target extension controls.
+
+Reminder management/delivery, complete remembered chat/Forget, encrypted sync, media and release verification retain their subsequent tickets. Chat calls the preliminary configured Ollama-compatible adapter; no model/server is bundled and remembered-chat acceptance is incomplete. Never infer completion from a visible control.
 
 The local JSON document is plaintext device storage, **never the sync payload**. Private app-encrypted replication and account/key provisioning remain ticket 05. No CloudKit container is provisioned and no two-device sync has been verified. See [sync research](../.scratch/scattered-ambitious-pitch/research/24-native-pilot-sync-and-distribution-2026-10-20.md).
 
 See [checkpoint evidence](../docs/verification/native-capture-checkpoint.md) for commands, results and remaining acceptance gates.
+
+See [editing checkpoint](../docs/verification/native-editing-checkpoint.md) for ticket-02 evidence and pending native checks.

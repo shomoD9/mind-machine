@@ -14,6 +14,7 @@ public final class VaultModel: ObservableObject {
     @Published public var notice: String?
     @Published public var mode = 0
     @Published public var draft = ""
+    @Published public var richDraft: Data?
     @Published public var query = ""
     @Published public var chatDraft = ""
     @Published public var temporary = false
@@ -65,15 +66,17 @@ public final class VaultModel: ObservableObject {
 
     public func saveCapture() {
         guard !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        // Only explicit Markdown checkboxes become tasks; bullets remain text.
+        // Explicit visual/Markdown checkboxes become tasks; bullets remain text.
         let items = draft.components(separatedBy: .newlines).compactMap { line -> ChecklistItem? in
+            if line.hasPrefix("☐ ") { return ChecklistItem(text: String(line.dropFirst(2))) }
+            if line.hasPrefix("☑ ") { return ChecklistItem(text: String(line.dropFirst(2)), complete: true) }
             if line.hasPrefix("- [ ] ") { return ChecklistItem(text: String(line.dropFirst(6))) }
             if line.hasPrefix("- [x] ") { return ChecklistItem(text: String(line.dropFirst(6)), complete: true) }
             return nil
         }
-        let capture = Capture(text: draft, checklist: items)
+        let capture = Capture(text: draft, richText: richDraft, checklist: items)
         if change({ $0.captures.append(capture) }) {
-            draft = ""; notice = "Saved on this device"
+            draft = ""; richDraft = nil; notice = "Saved on this device"
             // A soft offer follows persistence and does not classify or rewrite it.
             let action = capture.text.lowercased().trimmingCharacters(in: .whitespaces)
             if !items.isEmpty || ["buy ","call ","apply ","remember ","send ","book "].contains(where: action.hasPrefix) {

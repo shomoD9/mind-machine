@@ -17,9 +17,18 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
     private let save = UIButton(type: .system)
     private let modes = UISegmentedControl(items: ["Capture", "Find", "Chat"])
     private let keyplane = UIStackView()
+    private let formatting = UIStackView()
+    private let sizeButton = UIButton(type: .system)
+    private var workspace = KeyboardWorkspace()
+    private var workspaceHeight: NSLayoutConstraint?
+    private var resultsHeight: NSLayoutConstraint?
+    private var restoringEditor = false
     private var model: VaultModel?
     private var subscriptions: Set<AnyCancellable> = []
-    private var hostInput = false
+    private var hostInput: Bool {
+        get { workspace.destination == .app }
+        set { workspace.selectDestination(newValue ? .app : .privatePad) }
+    }
     private var shift = false
     private var numbers = false
     private var height: NSLayoutConstraint?
@@ -50,6 +59,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
         retainDraft()
         model?.activateCapture()
         modes.selectedSegmentIndex = 0
+        workspace.selectMode(.capture)
         selected = nil; hostInput = false
         refreshMode()
     }
@@ -65,10 +75,10 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
         // Request enough extension space for the private pad plus keyplane.
         // The system/host still owns the final available height.
         inputView?.allowsSelfSizing = true
-        let workspaceHeight = view.heightAnchor.constraint(equalToConstant: 500)
-        workspaceHeight.priority = .defaultHigh
-        workspaceHeight.isActive = true
-        stack.axis = .vertical; stack.spacing = 6; stack.translatesAutoresizingMaskIntoConstraints = false
+        workspaceHeight = view.heightAnchor.constraint(equalToConstant: 470)
+        workspaceHeight?.priority = .defaultHigh
+        workspaceHeight?.isActive = true
+        stack.axis = .vertical; stack.spacing = 4; stack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
@@ -79,7 +89,13 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
         modes.selectedSegmentIndex = 0
         modes.addTarget(self, action: #selector(changeMode), for: .valueChanged)
         modes.accessibilityIdentifier = "keyboard-mode"
-        stack.addArrangedSubview(modes)
+        let header = UIStackView(arrangedSubviews: [modes, sizeButton])
+        header.spacing = 6
+        modes.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        sizeButton.setContentHuggingPriority(.required, for: .horizontal)
+        sizeButton.addTarget(self, action: #selector(changeSize), for: .touchUpInside)
+        sizeButton.accessibilityIdentifier = "pad-size"
+        stack.addArrangedSubview(header)
         destination.setTitle("Typing into: Private note", for: .normal)
         destination.addTarget(self, action: #selector(toggleDestination), for: .touchUpInside)
         destination.accessibilityIdentifier = "typing-destination"
@@ -89,6 +105,18 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
         editor.font = .preferredFont(forTextStyle: .body)
         editor.backgroundColor = .secondarySystemBackground
         editor.layer.cornerRadius = 6
+        // Rich formatting stays inside the private note. Search and chat remain
+        // plain inputs, and authored checkboxes retain their visible source glyph.
+        editor.allowsEditingTextAttributes = true
+        formatting.distribution = .fillEqually
+        for format in NoteFormat.allCases {
+            let control = UIButton(type: .system)
+            control.setTitle(format.rawValue, for: .normal)
+            control.accessibilityLabel = format == .checkbox ? "Checkbox" : format == .bullet ? "Bullet" : format.rawValue
+            control.addAction(UIAction { [weak self] _ in self?.formatNote(format) }, for: .touchUpInside)
+            formatting.addArrangedSubview(control)
+        }
+        stack.addArrangedSubview(formatting)
         editor.delegate = self
         editor.inputView = UIView(frame: .zero)
         editor.accessibilityLabel = "Private note"
@@ -105,7 +133,8 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
             results.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor),
             results.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor)
         ])
-        scroll.heightAnchor.constraint(equalToConstant: 100).isActive = true
+        resultsHeight = scroll.heightAnchor.constraint(equalToConstant: 110)
+        resultsHeight?.isActive = true
         stack.addArrangedSubview(scroll)
         let actions = UIStackView(); actions.distribution = .fillEqually
         save.addTarget(self, action: #selector(primaryAction), for: .touchUpInside)
@@ -158,26 +187,36 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
     // Save the outgoing private field before selecting another workspace mode.
     @objc private func changeMode() {
         retainDraft()
-        model?.mode = modes.selectedSegmentIndex
+        workspace.selectMode(KeyboardWorkspace.Mode(rawValue: modes.selectedSegmentIndex) ?? .capture)
+        model?.mode = workspace.mode.rawValue
         selected = nil
-        hostInput = false
         refreshMode()
     }
 
     // Rebind the visible editor to the selected mode without touching host text.
     private func refreshMode() {
         guard let model else { save.isEnabled = false; return }
-        editor.text = model.mode == 0 ? model.draft : model.mode == 1 ? model.query : model.chatDraft
+        restoringEditor = true
+        let draft = workspace.draft
+        RichTextEditing.restore(text: draft.text, richText: draft.richText, in: editor)
+        RichTextEditing.setSelection(workspace.draft.selection, in: editor)
+        editor.setContentOffset(CGPoint(x: 0, y: workspace.draft.scrollOffset), animated: false)
+        restoringEditor = false
         editor.isEditable = selected == nil
         editor.accessibilityLabel = model.mode == 0 ? "Private note" : model.mode == 1 ? "Find saved material" : "Private chat message"
         save.setTitle(model.mode == 0 ? "Save note" : model.mode == 1 ? "Search" : "Send to model", for: .normal)
         refreshDestination()
         renderResults()
+        applyPadSize()
     }
 
     // A displayed original is read-only and must never replace a writing draft.
     private func retainDraft() {
-        guard let model, selected == nil else { return }
+        guard let model, selected == nil, !restoringEditor else { return }
+        let rich = model.mode == 0 ? try? RichTextEditing.encoded(editor.attributedText) : nil
+        workspace.edit(PrivateDraft(text: editor.text, selection: editor.selectedRange,
+                                    richText: rich, scrollOffset: editor.contentOffset.y))
+        if model.mode == 0 { model.richDraft = rich }
         switch model.mode {
         case 0: model.draft = editor.text
         case 1: model.query = editor.text
@@ -190,10 +229,21 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
         guard let model else { return }
         retainDraft()
         switch model.mode {
-        case 0: model.saveCapture(); editor.text = model.draft
+        case 0:
+            model.saveCapture()
+            if model.draft.isEmpty { workspace.edit(PrivateDraft()) }
+            refreshMode()
         case 1: model.reload(); renderResults()
         default:
-            Task { await model.sendMessage(); editor.text = model.chatDraft; renderResults() }
+            let outgoingText = workspace.draft.text
+            Task {
+                await model.sendMessage()
+                // An answer may finish after the user switches modes or writes a
+                // new draft. Acknowledge only the unchanged outgoing field.
+                if model.chatDraft.isEmpty { workspace.acknowledgeSentDraft(outgoingText, in: .chat) }
+                if workspace.mode == .chat { refreshMode() }
+                renderResults()
+            }
         }
     }
 
@@ -201,7 +251,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
     private func renderResults() {
         guard let model else { return }
         results.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        scroll.isHidden = model.mode == 0
+        scroll.isHidden = model.mode == 0 || workspace.size == .minimised
         if let selected {
             let back = UIButton(type: .system)
             back.setTitle("Back to results", for: .normal)
@@ -228,9 +278,13 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
                 result.accessibilityIdentifier = "keyboard-result"
                 result.addAction(UIAction { [weak self] _ in
                     self?.selected = original
-                    self?.editor.text = original.text
-                    self?.editor.isEditable = false
-                    self?.renderResults()
+                    if let self {
+                        self.restoringEditor = true
+                        RichTextEditing.restore(text: original.text, richText: original.richText, in: self.editor)
+                        self.restoringEditor = false
+                        self.editor.isEditable = false
+                        self.renderResults(); self.applyPadSize()
+                    }
                 }, for: .touchUpInside)
                 results.addArrangedSubview(result)
             }
@@ -244,11 +298,48 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
         }
     }
 
+    // Resize adjusts constraints around the same live editor. It neither replaces
+    // a draft nor resigns its responder, so collapsed notes keep receiving keys.
+    @objc private func changeSize() {
+        retainDraft()
+        let next = (workspace.size.rawValue + 1) % KeyboardWorkspace.PadSize.allCases.count
+        workspace.resize(KeyboardWorkspace.PadSize(rawValue: next) ?? .standard)
+        applyPadSize()
+    }
+
+    private func applyPadSize() {
+        restoringEditor = true
+        let padHeight: CGFloat
+        let requestedHeight: CGFloat
+        switch workspace.size {
+        case .minimised: padHeight = 32; requestedHeight = 350
+        case .standard: padHeight = 110; requestedHeight = 470
+        case .expanded: padHeight = 240; requestedHeight = 620
+        }
+        let name = workspace.size == .minimised ? "Min" : workspace.size == .expanded ? "Expanded" : "Default"
+        sizeButton.setTitle("Size: \(name)", for: .normal)
+        formatting.isHidden = workspace.size == .minimised || model?.mode != 0 || selected != nil
+        height?.constant = model?.mode == 0 || selected != nil ? padHeight : 36
+        // Original inspection needs only Back/Insert below its document. Giving
+        // that action area another full pad would crowd the host at Expanded size.
+        resultsHeight?.constant = selected == nil ? padHeight : 64
+        scroll.isHidden = model?.mode == 0 || workspace.size == .minimised
+        workspaceHeight?.constant = requestedHeight
+        view.layoutIfNeeded()
+        restoringEditor = false
+    }
+
+    private func formatNote(_ format: NoteFormat) {
+        guard model?.mode == 0, selected == nil, !hostInput else { return }
+        RichTextEditing.apply(format, to: editor)
+        retainDraft()
+    }
+
     // Host taps do not reliably emit a selection callback at an unchanged caret.
     // Keep an explicit destination control; actual cross-host tap proof is pending.
     @objc private func toggleDestination() {
         hostInput.toggle()
-        if hostInput { editor.resignFirstResponder() }
+        if hostInput { editor.resignFirstResponder() } else if selected == nil { editor.becomeFirstResponder() }
         refreshDestination()
     }
 
@@ -257,10 +348,18 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
     }
 
     func textViewDidBeginEditing(_ textView: UITextView) { hostInput = false; refreshDestination() }
+    func textViewDidEndEditing(_ textView: UITextView) {
+        // A real host tap may end the local responder even at an unchanged host
+        // caret. Layout/mode changes themselves must never select host input.
+        guard !restoringEditor else { return }
+        retainDraft(); hostInput = true; refreshDestination()
+    }
+    func textViewDidChangeSelection(_ textView: UITextView) { retainDraft() }
+    func scrollViewDidScroll(_ scrollView: UIScrollView) { retainDraft() }
     func textViewDidChange(_ textView: UITextView) { retainDraft() }
     override func selectionDidChange(_ textInput: UITextInput?) {
         super.selectionDidChange(textInput)
-        if !editor.isFirstResponder && !sendingToHost { hostInput = true; refreshDestination() }
+        if !editor.isFirstResponder && !sendingToHost && !restoringEditor { hostInput = true; refreshDestination() }
     }
 
     // The selected destination receives this key; host input is never retained as a note.

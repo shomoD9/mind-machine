@@ -1,6 +1,6 @@
 # 02 — Write comfortably and select where keys go
 
-Status: needs-info
+Status: claimed
 Blocked by: 01
 Spec: [Native MVP](../spec.md)
 Review baseline: c319917
@@ -15,8 +15,14 @@ Review baseline: c319917
 
 ## Verification
 
-Record executable evidence and remaining limitations here. Compilation, simulator behavior and real-device proof are separate facts.
+- All three native targets compile; full package suite passes 16 tests.
+- Red→green public tests cover sizing/context preservation, independent mode drafts/carets, safe asynchronous send acknowledgement, original+RTF persistence, explicit visual checkbox capture and native multi-paragraph list authoring through save/reopen.
+- Mac UI bold → save → Find → original retained bold; screenshots and AX verified it.
+- Simulator default layout inspected: Size/formatting controls render and the representative host composer stays above the whole workspace.
+- Independent Standards and Spec reviews found no remaining code findings after fixes. Human keyboard QA passed sizing/selection preservation and formatted save/reopen. Tap routing failed; acceptance remains open while its direction and caret condition are isolated.
+- [Detailed evidence](../../../docs/verification/native-editing-checkpoint.md). Real-device and universal-host proof remain release limits.
 
 ## Comments
 
 - 2026-10-20: Human approved the eight-ticket breakdown, blockers, test boundaries and baseline. Waiting for the listed blockers.
+- 2026-10-20: Ticket 01 resolved after human keyboard-flow confirmation. Claimed this next approved slice; test boundaries remain the previously approved workspace and saved-vault interfaces.
