@@ -2,7 +2,7 @@
 
 Capture without filing. Find material where you need it. Let useful thoughts return during your existing day.
 
-**Status:** research-backed working draft, begun 2026-10-19 and updated 2026-10-20 after round six. Capture is a lightweight rich-text Markdown-style document, with optional reminder offers after saving. This app owns reminders; calendar timeboxing is deferred integration scope. Temporary chat can read the vault while saving nothing new. Checklist due-date semantics remain open. Scope is not yet locked.
+**Status:** research-backed working draft, begun 2026-10-19 and updated 2026-10-20 after round seven. A checklist due date applies to the whole list and also schedules its reminder. There are no individual-item due dates. Alert time, completion cancellation, and overdue behavior remain to design. Scope is not yet locked.
 
 ## 1. Product and problem
 
@@ -32,7 +32,7 @@ The research supports these recurring situations. It does not establish that eve
 
 ## 3. Experience rules
 
-Rules 1–3 and 8–21 follow the latest brief, confirmed interview answers, and existing preservation commitments. Rules 4–7 are proposed acceptance criteria.
+Rules 1–3 and 8–22 follow the latest brief, confirmed interview answers, and existing preservation commitments. Rules 4–7 are proposed acceptance criteria.
 
 1. Capture requires no organization. A mixed block can remain intact.
 2. Preserve the person's original content. Interpretations, tags, chunks, and links can change without destroying it.
@@ -55,6 +55,7 @@ Rules 1–3 and 8–21 follow the latest brief, confirmed interview answers, and
 19. A captured to-do list is an interactive checklist tied to its source. Reminder creation still requires acceptance.
 20. Chat is also available as a keyboard mode, with the same continuing conversation and private input boundary.
 21. Chat offers an explicit Temporary mode whose segments do not enter retained vault history or derived memory. External provider handling remains a separate boundary.
+22. A checklist has one optional due date for the whole list. Choosing it also schedules the checklist reminder; checkbox items have no individual due dates.
 
 The single-item rule applies to resurfacing encounters. Explicit search can return ranked matches for the person's query.
 
@@ -77,7 +78,7 @@ Rich note: short thought or essay
   [date] [time] [Set reminder] [Not now]
 ```
 
-A checkbox list remains interactive and linked to its source. A post-save prompt may offer a due date; whether that date also creates a reminder, and whether it applies to the list or individual items, are Q27–Q28. A date field alone is not silently treated as accepted reminder creation. The full document can be presented through a compact keyboard viewport and a full-page editor; exact platform/editor behavior still needs design and testing, without promising a keyboard-to-companion launch.
+A checkbox list remains interactive and linked to its source. The optional post-save prompt offers one due date for the whole checklist. Choosing that due date also schedules the reminder and counts as accepting reminder creation. The control must communicate this combined effect. No separate Remind me toggle or individual-item due dates are included. The date-only alert time is Q29. The full document can be presented through a compact keyboard viewport and a full-page editor; exact platform/editor behavior still needs design and testing, without promising a keyboard-to-companion launch.
 
 ### Mac: one hotkey, two primary modes
 
@@ -205,7 +206,7 @@ This describes responsibilities, without choosing databases, models, hosting, or
 | A4 | Support forgetting selected conversation material. | “Forget this” removes the exchange and derived memory across synced devices so it no longer appears in history, search, answers, or resurfacing. | Confirmed Q17; offline/recovery mechanics open |
 | A5 | Offer Temporary chat segments. | Turning Temporary on visibly excludes that segment from retained vault history and derived memory. Ordinary conversation remains saved by default. | Confirmed Q22/Q26; temporary lifecycle open |
 | H4 | Offer Chat within the secondary keyboard. | Capture, Find, and Chat are accessible without treating chat input as a host-app message. Explicitly inserting an answer is a separate action. | Mode Confirmed Q21; detailed layout/buffering Proposed |
-| T2 | Make captured to-do lists interactive. | Tick off a checklist item and retain its link to the original capture; no timed reminder is created by capture alone. | Confirmed Q20/Q23 refinement; date semantics Q27–Q28 |
+| T2 | Make captured to-do lists interactive. | Tick off a checklist item and retain its link to the original capture; no timed reminder is created by capture alone. | Confirmed Q20/Q23/Q27–Q28; time/lifecycle details open |
 | C6 | Provide a lightweight visual Markdown-style rich-text document. | Write an essay, formatted bullets, or explicit checkboxes with simple controls; save without classification. An action sentence gets an optional soft reminder offer with date/time selectors. | Confirmed Q23 refinement; exact controls/layout open |
 | T3 | Find unfinished items across captures. | Use Open tasks within Find or ask Chat; each item opens its original capture. | Confirmed Q24 |
 | T4 | Keep reminder ownership inside this app. | Accepted reminders are linked to captures and managed here. External calendar connections and calendar timeboxes are a later integration direction. | Confirmed Q25; calendar integration deferred |
@@ -308,17 +309,20 @@ Decisions already answered:
 - **Q20:** interactive checklist tied to the original capture; capturing it creates no reminder by itself.
 - **Q21:** Chat is also a keyboard mode. The proposed companion-only chat placement was not adopted.
 - **Q22:** offer explicit Temporary chat segments, excluded from retained history and derived memory.
-- **Q23 refinement:** visual Markdown-style rich documents with simple controls, explicit bullets/checklists, essay-length writing, and a soft date/time reminder offer after saving an action-like note. Checklist due-date behavior remains Q27–Q28.
+- **Q23 refinement:** visual Markdown-style rich documents with simple controls, explicit bullets/checklists, essay-length writing, and a soft date/time reminder offer after saving an action-like note. Q27–Q28 subsequently set one whole-checklist due date that also schedules the reminder.
 - **Q24:** Open tasks in Find and Chat, linked to original captures.
 - **Q25:** this app owns reminders. Apple/Google Calendar connections and calendar timeboxing are a future direction, deferred while current problems are solved.
 - **Q26:** Temporary may read relevant saved vault memory, saving no new messages or derived memory.
+- **Q27:** choosing a checklist due date also schedules its reminder; a separate optional alert toggle was not chosen.
+- **Q28:** dates apply to the whole checklist only; individual-item dates are excluded.
 
 The current decision frontier is with the human:
 
 | Decision | Recommendation | What depends on it |
 | --- | --- | --- |
-| Q27: does a checklist due date create an alert? | Due date plus separate optional Remind me in the same soft prompt. | Due-date metadata versus accepted reminder authority. |
-| Q28: where do checklist dates apply? | Optional whole-list date, with item dates available when needed. | List/item scope, reminder association, completion handling. |
+| Q29: what time applies when only a date is chosen? | A visible configurable default time, editable before scheduling. | Date/time prompt, time zone, clear confirmation. |
+| Q30: does completing the whole list cancel its pending reminder? | Cancel when every item is complete. | Checklist completion and reminder lifecycle. |
+| Q31: what happens after a due reminder with unfinished items? | Keep overdue in Open tasks; repeat timed alerts only by explicit choice. | Overdue state, snooze and repeat policy. |
 
 **Resolved Q13:** after clarification, the human chose automatic eligibility with uncertain items kept private. The exact-snippet approval proposal is retained only in interview history as a rejected alternative. It is not part of the current capture or resurfacing flow.
 

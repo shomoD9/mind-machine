@@ -45,7 +45,7 @@ A document the person can write as a short thought or an essay using simple visu
 _Avoid_: a plain-text-only entry box, a mandatory task form
 
 **Due date**:
-The date by which a captured task or checklist is intended to be completed. Whether setting it also creates an alert is a separate product decision.
+The date by which a captured task or checklist is intended to be completed. A checklist has one due date for the whole list, and choosing it also schedules its reminder; individual checkbox items do not have due dates.
 _Avoid_: reminder time, timebox
 
 **Timebox**:

@@ -2,7 +2,7 @@
 
 Save a thought when it arrives. Find material while using another app. Encounter selected material during existing browsing. Continue a chat without rebuilding its context.
 
-Working UX draft, 20 October 2026, after round six. Capture is a lightweight visual Markdown-style rich document; this app owns reminders; Open tasks spans captures; Temporary may read existing memory without retaining new content. Resurfacing uses captured material only, with selection priorities deferred. Details labeled **proposed** remain open. The [PRD](PRD.md) records requirements; the [decision ticket](../.scratch/scattered-ambitious-pitch/issues/20-headless-second-brain.md) tracks unresolved choices. These are ASCII blueprints; no Open Design board or app prototype has been created in this session.
+Working UX draft, 20 October 2026, after round seven. A whole-checklist due date also schedules its reminder; individual-item due dates are excluded. Date-only alert time, completion cancellation, and overdue behavior are being defined. Resurfacing uses captured material only, with selection priorities deferred. Details labeled **proposed** remain open. The [PRD](PRD.md) records requirements; the [decision ticket](../.scratch/scattered-ambitious-pitch/issues/20-headless-second-brain.md) tracks unresolved choices. These are ASCII blueprints; no Open Design board or app prototype has been created in this session.
 
 ## Surface responsibilities
 
@@ -51,7 +51,7 @@ Linked interactive checklist
   [ ] Send itinerary
 ```
 
-The rich-text editor lets the person deliberately create bullets and checkbox lists. A saved action sentence can get a soft reminder offer with date/time selectors. Open tasks in Find and Chat retrieves unfinished items; this app owns reminders. Checklist due-date and alert semantics remain Q27–Q28. Calendar timeboxing is a later integration direction.
+The rich-text editor lets the person deliberately create bullets and checkbox lists. A saved action sentence can get a soft reminder offer with date/time selectors. Open tasks in Find and Chat retrieves unfinished items; this app owns reminders. A checklist has one due date for the whole list, and choosing it also schedules the reminder. The date-only alert time and completion/overdue lifecycle remain Q29–Q31. Calendar timeboxing is a later integration direction.
 
 ## 2. Find and reuse a prior thought
 
@@ -175,4 +175,4 @@ This choice introduces a browsing-habit and extension-setup cost. It does not au
 
 Q13 is settled: assess idea/bookmark eligibility automatically and keep private or uncertain material private. The person does not approve an excerpt before resurfacing. This is a product policy to test, rather than a claim that automatic sensitivity judgment is infallible.
 
-Q18 selection priorities are explicitly deferred. Q19–Q22 are answered: captured-material context only, interactive checklists, Chat as a keyboard mode, and Temporary segments. Round six settled the rich-editor/post-save-offer model, Open tasks in Find and Chat, app-owned reminders, and Temporary read access with no new retained content. Q27–Q28 now ask about checklist due-date alerts and list/item date scope. Reminder channels/failure, keyboard layout, cadence, media capture, external imports, sync conflicts, and recovery remain visible branches. Pending recommendations are not acceptance criteria.
+Q18 selection priorities are explicitly deferred. Q19–Q22 are answered: captured-material context only, interactive checklists, Chat as a keyboard mode, and Temporary segments. Round six settled the rich-editor/post-save-offer model, Open tasks in Find and Chat, app-owned reminders, and Temporary read access with no new retained content. Q27–Q28 set whole-checklist dates that also schedule reminders. Q29–Q31 now ask about a date-only alert time, completion cancellation, and overdue behavior. Reminder channels/failure, keyboard layout, cadence, media capture, external imports, sync conflicts, and recovery remain visible branches. Pending recommendations are not acceptance criteria.

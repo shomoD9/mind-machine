@@ -60,12 +60,17 @@ After asking for clarification, the human chose automatic idea/bookmark eligibil
 ### Confirmed and refined in round six — 2026-10-20
 
 - Capture is a full, lightweight, visual Markdown-style rich-text document, usable for an essay, bullets, or explicit checkbox lists. Respect author-chosen formatting. The earlier “clearly written lists” conversion proposal is superseded by this editor-and-post-save-offer model.
-- A saved action sentence can receive a non-blocking soft reminder prompt, with date/time selectors beneath it. Checklists remain interactive; a due-date offer is proposed, with date-versus-alert and list-versus-item scope still Q27–Q28.
+- A saved action sentence can receive a non-blocking soft reminder prompt, with date/time selectors beneath it. Checklists remain interactive; Q27–Q28 subsequently confirmed a whole-checklist due date that also schedules its reminder.
 - Unfinished items are available through Open tasks in Find and through Chat, retaining links to original captures.
 - This app owns reminders. Optional Apple/Google Calendar connections and calendar timeboxing are a later direction; the human asked to solve the current problems first. No calendar synchronization or automatic timeboxing is added to current scope.
 - Temporary chat can read relevant saved material and saves no new segment content or derived memory.
 
-The current questions are Q27 due date versus alert and Q28 checklist date scope. Selection priorities remain deferred. The platform follow-up supports a compact keyboard-Chat concept for testing but supplies no supported keyboard-to-companion launch. No such handoff is promised.
+### Confirmed in round seven — 2026-10-20
+
+- Choosing a checklist due date also schedules its reminder. This interaction counts as accepting reminder creation and must visibly communicate the combined effect; there is no separate optional Remind me toggle.
+- The date belongs to the whole checklist. Individual checkbox items have no due dates.
+
+The current questions are Q29 date-only alert time, Q30 cancellation when the whole checklist completes, and Q31 behavior after an overdue reminder. Selection priorities remain deferred. The platform follow-up supports a compact keyboard-Chat concept for testing but supplies no supported keyboard-to-companion launch. No such handoff is promised.
 
 The UniiChat reference is verified as Victor Taelin's official Apache-2.0 project and creator announcement. Its original-log plus navigable-summary approach informs the chat refinement: history is retained without save prompts, while retrieval preserves attribution and tentative statements. Its server/inference/client arrangement has not been chosen for this product. The source report is pinned to an inspected commit and distinguishes retention from measured recall.
 

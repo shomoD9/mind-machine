@@ -68,10 +68,17 @@ A researched product vision and PRD for the human's whole-day capture, search, a
 
 | Question | Human answer | Recorded meaning |
 | --- | --- | --- |
-| Q23: clearly written lists | Asked for clarification and described action sentences with a soft post-save reminder offer, formatted bullets/checkboxes, checklist due-date prompts, and essay-length visual Markdown editing. | Full lightweight rich-text capture is settled. Respect explicit list formatting. The earlier automatic-list conversion proposal is superseded. Optional checklist due-date versus reminder and date scope need Q27–Q28. |
+| Q23: clearly written lists | Asked for clarification and described action sentences with a soft post-save reminder offer, formatted bullets/checkboxes, checklist due-date prompts, and essay-length visual Markdown editing. | Full lightweight rich-text capture is settled. Respect explicit list formatting. The earlier automatic-list conversion proposal is superseded. Q27–Q28 subsequently settled the whole-checklist due date and its coupled reminder. |
 | Q24: unfinished items | Open tasks in Find and Chat. | Aggregate access keeps links to original captures. |
 | Q25: reminder ownership | App owns reminders; future optional Apple/Google Calendar connections can support calendars and timeboxes. Solve current problems first. | Reminder ownership is internal. Calendar integrations/timeboxing are deferred; no current bidirectional-sync or automatic-timeboxing commitment. |
 | Q26: Temporary access | Can read the vault; saves nothing new. | Temporary may use relevant saved material, while no new segment messages or derived memory are retained. |
+
+## Round 7 — answered 2026-10-20
+
+| Question | Human answer | Recorded meaning |
+| --- | --- | --- |
+| Q27: due date and alert | Choosing a due date also schedules a reminder. | The checklist date-setting action accepts reminder creation; no separate optional reminder toggle. The combined effect must be apparent. |
+| Q28: date scope | Whole checklist only. | One date for the checklist, with no individual-item dates. |
 
 ## Design tree and current frontier
 
@@ -107,8 +114,11 @@ Whole-day personal vault [settled]
 │   ├── Interactive linked checklists [settled Q20]
 │   ├── Rich editor with explicit bullets/checklists [settled Q23 refinement]
 │   ├── Open tasks in Find and Chat [settled Q24]
-│   ├── Q27 due date versus alert [pending]
-│   └── Q28 whole-list/item date scope [pending]
+│   ├── Due date also schedules reminder [settled Q27]
+│   ├── Whole-checklist date only [settled Q28]
+│   ├── Q29 date-only alert time [pending]
+│   ├── Q30 complete-list reminder cancellation [pending]
+│   └── Q31 overdue behavior [pending]
 ├── Capture/search entry
 │   └── Capture first; toggle Find; preserve drafts [settled Q16]
 └── Free local + paid-sync direction [stated]
@@ -120,7 +130,7 @@ Round four is complete. Q13's clarified excerpt-approval recommendation was reje
 
 Round five is answered; Q18 is explicitly deferred. The current-page-context recommendation was rejected in favor of captured material only, and Chat is added to the keyboard. Checklist and Temporary behavior are accepted as above.
 
-Round six is answered. The editor/post-save-offer refinement replaces the earlier “clearly written lists” proposal. Selection priorities and calendar integration/timeboxing remain deferred. Current questions Q27–Q28 recommend a due date plus a separate optional reminder control within the same soft prompt, and a whole-list date with optional item dates. These remain unanswered.
+Round seven is answered: the whole-checklist due date also schedules its reminder. The separate-reminder-toggle and optional-item-date recommendations were not chosen. Round eight asks Q29–Q31, recommending a visible editable default time, cancelling a pending reminder when every item is complete, and retaining overdue items without repeated timed alerts unless chosen. These remain unanswered. Selection priorities and calendar integration/timeboxing remain deferred.
 
 Research references: [UniiChat identity and memory](../research/22-uniichat-identity-and-memory-2026-10-20.md), [surface contracts](../research/23-resurfacing-surface-contracts-2026-10-20.md). Chrome verified the creator's source-release X post. Browser feed/new-tab capability is documented; native iPhone feed insertion has no supported route. These findings do not select an implementation or substitute an experience without the human's answer.
 
