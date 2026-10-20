@@ -7,9 +7,15 @@ import SecondBrainCore
 import SecondBrainUI
 
 @MainActor
-final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
+final class KeyboardViewController: UIInputViewController, UITextViewDelegate, UIGestureRecognizerDelegate {
+    // iOS can retarget its proxy to the host while the local editor stays active.
+    // Capture local identity after editing begins; avoid proxy access at startup.
+    private var privateDocument: UUID?
+    private var hostDocumentProxy: UITextDocumentProxy?
+
     private let stack = UIStackView()
-    private let editor = UITextView()
+    private let editor = RoutingTextView()
+    private let privateTap = UITapGestureRecognizer()
     private let results = UIStackView()
     private let scroll = UIScrollView()
     private let status = UILabel()
@@ -117,6 +123,20 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
             formatting.addArrangedSubview(control)
         }
         stack.addArrangedSubview(formatting)
+        // Local first-responder status can survive a host tap. Explicit input
+        // routing also covers hardware keys, which otherwise bypass our buttons.
+        privateTap.addTarget(self, action: #selector(selectPrivatePad))
+        privateTap.cancelsTouchesInView = false
+        privateTap.delegate = self
+        editor.addGestureRecognizer(privateTap)
+        editor.routeHostInsert = { [weak self] text in
+            guard let self, self.hostInput else { return false }
+            self.insert(text); return true
+        }
+        editor.routeHostDelete = { [weak self] in
+            guard let self, self.hostInput else { return false }
+            self.backspace(); return true
+        }
         editor.delegate = self
         editor.inputView = UIView(frame: .zero)
         editor.accessibilityLabel = "Private note"
@@ -261,10 +281,10 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
             insert.setTitle("Insert original into app", for: .normal)
             insert.addAction(UIAction { [weak self] _ in
                 guard let self else { return }
-                self.editor.resignFirstResponder()
                 self.hostInput = true; self.refreshDestination()
+                guard let proxy = self.hostProxyForWriting() else { return }
                 self.sendingToHost = true
-                self.textDocumentProxy.insertText(selected.text)
+                proxy.insertText(selected.text)
                 self.sendingToHost = false
             }, for: .touchUpInside)
             results.addArrangedSubview(insert)
@@ -339,15 +359,31 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
     // Keep an explicit destination control; actual cross-host tap proof is pending.
     @objc private func toggleDestination() {
         hostInput.toggle()
-        if hostInput { editor.resignFirstResponder() } else if selected == nil { editor.becomeFirstResponder() }
+        if !hostInput, selected == nil { editor.becomeFirstResponder() }
         refreshDestination()
     }
 
+    // Selection gestures can consume UITextView touches without delivering
+    // touchesBegan. A simultaneous tap observes intent without blocking selection.
+    @objc private func selectPrivatePad() {
+        guard selected == nil else { return }
+        hostInput = false; refreshDestination()
+    }
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        gestureRecognizer === privateTap || otherGestureRecognizer === privateTap
+    }
+
     private func refreshDestination() {
+        // Hide the local caret while keys target the host; preserve its selection.
+        editor.tintColor = hostInput ? .clear : .label
         destination.setTitle(hostInput ? "Typing into: App" : "Typing into: Private \(model?.mode == 1 ? "search" : model?.mode == 2 ? "chat" : "note")", for: .normal)
     }
 
-    func textViewDidBeginEditing(_ textView: UITextView) { hostInput = false; refreshDestination() }
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        privateDocument = textDocumentProxy.documentIdentifier
+        hostInput = false; refreshDestination()
+    }
     func textViewDidEndEditing(_ textView: UITextView) {
         // A real host tap may end the local responder even at an unchanged host
         // caret. Layout/mode changes themselves must never select host input.
@@ -362,10 +398,42 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
         if !editor.isFirstResponder && !sendingToHost && !restoringEditor { hostInput = true; refreshDestination() }
     }
 
+    // Host text notifications are observed without reading or retaining content.
+    override func textDidChange(_ textInput: UITextInput?) {
+        super.textDidChange(textInput)
+        let document = textDocumentProxy.documentIdentifier
+        // Only a proxy transition away from the active private document returns
+        // keys to the host. Local activation emits this callback too, so a bare
+        // text notification is insufficient. Keep the extension open rather than
+        // resigning the local responder, which can restore the system keyboard.
+        if !editor.isFirstResponder { hostDocumentProxy = textDocumentProxy }
+        if editor.isFirstResponder, let privateDocument, document != privateDocument,
+           !sendingToHost, !restoringEditor {
+            retainDraft()
+            hostDocumentProxy = textDocumentProxy
+            hostInput = true
+            refreshDestination()
+        }
+    }
+
+    // Never fall back to the active private proxy for a host write. Refresh from
+    // the current host if focus changed; otherwise use the last identified host.
+    // A missing/invalid host fails visibly instead of mutating the note or recursing.
+    private func hostProxyForWriting() -> UITextDocumentProxy? {
+        let current = textDocumentProxy
+        if current.documentIdentifier != privateDocument { hostDocumentProxy = current }
+        guard let hostDocumentProxy, hostDocumentProxy.documentIdentifier != privateDocument else {
+            status.text = "Tap the app's message field before typing into App."
+            return nil
+        }
+        return hostDocumentProxy
+    }
+
     // The selected destination receives this key; host input is never retained as a note.
     private func insert(_ text: String) {
         if hostInput {
-            sendingToHost = true; textDocumentProxy.insertText(text); sendingToHost = false
+            guard let proxy = hostProxyForWriting() else { return }
+            sendingToHost = true; proxy.insertText(text); sendingToHost = false
         } else if selected == nil {
             editor.insertText(text); retainDraft()
         }
@@ -375,10 +443,30 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate {
     @objc private func space() { insert(" ") }
     @objc private func newline() { insert("\n") }
     @objc private func backspace() {
-        if hostInput { sendingToHost = true; textDocumentProxy.deleteBackward(); sendingToHost = false }
+        if hostInput {
+            guard let proxy = hostProxyForWriting() else { return }
+            sendingToHost = true; proxy.deleteBackward(); sendingToHost = false
+        }
         else if selected == nil { editor.deleteBackward(); retainDraft() }
     }
     @objc private func toggleShift() { shift.toggle(); buildKeys() }
     @objc private func toggleNumbers() { numbers.toggle(); buildKeys() }
     @objc private func nextKeyboard() { retainDraft(); advanceToNextInputMode() }
+}
+
+// The keyboard controller uses this editor to route basic hardware insertion
+// and deletion to the host when the local responder remains active there.
+@MainActor
+private final class RoutingTextView: UITextView {
+    var routeHostInsert: ((String) -> Bool)?
+    var routeHostDelete: (() -> Bool)?
+
+    override func insertText(_ text: String) {
+        if routeHostInsert?(text) == true { return }
+        super.insertText(text)
+    }
+    override func deleteBackward() {
+        if routeHostDelete?() == true { return }
+        super.deleteBackward()
+    }
 }

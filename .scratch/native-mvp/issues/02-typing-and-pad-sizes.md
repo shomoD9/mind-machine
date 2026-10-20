@@ -19,7 +19,7 @@ Review baseline: c319917
 - Red→green public tests cover sizing/context preservation, independent mode drafts/carets, safe asynchronous send acknowledgement, original+RTF persistence, explicit visual checkbox capture and native multi-paragraph list authoring through save/reopen.
 - Mac UI bold → save → Find → original retained bold; screenshots and AX verified it.
 - Simulator default layout inspected: Size/formatting controls render and the representative host composer stays above the whole workspace.
-- Independent Standards and Spec reviews found no remaining code findings after fixes. Human keyboard QA passed sizing/selection preservation and formatted save/reopen. Tap routing failed; acceptance remains open while its direction and caret condition are isolated.
+- Independent Standards and Spec reviews found no remaining code findings after fixes. Human keyboard QA passed sizing/selection preservation and formatted save/reopen. Tap routing initially failed. The proxy-identity fix passed note → host → note with basic hardware input in the simulator test host. On-screen-key confirmation and broader native acceptance remain open.
 - [Detailed evidence](../../../docs/verification/native-editing-checkpoint.md). Real-device and universal-host proof remain release limits.
 
 ## Comments
