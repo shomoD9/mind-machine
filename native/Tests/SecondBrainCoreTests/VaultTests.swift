@@ -1,9 +1,23 @@
-// Behavioral checks for the agreed reminder, retention and persistence contracts.
-// swift test runs these without requiring Apple signing, a phone or cloud access.
+/* Behavioral checks at the saved-vault boundary. SwiftPM runs these without
+ Apple signing; native shells use the same Vault and VaultFile interfaces. */
 import XCTest
-@testable import SecondBrainCore
+import SecondBrainCore
 
 final class VaultTests: XCTestCase {
+    // A second entry point must refind the exact original after reopening storage.
+    func testSavedCaptureCanBeRefoundAfterReopening() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("vault.json")
+        let original = Capture(text: "A shelf for mum’s birthday. Keep the odd wording!\nSecond line.")
+        try VaultFile(url: url).update { $0.captures.append(original) }
+        let reopened = try VaultFile(url: url).read()
+        XCTAssertEqual(reopened.findCaptures("MUM’S shelf").map(\.id), [original.id])
+        XCTAssertEqual(reopened.findCaptures("MUM’S shelf").first?.text, original.text)
+        XCTAssertTrue(reopened.findCaptures("unrelated trampoline").isEmpty)
+        XCTAssertTrue(reopened.reminders.isEmpty)
+    }
+
     private func fixture() -> (Vault, UUID, UUID, UUID) {
         let a = ChecklistItem(text: "Buy wood")
         let b = ChecklistItem(text: "Fit shelf")

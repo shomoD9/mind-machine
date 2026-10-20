@@ -1,5 +1,5 @@
-// Domain records and explicit reminder transitions shared by all native surfaces.
-// VaultFile persists this document; future sync transports preserve these originals.
+/* Domain records and explicit reminder transitions shared by all native surfaces.
+ VaultFile persists this document; VaultModel and native controllers call its public operations. */
 import Foundation
 
 /// A deliberately authored checkbox; ordinary bullet text stays ordinary text.
@@ -91,6 +91,25 @@ public struct Vault: Codable, Equatable, Sendable {
     public var schemaVersion: Int = 1
 
     public init() {}
+
+    /// Find returns complete originals with deterministic ordering. Empty search
+    /// shows recency; words match independently so incomplete recall still works.
+    /// Platform adapters may supply local semantic scores; ranking stays shared.
+    public func findCaptures(_ query: String, openTasks: Bool = false, semanticScores: [UUID: Double] = [:]) -> [Capture] {
+        let words = query.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)
+        return captures.filter { !openTasks || (!$0.checklist.isEmpty && !$0.allItemsComplete) }
+            .compactMap { capture -> (Capture, Double)? in
+                let matches = words.filter(capture.text.lowercased().contains).count
+                let lexical = words.isEmpty ? 0 : Double(matches) / Double(words.count)
+                let semantic = semanticScores[capture.id] ?? 0
+                guard words.isEmpty || lexical > 0 || semantic > 0.45 else { return nil }
+                return (capture, lexical * 2 + semantic)
+            }.sorted {
+                if $0.1 != $1.1 { return $0.1 > $1.1 }
+                if $0.0.createdAt != $1.0.createdAt { return $0.0.createdAt > $1.0.createdAt }
+                return $0.0.id.uuidString < $1.0.id.uuidString
+            }.map(\.0)
+    }
 
     public mutating func retain(_ message: ChatMessage, temporary: Bool) {
         if !temporary { messages.append(message) }

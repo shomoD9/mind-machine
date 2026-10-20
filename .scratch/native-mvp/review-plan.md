@@ -1,6 +1,6 @@
-# Native MVP engineering plan — draft for approval
+# Native MVP engineering plan — approved
 
-**Status:** needs-info — workflow confirmation requested under ask-matt.
+**Status:** approved on 2026-10-20. All four workflow answers accepted: AGENTS.md, default labels, three test boundaries, eight tickets and baseline c319917. The sections below preserve the reviewed proposal; the published spec and tickets are authoritative.
 
 The human has authorized building the native MVP. This draft makes Matt Pocock's required setup, test boundaries and ticket breakdown reviewable before new tests or feature work. Existing product decisions stand; this is not another product interview.
 

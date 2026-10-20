@@ -1,5 +1,6 @@
-// Observable native presentation model used by companion and hotkey-panel views.
-// It coordinates durable local writes, truthful search, chat inference and alerts.
+/* Observable presentation model called by WorkspaceView and the UIKit keyboard.
+ It coordinates durable writes, local embeddings, configured inference and alerts;
+ Vault owns shared retrieval ranking and domain transitions. */
 import Foundation
 import SwiftUI
 import NaturalLanguage
@@ -41,6 +42,14 @@ public final class VaultModel: ObservableObject {
     public var searchDescription: String { embedding == nil ? "Keyword search" : "Keyword + on-device semantic search" }
     public var conversation: [ChatMessage] { temporary ? temporaryMessages : vault.messages }
 
+    /// Both native entry points open Capture while keeping all three private
+    /// drafts. Activating is separate from clearing or saving a document.
+    public func activateCapture() {
+        mode = 0
+        selectedCapture = nil
+        reload()
+    }
+
     public func reload() {
         do { vault = try file.read(); reconcileDueEvents() }
         catch { self.error = "Could not read the vault: \(error.localizedDescription)" }
@@ -76,23 +85,20 @@ public final class VaultModel: ObservableObject {
     /// The original text is the retrieval source. Optional system embeddings are
     /// computed locally; unavailable models leave a correctly labeled keyword path.
     public func results(openTasks: Bool = false) -> [Capture] {
-        let candidates = vault.captures.filter { !openTasks || (!$0.checklist.isEmpty && !$0.allItemsComplete) }
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        if q.isEmpty { return candidates.sorted { $0.createdAt > $1.createdAt } }
-        let words = q.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)
-        let queryVector = embedding?.vector(for: q)
-        return candidates.compactMap { capture -> (Capture, Double)? in
-            let lower = capture.text.lowercased()
-            let lexical = words.isEmpty ? 0 : Double(words.filter(lower.contains).count) / Double(words.count)
-            var semantic = 0.0
-            if let queryVector, let vector = embedding?.vector(for: String(capture.text.prefix(2500))), vector.count == queryVector.count {
-                let numerator = zip(queryVector, vector).reduce(0) { $0 + $1.0 * $1.1 }
-                let denominator = sqrt(queryVector.reduce(0) { $0 + $1*$1 } * vector.reduce(0) { $0 + $1*$1 })
-                if denominator > 0 { semantic = numerator / denominator }
-            }
-            guard lexical > 0 || semantic > 0.45 else { return nil }
-            return (capture, lexical * 2 + semantic)
-        }.sorted { $0.1 > $1.1 }.map(\.0)
+        guard !q.isEmpty, let queryVector = embedding?.vector(for: q) else {
+            return vault.findCaptures(q, openTasks: openTasks)
+        }
+        // Platform embeddings supply only replaceable scores. Both native
+        // entry points use the Vault's single lexical/ranking implementation.
+        var scores: [UUID: Double] = [:]
+        for capture in vault.captures {
+            guard let vector = embedding?.vector(for: String(capture.text.prefix(2500))), vector.count == queryVector.count else { continue }
+            let numerator = zip(queryVector, vector).reduce(0) { $0 + $1.0 * $1.1 }
+            let denominator = sqrt(queryVector.reduce(0) { $0 + $1*$1 } * vector.reduce(0) { $0 + $1*$1 })
+            if denominator > 0 { scores[capture.id] = numerator / denominator }
+        }
+        return vault.findCaptures(q, openTasks: openTasks, semanticScores: scores)
     }
 
     public func setItem(captureID: UUID, itemID: UUID, complete: Bool) {

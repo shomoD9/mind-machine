@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""Generate the three native Xcode targets without an external generator.
+Run from any directory. Xcode consumes the project and shared schemes; source
+files stay in Apps and the local Swift package supplies shared core/UI modules.
+"""
+from pathlib import Path
+import hashlib
+import json
+import plistlib
+
+ROOT = Path(__file__).resolve().parents[1]
+OBJECTS = {}
+
+
+def ident(name):
+    """Stable object IDs keep regeneration reviewable in Git."""
+    return hashlib.sha1(name.encode()).hexdigest()[:24].upper()
+
+
+def quote(value):
+    return json.dumps(str(value))
+
+
+def add(object_name, isa, **fields):
+    """Store OpenStep fragments; values are already encoded by their caller."""
+    key = ident(object_name)
+    OBJECTS[key] = {'isa': isa, **fields}
+    return key
+
+
+def array(values):
+    return '(' + ', '.join(values) + (',' if values else '') + ')'
+
+
+def dictionary(values):
+    return '{ ' + ' '.join(f'{k} = {v};' for k, v in values.items()) + ' }'
+
+
+# Signing identifiers are defaults for development. A real team must register its
+# own bundle IDs/group and set VAULT_APP_GROUP consistently across the two targets.
+package = add('package', 'XCLocalSwiftPackageReference', relativePath=quote('.'))
+products = []
+targets = []
+groups = []
+for name, folder, bundle, kind in [
+    ('SecondBrain', 'iOS', 'dev.secondbrain.pilot', 'application'),
+    ('SecondBrainKeyboard', 'Keyboard', 'dev.secondbrain.pilot.keyboard', 'app-extension'),
+    ('SecondBrainMac', 'Mac', 'dev.secondbrain.pilot.mac', 'application'),
+]:
+    is_mac = folder == 'Mac'
+    files = sorted((ROOT/'Apps'/folder).glob('*.swift'))
+    if not is_mac:
+        files += sorted((ROOT/'Apps'/'Shared').glob('*.swift'))
+    sources = []
+    refs = []
+    for path in files:
+        rel = path.relative_to(ROOT).as_posix()
+        ref = add(name+rel+'ref', 'PBXFileReference', lastKnownFileType='sourcecode.swift', path=quote(rel), sourceTree=quote('<group>'))
+        refs.append(ref)
+        sources.append(add(name+rel, 'PBXBuildFile', fileRef=ref))
+    groups.append(add(name+'group', 'PBXGroup', name=quote(name), children=array(refs), sourceTree=quote('<group>')))
+    source_phase = add(name+'sources', 'PBXSourcesBuildPhase', buildActionMask='2147483647', files=array(sources), runOnlyForDeploymentPostprocessing='0')
+    dependencies = []
+    links = []
+    for module in ['SecondBrainCore', 'SecondBrainUI']:
+        dependency = add(name+module, 'XCSwiftPackageProductDependency', package=package, productName=quote(module))
+        dependencies.append(dependency)
+        links.append(add(name+module+'link', 'PBXBuildFile', productRef=dependency))
+    framework_phase = add(name+'frameworks', 'PBXFrameworksBuildPhase', buildActionMask='2147483647', files=array(links), runOnlyForDeploymentPostprocessing='0')
+    ext = 'appex' if kind == 'app-extension' else 'app'
+    product = add(name+'product', 'PBXFileReference', explicitFileType=quote('wrapper.app-extension' if kind == 'app-extension' else 'wrapper.application'), includeInIndex='0', path=quote(name+'.'+ext), sourceTree='BUILT_PRODUCTS_DIR')
+    products.append(product)
+    configurations = []
+    for config in ['Debug', 'Release']:
+        settings = {
+            'PRODUCT_NAME':quote(name), 'PRODUCT_BUNDLE_IDENTIFIER':quote(bundle),
+            'SWIFT_VERSION':'5.0', 'GENERATE_INFOPLIST_FILE':'NO',
+            'ONLY_ACTIVE_ARCH':'YES' if config == 'Debug' else 'NO',
+            'INFOPLIST_FILE':quote('Apps/'+folder+'/Info.plist'),
+            'CODE_SIGN_STYLE':'Automatic', 'CURRENT_PROJECT_VERSION':'1', 'MARKETING_VERSION':'0.1.0',
+            'SDKROOT':'macosx' if is_mac else 'iphoneos',
+            'SUPPORTED_PLATFORMS':quote('macosx' if is_mac else 'iphoneos iphonesimulator'),
+            'SWIFT_OPTIMIZATION_LEVEL':quote('-Onone' if config == 'Debug' else '-O'),
+            'ENABLE_APP_SANDBOX':'YES' if is_mac else 'NO',
+            'CODE_SIGN_ENTITLEMENTS':quote('Apps/'+folder+'/Vault.entitlements'),
+            'VAULT_APP_GROUP':quote('group.dev.secondbrain.pilot'),
+            'LD_RUNPATH_SEARCH_PATHS':quote('$(inherited) @executable_path/Frameworks'+(' @executable_path/../../Frameworks' if kind == 'app-extension' else '')),
+        }
+        if is_mac: settings['MACOSX_DEPLOYMENT_TARGET']='14.0'
+        else: settings.update(IPHONEOS_DEPLOYMENT_TARGET='17.0', TARGETED_DEVICE_FAMILY=quote('1,2'))
+        if kind == 'app-extension': settings.update(APPLICATION_EXTENSION_API_ONLY='YES', SKIP_INSTALL='YES')
+        configurations.append(add(name+config, 'XCBuildConfiguration', name=quote(config), buildSettings=dictionary(settings)))
+    config_list=add(name+'configs', 'XCConfigurationList', buildConfigurations=array(configurations), defaultConfigurationIsVisible='0', defaultConfigurationName='Release')
+    phases = [source_phase, framework_phase]
+    target_dependencies = []
+    if folder == 'iOS':
+        proxy = add('keyboardproxy', 'PBXContainerItemProxy', containerPortal=ident('project'), proxyType='1', remoteGlobalIDString=ident('SecondBrainKeyboardtarget'), remoteInfo=quote('SecondBrainKeyboard'))
+        target_dependencies.append(add('keyboarddependency', 'PBXTargetDependency', target=ident('SecondBrainKeyboardtarget'), targetProxy=proxy))
+        embed = add('keyboardembedfile', 'PBXBuildFile', fileRef=ident('SecondBrainKeyboardproduct'), settings=dictionary({'ATTRIBUTES':array(['RemoveHeadersOnCopy'])}))
+        phases.append(add('keyboardembed', 'PBXCopyFilesBuildPhase', buildActionMask='2147483647', dstPath=quote(''), dstSubfolderSpec='13', files=array([embed]), name=quote('Embed Keyboard'), runOnlyForDeploymentPostprocessing='0'))
+    targets.append(add(name+'target', 'PBXNativeTarget', buildConfigurationList=config_list, buildPhases=array(phases), buildRules='()', dependencies=array(target_dependencies), name=quote(name), packageProductDependencies=array(dependencies), productName=quote(name), productReference=product, productType=quote('com.apple.product-type.'+kind)))
+    info = {'CFBundleDisplayName':'Second brain' if kind!='app-extension' else 'Second brain keyboard',
+            'CFBundleExecutable':'$(EXECUTABLE_NAME)', 'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)',
+            'CFBundleName':'$(PRODUCT_NAME)', 'CFBundlePackageType':'XPC!' if kind=='app-extension' else 'APPL',
+            'CFBundleShortVersionString':'$(MARKETING_VERSION)', 'CFBundleVersion':'$(CURRENT_PROJECT_VERSION)'}
+    if not is_mac: info['VaultAppGroup']='$(VAULT_APP_GROUP)'
+    if folder=='iOS': info.update(UILaunchScreen={}, UISupportedInterfaceOrientations=['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'])
+    if kind=='app-extension':
+        info['NSExtension']={'NSExtensionPointIdentifier':'com.apple.keyboard-service',
+            'NSExtensionPrincipalClass':'$(PRODUCT_MODULE_NAME).KeyboardViewController',
+            'NSExtensionAttributes':{'IsASCIICapable':True,'PrimaryLanguage':'en-US','RequestsOpenAccess':True}}
+    if is_mac: info['NSHighResolutionCapable']=True
+    # Local networking is used only for a deliberately configured inference route.
+    info['NSAppTransportSecurity']={'NSAllowsLocalNetworking':True}
+    if not is_mac: info['NSLocalNetworkUsageDescription']='Connect to the inference server you configure for chat.'
+    (ROOT/'Apps'/folder/'Info.plist').write_bytes(plistlib.dumps(info,sort_keys=False))
+    entitlements={'com.apple.security.app-sandbox':True,'com.apple.security.network.client':True} if is_mac else {'com.apple.security.application-groups':['$(VAULT_APP_GROUP)']}
+    (ROOT/'Apps'/folder/'Vault.entitlements').write_bytes(plistlib.dumps(entitlements))
+    # Shared schemes let xcodebuild reproduce both independent applications.
+    if kind != 'app-extension':
+        scheme=f'''<?xml version="1.0" encoding="UTF-8"?>
+<Scheme LastUpgradeVersion="2620" version="1.3"><BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident(name+'target')}" BuildableName="{name}.app" BlueprintName="{name}" ReferencedContainer="container:SecondBrain.xcodeproj"/></BuildActionEntry></BuildActionEntries></BuildAction><LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES"><BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident(name+'target')}" BuildableName="{name}.app" BlueprintName="{name}" ReferencedContainer="container:SecondBrain.xcodeproj"/></BuildableProductRunnable></LaunchAction></Scheme>
+'''
+        (ROOT/'SecondBrain.xcodeproj/xcshareddata/xcschemes'/f'{name}.xcscheme').write_text(scheme)
+product_group=add('products','PBXGroup',name='Products',children=array(products),sourceTree=quote('<group>'))
+main_group=add('main','PBXGroup',children=array(groups+[product_group]),sourceTree=quote('<group>'))
+project_configs=[add('project'+c,'XCBuildConfiguration',name=quote(c),buildSettings=dictionary({'CLANG_ENABLE_MODULES':'YES','SWIFT_VERSION':'5.0'})) for c in ['Debug','Release']]
+config_list=add('projectconfigs','XCConfigurationList',buildConfigurations=array(project_configs),defaultConfigurationIsVisible='0',defaultConfigurationName='Release')
+project=add('project','PBXProject',attributes=dictionary({'LastUpgradeCheck':'2620'}),buildConfigurationList=config_list,compatibilityVersion=quote('Xcode 14.0'),developmentRegion='en',hasScannedForEncodings='0',knownRegions=array(['en','Base']),mainGroup=main_group,packageReferences=array([package]),productRefGroup=product_group,projectDirPath=quote(''),projectRoot=quote(''),targets=array(targets))
+# The generated project is committed; regenerating reproduces target membership.
+body='\n'.join(f'{key} = '+dictionary(fields)+';' for key,fields in OBJECTS.items())
+(ROOT/'SecondBrain.xcodeproj/project.pbxproj').write_text('// !$*UTF8*$!\n/* Generated by Scripts/generate_project.py; Xcode builds the three native apps. */\n{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {\n'+body+'\n}; rootObject = '+project+'; }\n')
