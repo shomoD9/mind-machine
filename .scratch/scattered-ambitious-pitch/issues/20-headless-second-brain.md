@@ -97,7 +97,7 @@ A researched product vision and PRD for the human's whole-day capture, search, a
 | Q34: travel | Keep original time zone. | Preserve scheduled instant; display zone. |
 | Q35: reopening | Offer a new reminder. | Do not automatically restore cancelled reminder. |
 
-The human authorized beginning MVP design and launching today. Pause detailed interview; see [MVP launch design](../../../docs/MVP.md). Two launch questions are pending: private/public pilot, and browser fallback versus native surfaces today.
+The human authorized beginning MVP design and launching today. Pause detailed interview; see [MVP launch design](../../../docs/MVP.md). The human subsequently agreed to the private pilot with sync and required native surfaces; browser fallback is rejected.
 
 ## Design tree and current frontier
 
@@ -157,4 +157,11 @@ Research references: [UniiChat identity and memory](../research/22-uniichat-iden
 
 ## Completion condition
 
-Every included behavior is concretized with the human, contradictions with the older scope are reconciled, and the human confirms shared understanding. Until then this ticket remains claimed and the PRD remains a draft. The human has authorized MVP design and launch preparation. A review-only HTML design now exists; connected app implementation awaits the launch-surface decision.
+Every included behavior is concretized with the human, contradictions with the older scope are reconciled, and the human confirms shared understanding. Until then this ticket remains claimed and the PRD remains a draft. The human has authorized MVP design and launch preparation. The current native FigCraft design is keyboard-first with user-controlled pad sizing. A native foundation exists, but no installed app/keyboard, hotkey or working sync is verified.
+
+
+## Keyboard-first and sizing clarification — 2026-10-20
+
+The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Find, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
+
+Minimised, Default and Expanded sizes preserve the same draft and cursor. Minimised retains a single visible note line and continues typing into the note; it does not redirect input to the host app. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified. The human explicitly selected continued note input when collapsed. They requested preferred-keyboard inheritance as a future item. FigCraft’s first page and primary prototype now begin in Keyboard Capture; original inspection no longer jumps to the companion. No app name was chosen; the fictional host contact Maya is removed.

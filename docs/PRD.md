@@ -2,7 +2,7 @@
 
 Capture without filing. Find material where you need it. Let useful thoughts return during your existing day.
 
-**Status:** research-backed working draft, begun 2026-10-19 and updated 2026-10-20 after round nine; MVP design and launch preparation are authorized. A checklist due date applies to the whole list and also schedules its reminder. There are no individual-item due dates. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. The complete vision remains intact; today’s launch surface and pilot audience are pending confirmation.
+**Status:** research-backed working draft, begun 2026-10-19 and updated 2026-10-20 after round nine; MVP design and launch preparation are authorized. A checklist due date applies to the whole list and also schedules its reminder. There are no individual-item due dates. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. The complete vision remains intact; today’s target is a private native pilot with cross-device sync, iPhone keyboard and Mac global hotkey. Browser fallback is rejected.
 
 ## 1. Product and problem
 
@@ -63,6 +63,12 @@ The single-item rule applies to resurfacing encounters. Explicit search can retu
 
 These are rough interaction sketches. The platform review found a callable Open Design CLI, but its default daemon endpoint was unreachable in this session. No editable Open Design board or rendered design was created.
 
+### The primary phone interface is the keyboard
+
+The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Find, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
+
+Minimised, Default and Expanded sizes preserve the same draft and cursor. Minimised retains a single visible note line and continues typing into the note; it does not redirect input to the host app. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified. See [experience roadmap](ROADMAP.md). The first FigCraft page is Keyboard first; companion screens follow on a secondary page.
+
 ### The captured note is a rich document
 
 **Confirmed Q23 refinement:** capture supports a short thought or a full essay with lightweight, visual Markdown-style formatting and simple rich-text controls. The person can deliberately create bullets or checkbox lists. Preserve those author-chosen forms; “clearly written lists” is no longer the current conversion rule. An action sentence such as “Buy a gift for mum's birthday” can receive a soft reminder offer after it is saved, with date/time selectors directly beneath the question. The offer does not gate persistence or require a task form before writing.
@@ -78,9 +84,9 @@ Rich note: short thought or essay
   [date] [time] [Set reminder] [Not now]
 ```
 
-A checkbox list remains interactive and linked to its source. The optional post-save prompt offers one due date for the whole checklist. Choosing that due date also schedules the reminder and counts as accepting reminder creation. The control must communicate this combined effect. No separate Remind me toggle or individual-item due dates are included. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. The full document can be presented through a compact keyboard viewport and a full-page editor; exact platform/editor behavior still needs design and testing, without promising a keyboard-to-companion launch.
+A checkbox list remains interactive and linked to its source. The optional post-save prompt offers one due date for the whole checklist. Choosing that due date also schedules the reminder and counts as accepting reminder creation. The control must communicate this combined effect. No separate Remind me toggle or individual-item due dates are included. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. The same document is viewed through a user-sized keyboard notepad. A companion editor is secondary; it is not a required detour for everyday capture, search, reading or chat. Exact extension-height limits need real-device testing, without promising a keyboard-to-companion launch.
 
-### Mac: one hotkey, two primary modes
+### Mac: one hotkey, Capture / Find / Chat
 
 ```text
 Existing app remains behind a dismissible overlay
@@ -321,7 +327,7 @@ Decisions already answered:
 
 A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control.
 
-The human has authorized MVP design and a launch attempt today. Detailed interviewing is paused; remaining design choices will be made explicit in the [MVP launch design](MVP.md). The pilot audience and acceptable release surface are pending two launch questions.
+The human has authorized MVP design and a launch attempt today. Detailed interviewing is paused; remaining design choices will be made explicit in the [MVP launch design](MVP.md). The human agreed to a private pilot with sync, required native iPhone keyboard and Mac hotkey, and rejected a browser fallback. Design is in FigCraft, using greyscale industrial minimalism without brand exploration. Signing and actual two-device behavior remain launch gates.
 
 - **Q32 refinement:** due reminders also appear in the app's continuing chat, where the person can request rescheduling. WhatsApp/SMS are optional connected channels. Device notifications remain the proposed primary external cue; exact delivery needs validation.
 - **Q33:** edit or remove reminders, preserving original captures. A separate snooze control is excluded. Explicit chat rescheduling is an edit.

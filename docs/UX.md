@@ -2,7 +2,13 @@
 
 Save a thought when it arrives. Find material while using another app. Encounter selected material during existing browsing. Continue a chat without rebuilding its context.
 
-Working UX draft, 20 October 2026, after round nine; MVP design is authorized. A whole-checklist due date also schedules its reminder; individual-item due dates are excluded. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. Resurfacing uses captured material only, with selection priorities deferred. Details labeled **proposed** remain open. The [PRD](PRD.md) records requirements; the [decision ticket](../.scratch/scattered-ambitious-pitch/issues/20-headless-second-brain.md) tracks unresolved choices. The [interactive HTML design](prototypes/mvp.html) complements these ASCII blueprints. It uses sample state only; no Open Design board or connected app has been created.
+Working UX draft, 20 October 2026, after round nine; MVP design is authorized. A whole-checklist due date also schedules its reminder; individual-item due dates are excluded. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. Resurfacing uses captured material only, with selection priorities deferred. Details labeled **proposed** remain open. The [PRD](PRD.md) records requirements; the [decision ticket](../.scratch/scattered-ambitious-pitch/issues/20-headless-second-brain.md) tracks unresolved choices. The current [editable FigCraft design](design/native-mvp.figcraft) starts with keyboard flows. The HTML preview is superseded. Designs use fictional state; the connected app has not been launched.
+
+## Primary interaction
+
+The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Find, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
+
+Minimised, Default and Expanded sizes preserve the same draft and cursor. Minimised retains a single visible note line and continues typing into the note; it does not redirect input to the host app. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified. See [roadmap and feasibility](ROADMAP.md).
 
 ## Surface responsibilities
 
@@ -20,7 +26,7 @@ Resurfacing does not occupy the keyboard. Its three work modes are Capture, Find
 
 ## 1. Capture a mixed thought
 
-The capture is a lightweight rich-text document with visual Markdown-style controls, bullets, explicit checkboxes, links, and media. It supports an essay as well as a short action sentence. The keyboard offers a compact viewport; a full-page presentation of the same document remains part of the editor design.
+The capture is a lightweight rich-text document with visual Markdown-style controls, bullets, explicit checkboxes, links, and media. It supports an essay as well as a short action sentence. The keyboard is the primary writing surface, with Minimised, Default and Expanded note viewports. The minimised pad continues receiving note input and keeps the host draft unchanged. The same draft/cursor survives resizing; true iPhone fullscreen needs feasibility testing.
 
 The person is replying in another app and thinks of a reflection, a task, and a useful link. They switch to the secondary keyboard, which opens Capture by default, and enter the mixed text. They save without choosing a category. The original remains together; background organization can help retrieve its parts later. The Mac hotkey also opens Capture; a single toggle reaches Find, preserving drafts in both modes.
 

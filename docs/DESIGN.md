@@ -1,6 +1,6 @@
 # Design
 
-This project is defining a headless second brain: capture without filing, then find and reuse saved material inside the apps the person already uses. The human has authorized MVP design and a launch attempt on 20 October 2026. The repository contains research, documentation and a review-only HTML design preview; app implementation has not begun. See [MVP launch design](MVP.md) for today’s proposed slice and release decisions.
+This project is defining a headless second brain: capture without filing, then find and reuse saved material inside the apps the person already uses. The human has authorized MVP design and a launch attempt on 20 October 2026. The repository now contains an editable FigCraft native MVP design. The human approved a private pilot with sync and requires native iPhone keyboard plus Mac hotkey today. Browser fallback is rejected. Native implementation is beginning; installation, sync and release are not yet verified. See [MVP launch design](MVP.md) for today’s proposed slice and release decisions.
 
 ## Current research and requirements effort — 2026-10-19
 
@@ -10,15 +10,26 @@ This session is producing evidence and a draft product requirements document bef
 
 The decision frontier is recorded through selectable interview questions. Research covers firsthand public discussions, first-party alternatives, and Apple platform constraints. Product recommendations stay visibly provisional until the human answers and confirms shared understanding. No implementation stack has been selected.
 
+### Keyboard-first clarification and writing space — 2026-10-20
+
+The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Find, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
+
+Minimised, Default and Expanded sizes preserve the same draft and cursor. Minimised retains a single visible note line and continues typing into the note; it does not redirect input to the host app. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified. The human requested future inheritance of their existing default keyboard; public iOS APIs do not establish a universal overlay over another keyboard. This remains a roadmap investigation, without changing the current custom-extension route.
+
+The FigCraft file is reorganized into Keyboard first, Pad sizes, Mac hotkey, Companion and setup, and Components pages. “Maya” was a fictional host-app contact in the previous mock; it was never an app name. It is removed from current screens. Functional greyscale styling remains. No native feature work was added during this design clarification.
+
+Native foundation status: shared Swift models/storage, eight domain tests, and a preliminary unconnected presentation model exist. No app executable, registered hotkey, installed keyboard or working sync exists. The empty Mac executable declaration was removed so the source checkpoint can be validated honestly. See [native status](../native/README.md).
+
 ### Current documents
 
-- [Interactive MVP preview](prototypes/mvp.html): responsive Capture/Find/Chat design with sample data and no connected persistence, AI or scheduling.
+- [FigCraft native MVP](design/native-mvp.figcraft) and [design handoff](design/README.md): greyscale phone, keyboard and Mac states with linked components and prototype flows. The earlier HTML preview is superseded.
 - [MVP launch design](MVP.md): today’s proposed pilot, screens, implementation gates and release decisions.
 - [PRD](PRD.md): current vision, jobs to be done, proposed acceptance examples, rough ASCII blueprints, platform constraints, and open decisions.
 - [UX journeys](UX.md): keyboard capture/search, feed/new-tab/message encounters, continuous chat, and the selected browser-based phone journey.
 - [Research synthesis](RESEARCH-2026-10-19.md): findings, counterevidence, coverage limits, and links to seven detailed reports, including direct X, UniiChat, and resurfacing-surface follow-ups.
 - [Private sync and optional AI decision](adr/0001-private-sync-and-optional-cloud-ai.md): the accepted privacy contract, with implementation unchosen.
 - [Headless second brain decision ticket](../.scratch/scattered-ambitious-pitch/issues/20-headless-second-brain.md): design tree and interview answers. It remains claimed until the product decisions are complete.
+- [Experience roadmap](ROADMAP.md): user-controlled writing space and preferred-keyboard inheritance, with platform boundaries.
 - [Glossary](../CONTEXT.md): resolved domain language.
 
 ### Confirmed in the first round — 2026-10-20
@@ -82,7 +93,7 @@ A date-only choice uses a visible, configurable default time that can be changed
 - Reminder controls are Edit and Remove. A separate Snooze control is excluded; conversational rescheduling edits the reminder.
 - Preserve the original time zone and scheduled instant during travel.
 - Reopening a completed checklist offers a new reminder without restoring the cancelled one.
-- The human asked to begin MVP design and launch by the end of today. Pause detailed interviewing and make the core loop reviewable. Private versus public release and browser fallback acceptance are the two pending launch decisions.
+- The human asked to begin MVP design and launch by the end of today. Pause detailed interviewing and make the core loop reviewable. Subsequently, the human agreed to the private-pilot recommendation with sync, required both native surfaces today, rejected browser design/delivery, and selected FigCraft. They requested functional greyscale industrial minimalism with no brand exploration.
 
 Environment check: no app/package exists yet; Xcode 26.2 is installed, and `security find-identity -v -p codesigning` returned zero valid identities. This does not establish that native signing can never be configured; native installation cannot yet be claimed. No release route is silently substituted. Selection priorities remain deferred. The platform follow-up supports a compact keyboard-Chat concept for testing but supplies no supported keyboard-to-companion launch. No such handoff is promised.
 

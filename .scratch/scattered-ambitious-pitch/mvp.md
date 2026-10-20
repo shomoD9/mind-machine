@@ -53,4 +53,7 @@ Decision detail stays in the linked tickets. This index distinguishes settled co
 [Lock the pitch](issues/08-lock-the-pitch.md) will confirm the vision and complete MVP scope with the human. Until then, this index records commitments without claiming the release is fully specified.
 
 
-**20 October launch direction:** Q32–Q35 add linked due reminders in the continuing chat, conversational rescheduling, optional WhatsApp/SMS, Edit/Remove controls without a separate Snooze control, original time zones, and a new reminder offer when reopening. The human authorized MVP design and a launch attempt today. Detailed interviewing is paused; pilot audience and browser fallback are pending. See [MVP launch design](../../docs/MVP.md).
+**20 October launch direction:** Q32–Q35 add linked due reminders in the continuing chat, conversational rescheduling, optional WhatsApp/SMS, Edit/Remove controls without a separate Snooze control, original time zones, and a new reminder offer when reopening. The human authorized MVP design and a launch attempt today. Detailed interviewing is paused; the human agreed to a private native pilot with sync and rejected browser fallback. See [MVP launch design](../../docs/MVP.md).
+
+
+**Keyboard-first clarification:** the notepad, Find, original reading and Chat live in the keyboard as the primary phone workspace. Companion/setup screens are secondary. Minimised/Default/Expanded preserve note and caret; minimised typing remains directed to the note. iPhone fullscreen is unverified; Mac window resizing/fullscreen is planned. Preferred-keyboard inheritance is a future investigation. See [experience roadmap](../../docs/ROADMAP.md).

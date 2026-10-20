@@ -1,0 +1,32 @@
+{
+  "frames": {
+    "Components / Greyscale controls": 2,
+    "Phone / Capture": 38,
+    "Phone / Find": 58,
+    "Phone / Original": 84,
+    "Phone / Chat": 105,
+    "Phone / Reminder": 131,
+    "Phone / Sync": 159,
+    "Phone / Open tasks": 184,
+    "Phone / Temporary": 210,
+    "Keyboard / Capture": 230,
+    "Keyboard / Find": 319,
+    "Keyboard / Chat": 407,
+    "Keyboard / Saved": 495,
+    "Keyboard / Original": 583,
+    "Keyboard / Inserted": 672,
+    "Sizing / Minimised": 758,
+    "Sizing / Default": 844,
+    "Sizing / Expanded": 934,
+    "Mac / Capture": 1024,
+    "Mac / Find": 1040,
+    "Mac / Chat": 1057
+  },
+  "components": {
+    "primary": 6,
+    "secondary": 8,
+    "key": 14
+  },
+  "expectedNodes": 1079,
+  "commandCount": 1579
+}

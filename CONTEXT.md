@@ -36,6 +36,14 @@ _Avoid_: dialog (as a synonym), a separate new chat for each topic
 An explicitly temporary part of a conversation that can read relevant saved material but adds nothing to the vault's retained history or derived memory. Ordinary chat remains retained by default.
 _Avoid_: hidden-but-retained chat, a promise about an external provider's retention
 
+**Keyboard workspace**:
+The phone's primary Capture/Find/Chat surface, with a private notepad above the keys inside the custom keyboard. It remains available while another supported app is open; the companion app is secondary.
+_Avoid_: a required trip to a standalone notes app, an overlay with unrestricted access to other apps
+
+**Pad size**:
+The person-chosen amount of writing or retrieval space: Minimised, Default or Expanded. Minimising keeps note input active and the host draft unchanged; resizing preserves the same draft and caret.
+_Avoid_: changing typing destination, saving or discarding a draft
+
 **Checklist**:
 An interactive list tied to its original capture, whose items the person can mark complete. Capturing the list alone does not schedule reminders.
 _Avoid_: searchable prose only, an automatically scheduled commitment
