@@ -1,5 +1,13 @@
 # Agent journal — productivity-for-neurodivergents
 
+## 2026-10-21 - GPT-6 - ChatGPT Work Mode
+
+- Read the current main snapshot 4c9e774, root instructions, domain glossary, privacy ADR, approved native build spec, product/UX/release documents, shared Swift domain, workspace, model, persistence and behavior tests. The human requested a state machine based on the product being built.
+- Applied the repository domain-modeling skill to preserve established terms and check concrete failure/race scenarios. Added docs/STATE-MACHINE.md as a proposed engineering design, and linked it from the living design.
+- Defined independent state regions, event/guard/effect rules, async correlation, due-event identity, channel receipts, Temporary lifecycle, Forget propagation and resurfacing boundaries. Recorded current-code gaps separately from accepted product behavior. Preserved deferred selection policies and existing implementation tickets.
+- Checked all ten Mermaid transition graphs for state reachability, six relative source links against the repository tree, and Markdown fence balance. These checks do not establish Mermaid rendering or runtime behavior. Reviewed the transition tables against the inspected code and edge-case traces. No Swift source was changed; no native tests or builds were run in this session.
+- Prepared a documentation-only draft pull request for review. No application behavior, ticket status, signing, external message channel or deployment was changed.
+
 ## 2026-10-20 - GPT-6 - Codex App
 
 - Final clean source compiled and was installed. Repeated native note n → host h, deleted h only from the host, returned to the note and appended p only there. Labels followed taps and extension stayed open. Follow-up Standards and Spec reviews returned zero remaining code findings. Asked one on-screen-only routing confirmation because CUA cannot reliably operate those custom buttons. Keeping ticket 02 claimed, removing the temporary log stream, and publishing the reviewed fix under the standing commit/push instruction.
