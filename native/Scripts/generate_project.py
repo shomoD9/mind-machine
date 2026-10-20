@@ -99,9 +99,11 @@ for name, folder, bundle, kind in [
         embed = add('keyboardembedfile', 'PBXBuildFile', fileRef=ident('SecondBrainKeyboardproduct'), settings=dictionary({'ATTRIBUTES':array(['RemoveHeadersOnCopy'])}))
         phases.append(add('keyboardembed', 'PBXCopyFilesBuildPhase', buildActionMask='2147483647', dstPath=quote(''), dstSubfolderSpec='13', files=array([embed]), name=quote('Embed Keyboard'), runOnlyForDeploymentPostprocessing='0'))
     targets.append(add(name+'target', 'PBXNativeTarget', buildConfigurationList=config_list, buildPhases=array(phases), buildRules='()', dependencies=array(target_dependencies), name=quote(name), packageProductDependencies=array(dependencies), productName=quote(name), productReference=product, productType=quote('com.apple.product-type.'+kind)))
+    # Keep standard bundle version/localization metadata explicit for native
+    # discovery. A registered PlugInKit record alone is not Settings availability.
     info = {'CFBundleDisplayName':'Second brain' if kind!='app-extension' else 'Second brain keyboard',
             'CFBundleExecutable':'$(EXECUTABLE_NAME)', 'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)',
-            'CFBundleName':'$(PRODUCT_NAME)', 'CFBundlePackageType':'XPC!' if kind=='app-extension' else 'APPL',
+            'CFBundleName':'$(PRODUCT_NAME)', 'CFBundleInfoDictionaryVersion':'6.0', 'CFBundleDevelopmentRegion':'en', 'CFBundlePackageType':'XPC!' if kind=='app-extension' else 'APPL',
             'CFBundleShortVersionString':'$(MARKETING_VERSION)', 'CFBundleVersion':'$(CURRENT_PROJECT_VERSION)'}
     if not is_mac: info['VaultAppGroup']='$(VAULT_APP_GROUP)'
     if folder=='iOS': info.update(UILaunchScreen={}, UISupportedInterfaceOrientations=['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'])

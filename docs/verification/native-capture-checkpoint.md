@@ -1,6 +1,6 @@
 # Native capture/refind checkpoint — 2026-10-20
 
-Ticket 01 is implemented in source and remains claimed until keyboard and Mac hotkey interactions are exercised. This report records current evidence without treating compilation as launch.
+Ticket 01 is implemented in source and remains claimed until the custom keyboard capture/Find/Insert interaction is verified. Mac hotkey and companion capture/refind now have runtime evidence. This report records current evidence without treating compilation as launch.
 
 ## Build and tests
 
@@ -15,7 +15,13 @@ Ticket 01 is implemented in source and remains claimed until keyboard and Mac ho
 
 The existing iPhone 15 Pro / iOS 17.5 simulator installed and launched the SDK-26.2 app. The unsigned build reported unavailable shared storage. Rebuilding with simulator ad-hoc signing registered group.dev.secondbrain.pilot, and the companion setup/test-host screen rendered without the sharing error. [Screenshot](native-companion-setup.png) shows the running app, not a design mock.
 
-The Mac UI tool reported that the computer is locked and automatic unlock failed. An asynchronous unlock request is pending. Keyboard enablement, capture/find/Insert using its actual keyplane, host/private routing, and Mac hotkey interaction are not yet verified. First-ticket acceptance therefore remains open. Real-device installation still needs Apple signing setup and a phone.
+After the Mac was unlocked, its native UI saved a disposable note, displayed the persistence receipt, returned it for an incomplete-wording query and opened its original. The human confirmed the actual Control–Option–Space shortcut opens/closes the panel while another app is active. The phone companion also passed capture → Find → original through its shared container.
+
+The embedded keyboard was initially registered in PlugInKit but absent from Settings. Restarting Settings and the simulator did not immediately expose it. Standard bundle Info version/development-region metadata was added, and a refreshed/search-filtered Settings list then showed Second brain. The individual cause is provisional; this is an observed availability result rather than a proven single-key metadata diagnosis. Apple's installed Custom Keyboard Extension template and [official keyboard guide](https://developer.apple.com/library/archive/documentation/General/Conceptual/ExtensibilityPG/CustomKeyboard.html) were checked during diagnosis.
+
+The keyboard is enabled and renders its private Capture workspace. Full Access was granted **only in the simulator**, after automatic approval review required and the human supplied explicit action-time permission. The companion's setup content now scrolls while a bottom safe-area inset keeps its composer immediately above the complete extension; verified in the running simulator.
+
+The UI tool does not expose this extension's controls in its simulator AX tree and returns noWindowsAvailable for coordinate actions on its custom keys. Explicit accessibility-order instrumentation did not improve that and was removed. A human-assisted custom-key capture → Find → Insert check is pending. The ticket remains claimed. Real-phone installation/sync still need signing, account and device proof.
 
 ## Standards
 
