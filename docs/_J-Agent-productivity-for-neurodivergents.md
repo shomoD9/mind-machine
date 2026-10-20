@@ -2,6 +2,11 @@
 
 ## 2026-10-20 - GPT-6 - Codex App
 
+- Added the checklist reminder lifecycle blueprint. Checked nine Markdown files for balanced fences and new local-link failures; passed. Corrected diagram whitespace found by the first diff check. Publishing `docs: settle checklist reminder lifecycle`, followed by working-tree and remote-head verification.
+
+- Received Q29–Q31 and pulled the remote first; already up to date. Recorded the visible editable default time, cancellation on whole-checklist completion, and overdue lists with repeated alerts only by explicit choice. Updated PRD, UX, DESIGN, glossary, decision tree and scope/research indexes.
+- Continued the invoked grill-with-docs workflow. Asked Q32–Q35 through selectable elicitation for reminder channels, management controls, time zones, and reopening; recommendations remain pending. Ranking and calendar integrations remain deferred. Preparing the Markdown checkpoint for validation, commit and push under the continuing publication instruction.
+
 - Validated all nine changed Markdown files: balanced fenced diagrams, no new broken local links, and clean whitespace checks. Reconciled earlier round summaries with Q27–Q28. Publishing this follow-up as `docs: define whole-checklist due reminders`, then checking remote-head equality and working-tree cleanliness.
 
 - Received Q27–Q28: a checklist due date also schedules its reminder, and dates belong to the whole checklist only. Pulled the configured remote first; after sandbox-required escalation it was already up to date. The earlier complete checkpoint was published as `d73b425`; this follow-up records the new decisions without altering deferred selection/calendar scope.

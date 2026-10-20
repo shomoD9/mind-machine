@@ -80,6 +80,14 @@ A researched product vision and PRD for the human's whole-day capture, search, a
 | Q27: due date and alert | Choosing a due date also schedules a reminder. | The checklist date-setting action accepts reminder creation; no separate optional reminder toggle. The combined effect must be apparent. |
 | Q28: date scope | Whole checklist only. | One date for the checklist, with no individual-item dates. |
 
+## Round 8 — answered 2026-10-20
+
+| Question | Human answer | Recorded meaning |
+| --- | --- | --- |
+| Q29: date-only time | Use a visible default time. | Configurable and editable before scheduling. |
+| Q30: whole-list completion | Cancel when the whole list is complete. | Cancel the pending reminder; unfinished items keep it scheduled. |
+| Q31: overdue | Show overdue; repeat alerts only by choice. | Remain in Open tasks; snooze or explicit scheduling permits another alert. |
+
 ## Design tree and current frontier
 
 ```text
@@ -103,7 +111,9 @@ Whole-day personal vault [settled]
 │   ├── Timed messages require accepted reminder [settled Q11]
 │   ├── This app owns reminders [settled Q25]
 │   ├── Soft post-save reminder prompt [Q23 refinement]
-│   └── Time / channels / edits / failure [next]
+│   ├── Q32 channels / Q33 controls / Q34 time zones [pending]
+│   ├── Q35 reopening completed checklists [pending]
+│   └── Delivery failure [next]
 ├── Continuous chat + retained history [settled Q7]
 │   ├── Forget original + derived memory [settled Q17]
 │   ├── Chat also in keyboard [settled Q21]
@@ -116,9 +126,9 @@ Whole-day personal vault [settled]
 │   ├── Open tasks in Find and Chat [settled Q24]
 │   ├── Due date also schedules reminder [settled Q27]
 │   ├── Whole-checklist date only [settled Q28]
-│   ├── Q29 date-only alert time [pending]
-│   ├── Q30 complete-list reminder cancellation [pending]
-│   └── Q31 overdue behavior [pending]
+│   ├── Visible default alert time [settled Q29]
+│   ├── Cancel pending reminder on whole-list completion [settled Q30]
+│   └── Overdue; repeats only by choice [settled Q31]
 ├── Capture/search entry
 │   └── Capture first; toggle Find; preserve drafts [settled Q16]
 └── Free local + paid-sync direction [stated]
@@ -130,7 +140,7 @@ Round four is complete. Q13's clarified excerpt-approval recommendation was reje
 
 Round five is answered; Q18 is explicitly deferred. The current-page-context recommendation was rejected in favor of captured material only, and Chat is added to the keyboard. Checklist and Temporary behavior are accepted as above.
 
-Round seven is answered: the whole-checklist due date also schedules its reminder. The separate-reminder-toggle and optional-item-date recommendations were not chosen. Round eight asks Q29–Q31, recommending a visible editable default time, cancelling a pending reminder when every item is complete, and retaining overdue items without repeated timed alerts unless chosen. These remain unanswered. Selection priorities and calendar integration/timeboxing remain deferred.
+Round seven is answered: the whole-checklist due date also schedules its reminder. The separate-reminder-toggle and optional-item-date recommendations were not chosen. Round eight confirms Q29–Q31: a visible editable default time, cancellation when every item is complete, and overdue retention with repeats only by choice. Round nine asks Q32–Q35 about channels, editing/snoozing/removal, time zones, and reopened checklists. Those recommendations remain unanswered. Selection priorities and calendar integration/timeboxing remain deferred.
 
 Research references: [UniiChat identity and memory](../research/22-uniichat-identity-and-memory-2026-10-20.md), [surface contracts](../research/23-resurfacing-surface-contracts-2026-10-20.md). Chrome verified the creator's source-release X post. Browser feed/new-tab capability is documented; native iPhone feed insertion has no supported route. These findings do not select an implementation or substitute an experience without the human's answer.
 

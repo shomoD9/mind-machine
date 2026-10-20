@@ -48,6 +48,10 @@ _Avoid_: a plain-text-only entry box, a mandatory task form
 The date by which a captured task or checklist is intended to be completed. A checklist has one due date for the whole list, and choosing it also schedules its reminder; individual checkbox items do not have due dates.
 _Avoid_: reminder time, timebox
 
+**Overdue checklist**:
+An unfinished checklist whose due time has passed. It remains in Open tasks; another timed alert requires snoozing or explicit scheduling.
+_Avoid_: automatic repeating alert
+
 **Timebox**:
 A scheduled activity occupying a particular period in a calendar. It is distinct from a cue that reminds the person about an intention.
 _Avoid_: reminder, due date

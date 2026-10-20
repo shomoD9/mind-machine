@@ -2,7 +2,7 @@
 
 Capture without filing. Find material where you need it. Let useful thoughts return during your existing day.
 
-**Status:** research-backed working draft, begun 2026-10-19 and updated 2026-10-20 after round seven. A checklist due date applies to the whole list and also schedules its reminder. There are no individual-item due dates. Alert time, completion cancellation, and overdue behavior remain to design. Scope is not yet locked.
+**Status:** research-backed working draft, begun 2026-10-19 and updated 2026-10-20 after round eight. A checklist due date applies to the whole list and also schedules its reminder. There are no individual-item due dates. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require snoozing or explicit scheduling. Scope is not yet locked.
 
 ## 1. Product and problem
 
@@ -78,7 +78,7 @@ Rich note: short thought or essay
   [date] [time] [Set reminder] [Not now]
 ```
 
-A checkbox list remains interactive and linked to its source. The optional post-save prompt offers one due date for the whole checklist. Choosing that due date also schedules the reminder and counts as accepting reminder creation. The control must communicate this combined effect. No separate Remind me toggle or individual-item due dates are included. The date-only alert time is Q29. The full document can be presented through a compact keyboard viewport and a full-page editor; exact platform/editor behavior still needs design and testing, without promising a keyboard-to-companion launch.
+A checkbox list remains interactive and linked to its source. The optional post-save prompt offers one due date for the whole checklist. Choosing that due date also schedules the reminder and counts as accepting reminder creation. The control must communicate this combined effect. No separate Remind me toggle or individual-item due dates are included. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require snoozing or explicit scheduling. The full document can be presented through a compact keyboard viewport and a full-page editor; exact platform/editor behavior still needs design and testing, without promising a keyboard-to-companion launch.
 
 ### Mac: one hotkey, two primary modes
 
@@ -206,7 +206,7 @@ This describes responsibilities, without choosing databases, models, hosting, or
 | A4 | Support forgetting selected conversation material. | “Forget this” removes the exchange and derived memory across synced devices so it no longer appears in history, search, answers, or resurfacing. | Confirmed Q17; offline/recovery mechanics open |
 | A5 | Offer Temporary chat segments. | Turning Temporary on visibly excludes that segment from retained vault history and derived memory. Ordinary conversation remains saved by default. | Confirmed Q22/Q26; temporary lifecycle open |
 | H4 | Offer Chat within the secondary keyboard. | Capture, Find, and Chat are accessible without treating chat input as a host-app message. Explicitly inserting an answer is a separate action. | Mode Confirmed Q21; detailed layout/buffering Proposed |
-| T2 | Make captured to-do lists interactive. | Tick off a checklist item and retain its link to the original capture; no timed reminder is created by capture alone. | Confirmed Q20/Q23/Q27–Q28; time/lifecycle details open |
+| T2 | Make captured to-do lists interactive. | Tick off a checklist item and retain its link to the original capture; no timed reminder is created by capture alone. | Confirmed Q20/Q23/Q27–Q31; delivery/editing/reopening open |
 | C6 | Provide a lightweight visual Markdown-style rich-text document. | Write an essay, formatted bullets, or explicit checkboxes with simple controls; save without classification. An action sentence gets an optional soft reminder offer with date/time selectors. | Confirmed Q23 refinement; exact controls/layout open |
 | T3 | Find unfinished items across captures. | Use Open tasks within Find or ask Chat; each item opens its original capture. | Confirmed Q24 |
 | T4 | Keep reminder ownership inside this app. | Accepted reminders are linked to captures and managed here. External calendar connections and calendar timeboxes are a later integration direction. | Confirmed Q25; calendar integration deferred |
@@ -315,14 +315,20 @@ Decisions already answered:
 - **Q26:** Temporary may read relevant saved vault memory, saving no new messages or derived memory.
 - **Q27:** choosing a checklist due date also schedules its reminder; a separate optional alert toggle was not chosen.
 - **Q28:** dates apply to the whole checklist only; individual-item dates are excluded.
+- **Q29:** use a visible configurable default time, editable before scheduling.
+- **Q30:** completing every item cancels the pending checklist reminder.
+- **Q31:** unfinished lists remain overdue; repeat timed alerts require an explicit choice.
+
+A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require snoozing or explicit scheduling.
 
 The current decision frontier is with the human:
 
 | Decision | Recommendation | What depends on it |
 | --- | --- | --- |
-| Q29: what time applies when only a date is chosen? | A visible configurable default time, editable before scheduling. | Date/time prompt, time zone, clear confirmation. |
-| Q30: does completing the whole list cancel its pending reminder? | Cancel when every item is complete. | Checklist completion and reminder lifecycle. |
-| Q31: what happens after a due reminder with unfinished items? | Keep overdue in Open tasks; repeat timed alerts only by explicit choice. | Overdue state, snooze and repeat policy. |
+| Q32: where does an accepted reminder arrive? | Device notifications by default; deliberately connected WhatsApp/SMS channels optional. | Delivery permissions, device coordination and channel failure. |
+| Q33: which reminder controls are available? | Edit date/time, snooze, or remove the reminder while preserving the original. | Reminder management journey. |
+| Q34: what happens when the person changes time zones? | Keep the scheduled instant and display the original time zone. | Travel behavior and date/time confirmation. |
+| Q35: does reopening a completed list restore its reminder? | Offer a new reminder; require acceptance again. | Reopened-checklist lifecycle. |
 
 **Resolved Q13:** after clarification, the human chose automatic eligibility with uncertain items kept private. The exact-snippet approval proposal is retained only in interview history as a rejected alternative. It is not part of the current capture or resurfacing flow.
 

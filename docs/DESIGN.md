@@ -70,7 +70,11 @@ After asking for clarification, the human chose automatic idea/bookmark eligibil
 - Choosing a checklist due date also schedules its reminder. This interaction counts as accepting reminder creation and must visibly communicate the combined effect; there is no separate optional Remind me toggle.
 - The date belongs to the whole checklist. Individual checkbox items have no due dates.
 
-The current questions are Q29 date-only alert time, Q30 cancellation when the whole checklist completes, and Q31 behavior after an overdue reminder. Selection priorities remain deferred. The platform follow-up supports a compact keyboard-Chat concept for testing but supplies no supported keyboard-to-companion launch. No such handoff is promised.
+### Confirmed in round eight — 2026-10-20
+
+A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require snoozing or explicit scheduling.
+
+The current questions are Q32 reminder channels, Q33 reminder controls, Q34 time zones, and Q35 reopening a completed checklist. Selection priorities remain deferred. The platform follow-up supports a compact keyboard-Chat concept for testing but supplies no supported keyboard-to-companion launch. No such handoff is promised.
 
 The UniiChat reference is verified as Victor Taelin's official Apache-2.0 project and creator announcement. Its original-log plus navigable-summary approach informs the chat refinement: history is retained without save prompts, while retrieval preserves attribution and tentative statements. Its server/inference/client arrangement has not been chosen for this product. The source report is pinned to an inspected commit and distinguishes retention from measured recall.
 
