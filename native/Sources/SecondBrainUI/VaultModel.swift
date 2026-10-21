@@ -9,6 +9,9 @@ import SecondBrainCore
 
 @MainActor
 public final class VaultModel: ObservableObject {
+    // Saved-vault tests disable only the OS boundary. A keyboard can reconcile
+    // existing permissions; only the companion/Mac presents permission UI.
+    public enum NotificationAccess { case companion, keyboard, disabled }
     @Published public var vault = Vault()
     @Published public var error: String?
     @Published public var notice: String?
@@ -25,20 +28,25 @@ public final class VaultModel: ObservableObject {
     @Published public var endpoint = "http://localhost:11434"
     @Published public var modelName = "llama3.2"
     @Published public var cloudOptIn = false
+    @Published public var deviceNotificationStatus = "Device notification status not checked"
     private let file: VaultFile
+    private let deviceReminders: DeviceReminders?
     private let embedding = NLEmbedding.sentenceEmbedding(for: .english)
     private var timer: Timer?
 
-    public init(url: URL? = nil) {
+    public init(url: URL? = nil, notificationAccess: NotificationAccess = .companion) {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         file = VaultFile(url: url ?? base.appendingPathComponent("SecondBrain/vault.json"))
+        deviceReminders = notificationAccess == .disabled ? nil : DeviceReminders(file: file, allowsPermissionPrompt: notificationAccess == .companion)
         reload()
         // The timer reconciles in-app events only. System delivery uses UN requests;
         // foreground reconciliation is never described as closed-app notification proof.
         timer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.reconcileDueEvents() }
+            Task { @MainActor in self?.reload() }
         }
     }
+
+    deinit { timer?.invalidate() }
 
     public var searchDescription: String { embedding == nil ? "Keyword search" : "Keyword + on-device semantic search" }
     public var conversation: [ChatMessage] { temporary ? temporaryMessages : vault.messages }
@@ -52,7 +60,13 @@ public final class VaultModel: ObservableObject {
     }
 
     public func reload() {
-        do { vault = try file.read(); reconcileDueEvents() }
+        do {
+            let latest = try file.read()
+            if latest != vault { vault = latest }
+            clearInvalidReminderOffer()
+            reconcileDueEvents()
+            Task { [weak self] in await self?.refreshDeviceNotifications() }
+        }
         catch { self.error = "Could not read the vault: \(error.localizedDescription)" }
     }
 
@@ -60,8 +74,15 @@ public final class VaultModel: ObservableObject {
     /// follows a successful atomic save, keeping failures distinct from Saved.
     @discardableResult
     private func change(_ mutate: (inout Vault) throws -> Void) -> Bool {
-        do { vault = try file.update(mutate); return true }
+        do { vault = try file.update(mutate); clearInvalidReminderOffer(); return true }
         catch { self.error = "Could not save: \(error.localizedDescription)"; return false }
+    }
+
+    // Refreshes can complete/delete the offered source in another surface.
+    // Never keep a prompt that the saved reminder boundary would now reject.
+    private func clearInvalidReminderOffer() {
+        guard let id = offeredCapture else { return }
+        if !vault.captures.contains(where: { $0.id == id && !$0.allItemsComplete }) { offeredCapture = nil }
     }
 
     public func saveCapture() {
@@ -79,9 +100,8 @@ public final class VaultModel: ObservableObject {
             draft = ""; richDraft = nil; notice = "Saved on this device"
             // A soft offer follows persistence and does not classify or rewrite it.
             let action = capture.text.lowercased().trimmingCharacters(in: .whitespaces)
-            if !items.isEmpty || ["buy ","call ","apply ","remember ","send ","book "].contains(where: action.hasPrefix) {
-                offeredCapture = capture.id
-            }
+            let actionable = !items.isEmpty || ["buy ","call ","apply ","remember ","send ","book "].contains(where: action.hasPrefix)
+            offeredCapture = actionable && !capture.allItemsComplete ? capture.id : nil
         }
     }
 
@@ -105,49 +125,66 @@ public final class VaultModel: ObservableObject {
     }
 
     public func setItem(captureID: UUID, itemID: UUID, complete: Bool) {
-        let wasComplete = vault.captures.first(where: { $0.id == captureID })?.allItemsComplete == true
-        guard change({ try $0.setItem(captureID: captureID, itemID: itemID, complete: complete) }) else { return }
-        let cancelled = vault.reminders.filter { $0.captureID == captureID && $0.status == .cancelled }
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: cancelled.map { $0.id.uuidString })
+        var wasComplete = false
+        guard change({ saved in
+            wasComplete = saved.captures.first(where: { $0.id == captureID })?.allItemsComplete == true
+            try saved.setItem(captureID: captureID, itemID: itemID, complete: complete)
+        }) else { return }
+        Task { [weak self] in await self?.refreshDeviceNotifications() }
         if wasComplete && !complete { offeredCapture = captureID }
     }
 
-    public func schedule(captureID: UUID, date: Date, zone: String = TimeZone.current.identifier) async {
-        var created: Reminder?
-        guard change({ created = try $0.schedule(captureID: captureID, dueAt: date, timeZoneID: zone) }), let created else { return }
-        offeredCapture = nil
-        await deliverSystemRequest(created)
+    // The default is a saved clock preference, not a hidden schedule. The form
+    // shows this time and its zone before any commitment is accepted.
+    public var defaultReminderTime: ReminderClockTime { vault.preferredReminderTime ?? ReminderClockTime() }
+    public func setDefaultReminderTime(hour: Int, minute: Int) {
+        guard (0...23).contains(hour), (0...59).contains(minute) else { return }
+        _ = change { $0.preferredReminderTime = ReminderClockTime(hour: hour, minute: minute) }
+    }
+    public func suggestedReminderDate(now: Date = Date(), zone: TimeZone = .current) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let clock = defaultReminderTime
+        return calendar.nextDate(after: now,
+                                 matching: DateComponents(hour: clock.hour, minute: clock.minute, second: 0),
+                                 matchingPolicy: .nextTime) ?? now.addingTimeInterval(86400)
     }
 
-    public func editReminder(id: UUID, date: Date) async {
-        guard change({ try $0.reschedule(id: id, dueAt: date) }), let reminder = vault.reminders.first(where: { $0.id == id }) else { return }
-        await deliverSystemRequest(reminder)
+    @discardableResult
+    public func schedule(captureID: UUID, date: Date, zone: String = TimeZone.current.identifier) async -> Bool {
+        guard change({ try $0.schedule(captureID: captureID, dueAt: date, timeZoneID: zone) }) else { return false }
+        offeredCapture = nil
+        notice = "Reminder saved on this device"
+        await refreshDeviceNotifications()
+        return true
+    }
+
+    @discardableResult
+    public func editReminder(id: UUID, date: Date) async -> Bool {
+        guard change({ try $0.reschedule(id: id, dueAt: date) }) else { return false }
+        notice = "Reminder updated on this device"
+        await refreshDeviceNotifications()
+        return true
     }
 
     public func removeReminder(id: UUID) {
         if change({ try $0.removeReminder(id: id) }) {
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id.uuidString])
+            Task { [weak self] in await self?.refreshDeviceNotifications() }
             notice = "Reminder removed. Original kept."
         }
     }
 
-    private func deliverSystemRequest(_ reminder: Reminder) async {
-        do {
-            guard reminder.dueAt > Date() else { reconcileDueEvents(); return }
-            let center = UNUserNotificationCenter.current()
-            guard try await center.requestAuthorization(options: [.alert, .sound, .badge]) else {
-                notice = "Reminder saved; device notifications are disabled. Chat updates when the app opens."
-                return
-            }
-            let content = UNMutableNotificationContent()
-            content.title = "A reminder from your vault"
-            content.body = "Open Second brain for the details."
-            content.sound = .default
-            content.userInfo = ["reminderID":reminder.id.uuidString]
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, reminder.dueAt.timeIntervalSinceNow), repeats: false)
-            try await center.add(UNNotificationRequest(identifier: reminder.id.uuidString, content: content, trigger: trigger))
-            notice = "Device reminder scheduled"
-        } catch { self.error = "Reminder saved, but notification scheduling failed: \(error.localizedDescription)" }
+    // Authorization and device scheduling are separate from saving a reminder.
+    // Missing permissions or OS errors never roll back the accepted commitment.
+    public func enableNotifications() async {
+        guard let deviceReminders else { return }
+        do { deviceNotificationStatus = try await deviceReminders.enable() }
+        catch { deviceNotificationStatus = "Could not enable device notifications: \(error.localizedDescription)" }
+    }
+    public func refreshDeviceNotifications() async {
+        guard let deviceReminders else { return }
+        do { deviceNotificationStatus = try await deviceReminders.reconcile() }
+        catch { deviceNotificationStatus = "Reminders saved; device notification scheduling failed: \(error.localizedDescription)" }
     }
 
     private func reconcileDueEvents() {

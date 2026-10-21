@@ -1,5 +1,6 @@
 /* Mac entry point and global hotkey adapter. Carbon delivers Ctrl-Option-Space
- to a native resizable panel hosting the shared WorkspaceView and local VaultModel. */
+ to a native resizable panel hosting the shared WorkspaceView and local VaultModel.
+ The app also installs a process-lifetime foreground notification presenter. */
 import AppKit
 import Carbon
 import SwiftUI
@@ -19,6 +20,7 @@ final class MacDelegate: NSObject, NSApplicationDelegate {
     private let model = VaultModel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        installReminderNotificationPresentation()
         // Carbon registration works without monitoring general keystrokes or
         // requesting Accessibility access. Failure is shown instead of hidden.
         var event = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))

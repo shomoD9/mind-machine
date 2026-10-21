@@ -19,6 +19,17 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     private let results = UIStackView()
     private let scroll = UIScrollView()
     private let status = UILabel()
+    private let notificationStatus = UILabel()
+    private var openTasks = false
+    // The accepted editing target and zone are frozen while choosing a date.
+    private struct ReminderSession {
+        let captureID: UUID
+        let reminderID: UUID?
+        let zone: TimeZone
+        var date: Date
+    }
+    private var reminderSession: ReminderSession?
+    private var savingReminder = false
     private let destination = UIButton(type: .system)
     private let save = UIButton(type: .system)
     private let modes = UISegmentedControl(items: ["Capture", "Find", "Chat"])
@@ -47,11 +58,12 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         // group must both work before any private capture can be accepted.
         do {
             guard hasFullAccess else { throw DeviceVault.StorageError.sharedContainerUnavailable }
-            model = VaultModel(url: try DeviceVault.sharedURL())
+            model = VaultModel(url: try DeviceVault.sharedURL(), notificationAccess: .keyboard)
         } catch { status.text = error.localizedDescription }
         buildWorkspace()
         if let model {
             model.$vault.sink { [weak self] _ in DispatchQueue.main.async { self?.renderResults() } }.store(in: &subscriptions)
+            model.$deviceNotificationStatus.sink { [weak self] in self?.notificationStatus.text = $0 }.store(in: &subscriptions)
             model.$notice.combineLatest(model.$error).sink { [weak self] notice, error in
                 self?.status.text = error ?? notice ?? "Private note · saved locally when you tap Save"
             }.store(in: &subscriptions)
@@ -66,7 +78,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         model?.activateCapture()
         modes.selectedSegmentIndex = 0
         workspace.selectMode(.capture)
-        selected = nil; hostInput = false
+        selected = nil; reminderSession = nil; hostInput = false
         refreshMode()
     }
 
@@ -174,6 +186,10 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         status.numberOfLines = 2; status.font = .preferredFont(forTextStyle: .caption2)
         status.textColor = .secondaryLabel
         stack.addArrangedSubview(status)
+        notificationStatus.font = .preferredFont(forTextStyle: .caption2)
+        notificationStatus.numberOfLines = 2; notificationStatus.textColor = .secondaryLabel
+        notificationStatus.isHidden = true
+        stack.addArrangedSubview(notificationStatus)
     }
 
     private func button(_ title: String, action: Selector) -> UIButton {
@@ -214,7 +230,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         retainDraft()
         workspace.selectMode(KeyboardWorkspace.Mode(rawValue: modes.selectedSegmentIndex) ?? .capture)
         model?.mode = workspace.mode.rawValue
-        selected = nil
+        selected = nil; reminderSession = nil
         refreshMode()
     }
 
@@ -223,13 +239,17 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         guard let model else { save.isEnabled = false; return }
         restoringEditor = true
         let draft = workspace.draft
-        RichTextEditing.restore(text: draft.text, richText: draft.richText, in: editor)
-        RichTextEditing.setSelection(workspace.draft.selection, in: editor)
-        editor.setContentOffset(CGPoint(x: 0, y: workspace.draft.scrollOffset), animated: false)
+        if let original = selected.flatMap({ source in model.vault.captures.first { $0.id == source.id } }) {
+            RichTextEditing.restore(text: original.text, richText: original.richText, in: editor)
+        } else {
+            RichTextEditing.restore(text: draft.text, richText: draft.richText, in: editor)
+            RichTextEditing.setSelection(draft.selection, in: editor)
+            editor.setContentOffset(CGPoint(x: 0, y: draft.scrollOffset), animated: false)
+        }
         restoringEditor = false
         editor.isEditable = selected == nil
         editor.accessibilityLabel = model.mode == 0 ? "Private note" : model.mode == 1 ? "Find saved material" : "Private chat message"
-        save.setTitle(model.mode == 0 ? "Save note" : model.mode == 1 ? "Search" : "Send to model", for: .normal)
+        updatePrimaryTitle()
         refreshDestination()
         renderResults()
         applyPadSize()
@@ -247,6 +267,15 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         case 1: model.query = editor.text
         default: model.chatDraft = editor.text
         }
+        updatePrimaryTitle()
+    }
+
+    // A saved action offers scheduling without blocking the next capture. As
+    // soon as writing resumes, the same primary control saves the new draft.
+    private func updatePrimaryTitle() {
+        guard let model else { return }
+        let offer = workspace.draft.text.isEmpty && model.offeredCapture != nil
+        save.setTitle(model.mode == 0 ? (offer ? "Add reminder?" : "Save note") : model.mode == 1 ? "Search" : "Send to model", for: .normal)
     }
 
     // All saves flow through coordinated persistence; Search has no write side effect.
@@ -255,6 +284,9 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         retainDraft()
         switch model.mode {
         case 0:
+            if workspace.draft.text.isEmpty, let id = model.offeredCapture {
+                beginReminder(captureID: id); return
+            }
             model.saveCapture()
             if model.draft.isEmpty { workspace.edit(PrivateDraft()) }
             refreshMode()
@@ -277,7 +309,11 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         guard let model else { return }
         results.arrangedSubviews.forEach { $0.removeFromSuperview() }
         scroll.isHidden = model.mode == 0 || workspace.size == .minimised
-        if let selected {
+        if let session = reminderSession {
+            renderReminderEditor(session)
+            return
+        }
+        if let selected = selected.flatMap({ saved in model.vault.captures.first { $0.id == saved.id } }) {
             let back = UIButton(type: .system)
             back.setTitle("Back to results", for: .normal)
             back.addAction(UIAction { [weak self] _ in self?.selected = nil; self?.refreshMode() }, for: .touchUpInside)
@@ -293,8 +329,27 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
                 self.sendingToHost = false
             }, for: .touchUpInside)
             results.addArrangedSubview(insert)
+            // Completion mutates linked checklist state, never the original text.
+            for item in selected.checklist {
+                addResultButton("\(item.complete ? "☑" : "☐") \(item.text)") { [weak self] in
+                    self?.model?.setItem(captureID: selected.id, itemID: item.id, complete: !item.complete)
+                }
+            }
+            if model.vault.isOverdue(captureID: selected.id, now: Date()) { addResultLabel("Overdue") }
+            if let reminder = model.vault.reminders.first(where: { $0.captureID == selected.id && $0.status != .cancelled }) {
+                addResultLabel(reminderDateLabel(reminder))
+                if !selected.allItemsComplete {
+                    addResultButton("Edit reminder") { [weak self] in self?.beginReminder(captureID: selected.id, reminder: reminder) }
+                }
+                addResultButton("Remove reminder") { [weak self] in self?.model?.removeReminder(id: reminder.id) }
+            } else if !selected.allItemsComplete {
+                addResultButton("Set reminder") { [weak self] in self?.beginReminder(captureID: selected.id) }
+            } else { addResultLabel("Complete · no pending reminder") }
         } else if model.mode == 1 {
-            for original in model.results() {
+            addResultButton(openTasks ? "Open tasks ✓ · Show all" : "Show Open tasks") { [weak self] in
+                guard let self else { return }; self.openTasks.toggle(); self.renderResults()
+            }
+            for original in model.results(openTasks: openTasks) {
                 let result = UIButton(type: .system)
                 result.setTitle(String(original.text.prefix(100)), for: .normal)
                 result.titleLabel?.numberOfLines = 2
@@ -313,13 +368,79 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
                 }, for: .touchUpInside)
                 results.addArrangedSubview(result)
             }
-            if results.arrangedSubviews.isEmpty { let label = UILabel(); label.text = "Nothing found yet"; results.addArrangedSubview(label) }
+            if model.results(openTasks: openTasks).isEmpty { addResultLabel("Nothing found yet") }
         } else if model.mode == 2 {
             for message in model.conversation.suffix(8) {
                 let label = UILabel(); label.numberOfLines = 0; label.font = .preferredFont(forTextStyle: .caption1)
                 label.text = "\(message.role.rawValue.capitalized): \(message.text)"
                 results.addArrangedSubview(label)
+                if message.role == .reminder, let id = message.sourceCaptureIDs.first {
+                    addResultButton("Open reminder source") { [weak self] in self?.openOriginal(id) }
+                }
             }
+        }
+    }
+
+    // Reminder controls use the same model as Mac. Wheels stay inside the
+    // extension; they temporarily replace keys instead of opening a host overlay.
+    private func addResultLabel(_ text: String) {
+        let label = UILabel(); label.text = text; label.numberOfLines = 0
+        label.font = .preferredFont(forTextStyle: .caption1)
+        results.addArrangedSubview(label)
+    }
+    @discardableResult
+    private func addResultButton(_ title: String, action: @escaping () -> Void) -> UIButton {
+        let control = UIButton(type: .system); control.setTitle(title, for: .normal)
+        control.titleLabel?.numberOfLines = 0; control.contentHorizontalAlignment = .leading
+        control.addAction(UIAction { _ in action() }, for: .touchUpInside)
+        results.addArrangedSubview(control)
+        return control
+    }
+    private func openOriginal(_ id: UUID) {
+        guard let capture = model?.vault.captures.first(where: { $0.id == id }) else { return }
+        retainDraft(); selected = capture
+        restoringEditor = true
+        RichTextEditing.restore(text: capture.text, richText: capture.richText, in: editor)
+        restoringEditor = false; editor.isEditable = false
+        renderResults(); applyPadSize()
+    }
+    private func beginReminder(captureID: UUID, reminder: Reminder? = nil) {
+        guard let model else { return }; retainDraft()
+        let zone = reminder.flatMap { TimeZone(identifier: $0.timeZoneID) } ?? .current
+        reminderSession = ReminderSession(captureID: captureID, reminderID: reminder?.id, zone: zone,
+                                          date: reminder?.dueAt ?? model.suggestedReminderDate(zone: zone))
+        renderResults(); applyPadSize()
+    }
+    private func renderReminderEditor(_ session: ReminderSession) {
+        addResultLabel(session.reminderID == nil ? "Choose a reminder" : "Edit reminder")
+        addResultLabel("Whole capture/checklist · \(session.zone.identifier)")
+        let picker = UIDatePicker()
+        picker.datePickerMode = .dateAndTime; picker.preferredDatePickerStyle = .wheels
+        picker.timeZone = session.zone; picker.minimumDate = Date(); picker.date = max(session.date, Date())
+        picker.heightAnchor.constraint(equalToConstant: 216).isActive = true
+        picker.addAction(UIAction { [weak self, weak picker] _ in
+            guard let picker else { return }; self?.reminderSession?.date = picker.date
+        }, for: .valueChanged)
+        picker.isEnabled = !savingReminder
+        results.addArrangedSubview(picker)
+        addResultButton(savingReminder ? "Saving…" : "Confirm date and reminder") { [weak self] in self?.confirmReminder() }.isEnabled = !savingReminder
+        addResultButton("Cancel · keep original") { [weak self] in
+            guard let self, !self.savingReminder else { return }
+            self.reminderSession = nil; self.refreshMode()
+        }.isEnabled = !savingReminder
+    }
+    private func confirmReminder() {
+        guard let model, let session = reminderSession, !savingReminder else { return }
+        guard session.date > Date() else { status.text = "Choose a future date and time."; return }
+        savingReminder = true
+        renderResults(); applyPadSize()
+        Task {
+            let saved: Bool
+            if let id = session.reminderID { saved = await model.editReminder(id: id, date: session.date) }
+            else { saved = await model.schedule(captureID: session.captureID, date: session.date, zone: session.zone.identifier) }
+            savingReminder = false
+            if saved { reminderSession = nil }
+            refreshMode()
         }
     }
 
@@ -343,12 +464,15 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         }
         let name = workspace.size == .minimised ? "Min" : workspace.size == .expanded ? "Expanded" : "Default"
         sizeButton.setTitle("Size: \(name)", for: .normal)
-        formatting.isHidden = workspace.size == .minimised || model?.mode != 0 || selected != nil
-        height?.constant = model?.mode == 0 || selected != nil ? padHeight : 36
-        // Original inspection needs only Back/Insert below its document. Giving
-        // that action area another full pad would crowd the host at Expanded size.
-        resultsHeight?.constant = selected == nil ? padHeight : 64
-        scroll.isHidden = model?.mode == 0 || workspace.size == .minimised
+        let choosingDate = reminderSession != nil
+        modes.isEnabled = !savingReminder; sizeButton.isEnabled = !savingReminder
+        editor.isHidden = choosingDate; keyplane.isHidden = choosingDate
+        save.isHidden = choosingDate; destination.isHidden = choosingDate
+        notificationStatus.isHidden = !(choosingDate || selected != nil)
+        formatting.isHidden = choosingDate || workspace.size == .minimised || model?.mode != 0 || selected != nil
+        height?.constant = selected != nil ? max(32, padHeight / 2) : model?.mode == 0 ? padHeight : 36
+        resultsHeight?.constant = choosingDate ? requestedHeight - 150 : selected != nil ? max(64, padHeight / 2) : padHeight
+        scroll.isHidden = !choosingDate && selected == nil && (model?.mode == 0 || workspace.size == .minimised)
         workspaceHeight?.constant = requestedHeight
         view.layoutIfNeeded()
         restoringEditor = false

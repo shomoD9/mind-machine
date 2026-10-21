@@ -1,10 +1,13 @@
 /* iPhone companion entry point: setup, a test host composer and vault access.
+ It also owns process-lifetime foreground notification presentation.
  The embedded Keyboard target is the primary phone Capture/Find/Chat surface. */
 import SwiftUI
 import SecondBrainUI
 
 @main
+@MainActor
 struct SecondBrainApp: App {
+    init() { installReminderNotificationPresentation() }
     var body: some Scene { WindowGroup { CompanionView() } }
 }
 

@@ -15,7 +15,9 @@ Review baseline: c319917
 
 ## Verification
 
-Record executable evidence and remaining limitations here. Compilation, simulator behavior and real-device proof are separate facts.
+The full package suite passes 21 tests with zero failures, including five new failing-first regressions at the approved saved-vault/presentation boundary. Mac, iPhone companion and embedded keyboard builds succeeded. Independent Standards/Spec follow-up reviews against c319917 found no remaining actionable code findings. See [checkpoint evidence](../../../docs/verification/native-reminders-checkpoint.md).
+
+Native checklist/date-form interaction and actual OS notification authorization, pending requests and delivery remain unverified. The Mac is locked and one unlock request is pending. Ticket remains claimed; compilation and domain tests do not satisfy these native acceptance gates.
 
 ## Comments
 

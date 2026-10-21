@@ -26,7 +26,8 @@ public struct WorkspaceView: View {
                 HStack { Text(error); Button("Dismiss") { model.error = nil } }.font(.caption)
             }
             if let notice = model.notice { Text(notice).font(.caption).accessibilityIdentifier("save-status") }
-            if showSettings { settings }
+            if model.mode == 0 && model.selectedCapture == nil { ReminderOfferView(model: model) }
+            if showSettings { ScrollView { settings } }
             else if let id = model.selectedCapture, let original = model.vault.captures.first(where: { $0.id == id }) {
                 originalView(original)
             } else {
@@ -75,6 +76,7 @@ public struct WorkspaceView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(original.text).lineLimit(3).multilineTextAlignment(.leading)
                                 Text(original.createdAt, style: .date).font(.caption).foregroundStyle(.secondary)
+                                if model.vault.isOverdue(captureID: original.id, now: Date()) { Text("Overdue").font(.caption.bold()) }
                             }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
                                 .background(Color.primary.opacity(0.04)).clipShape(RoundedRectangle(cornerRadius: 8))
                         }.buttonStyle(.plain).accessibilityIdentifier("capture-result")
@@ -89,14 +91,19 @@ public struct WorkspaceView: View {
     private func originalView(_ original: Capture) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Button("Back to Find") { model.selectedCapture = nil; model.mode = 1 }
-            Text(original.createdAt, style: .date).font(.caption)
+            // The entire reader scrolls, so long checklists cannot strand their
+            // last items or reminder controls outside the phone/panel viewport.
             ScrollView {
-                if let rich = original.richText,
-                   let content = try? NSAttributedString(data: rich, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil),
-                   content.string == original.text {
-                    Text(AttributedString(content)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    Text(original.text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(original.createdAt, style: .date).font(.caption)
+                    CaptureTasksView(model: model, captureID: original.id).id(original.id)
+                    if let rich = original.richText,
+                       let content = try? NSAttributedString(data: rich, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil),
+                       content.string == original.text {
+                        Text(AttributedString(content)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Text(original.text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
         }
@@ -114,6 +121,7 @@ public struct WorkspaceView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(message.role.rawValue.capitalized).font(.caption).foregroundStyle(.secondary)
                             Text(message.text).textSelection(.enabled)
+                            if message.role == .reminder { Text("Reminder event · use Open source to edit or remove its schedule").font(.caption) }
                             ForEach(message.sourceCaptureIDs, id: \.self) { id in
                                 Button("Open source") { model.selectedCapture = id }
                             }
@@ -130,6 +138,16 @@ public struct WorkspaceView: View {
     // Server and privacy configuration stay visible; no inference runs on editing them.
     private var settings: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Text("Reminder settings").font(.headline)
+            DatePicker("Default reminder time", selection: Binding(get: {
+                let clock = model.defaultReminderTime
+                return Calendar.current.date(bySettingHour: clock.hour, minute: clock.minute, second: 0, of: Date()) ?? Date()
+            }, set: { date in
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                model.setDefaultReminderTime(hour: parts.hour ?? 9, minute: parts.minute ?? 0)
+            }), displayedComponents: .hourAndMinute)
+            Text(model.deviceNotificationStatus).font(.caption)
+            Button("Enable device notifications") { Task { await model.enableNotifications() } }
             Text("Inference settings").font(.headline)
             Text("Chat needs a running Ollama-compatible server. On iPhone, localhost means the phone itself.").font(.caption)
             TextField("Server URL", text: $model.endpoint).textFieldStyle(.roundedBorder)

@@ -18,6 +18,47 @@ final class VaultTests: XCTestCase {
         XCTAssertTrue(reopened.reminders.isEmpty)
     }
 
+    // Accepting a revised whole-list date from another surface edits one active
+    // commitment, rather than creating duplicate alerts for the same checklist.
+    func testOneActiveReminderPerCaptureSurvivesReopening() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("vault.json")
+        let capture = Capture(text: "☐ Pack torch", checklist: [ChecklistItem(text: "Pack torch")])
+        let firstDate = Date(timeIntervalSince1970: 7_258_118_400)
+        let revisedDate = firstDate.addingTimeInterval(3600)
+        let first = VaultFile(url: url)
+        let saved = try first.update {
+            $0.captures.append(capture)
+            try $0.schedule(captureID: capture.id, dueAt: firstDate, timeZoneID: "Asia/Kolkata")
+        }
+        let reminderID = try XCTUnwrap(saved.reminders.first?.id)
+        _ = try VaultFile(url: url).update {
+            try $0.schedule(captureID: capture.id, dueAt: revisedDate, timeZoneID: "Asia/Kolkata")
+        }
+        let reopened = try first.read()
+        XCTAssertEqual(reopened.reminders.count, 1)
+        XCTAssertEqual(reopened.reminders.first?.id, reminderID)
+        XCTAssertEqual(reopened.reminders.first?.dueAt, revisedDate)
+        XCTAssertEqual(reopened.captures.first?.text, "☐ Pack torch")
+    }
+
+    // Completed checklists cannot receive a fresh alert until reopened. A new
+    // acceptance after reopening never revives the cancelled commitment's ID.
+    func testCompletedChecklistRequiresReopeningBeforeNewReminder() throws {
+        var (vault, capture, a, b) = fixture()
+        let due = Date(timeIntervalSince1970: 7_258_118_400)
+        let old = try vault.schedule(captureID: capture, dueAt: due, timeZoneID: "UTC")
+        try vault.setItem(captureID: capture, itemID: a, complete: true)
+        try vault.setItem(captureID: capture, itemID: b, complete: true)
+        XCTAssertThrowsError(try vault.schedule(captureID: capture, dueAt: due, timeZoneID: "UTC"))
+        XCTAssertThrowsError(try vault.reschedule(id: old.id, dueAt: due))
+        try vault.setItem(captureID: capture, itemID: a, complete: false)
+        let new = try vault.schedule(captureID: capture, dueAt: due, timeZoneID: "UTC")
+        XCTAssertNotEqual(new.id, old.id)
+        XCTAssertEqual(vault.reminders.first(where: { $0.id == old.id })?.status, .cancelled)
+    }
+
     private func fixture() -> (Vault, UUID, UUID, UUID) {
         let a = ChecklistItem(text: "Buy wood")
         let b = ChecklistItem(text: "Fit shelf")

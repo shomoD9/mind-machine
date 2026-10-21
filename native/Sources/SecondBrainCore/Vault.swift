@@ -82,12 +82,21 @@ public struct ChatMessage: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+/// A preferred wall-clock time; the UI applies it in the reminder's shown zone.
+/// Optional storage on Vault keeps older documents compatible without migration.
+public struct ReminderClockTime: Codable, Equatable, Sendable {
+    public var hour: Int
+    public var minute: Int
+    public init(hour: Int = 9, minute: Int = 0) { self.hour = hour; self.minute = minute }
+}
+
 /// The local document contains retained material only. Temporary chat stays in
 /// the presentation session and is never appended through this retention gate.
 public struct Vault: Codable, Equatable, Sendable {
     public var captures: [Capture] = []
     public var reminders: [Reminder] = []
     public var messages: [ChatMessage] = []
+    public var preferredReminderTime: ReminderClockTime?
     public var schemaVersion: Int = 1
 
     public init() {}
@@ -119,8 +128,16 @@ public struct Vault: Codable, Equatable, Sendable {
     /// must display the selected date, default time, zone and scheduling outcome.
     @discardableResult
     public mutating func schedule(captureID: UUID, dueAt: Date, timeZoneID: String) throws -> Reminder {
-        guard captures.contains(where: { $0.id == captureID }) else { throw VaultError.captureMissing }
+        guard let capture = captures.first(where: { $0.id == captureID }) else { throw VaultError.captureMissing }
+        guard !capture.allItemsComplete else { throw VaultError.checklistComplete }
         guard TimeZone(identifier: timeZoneID) != nil else { throw VaultError.invalidTimeZone }
+        // Each capture has one current commitment. A second accepted date edits
+        // it; cancelled history is retained and a later acceptance creates a new one.
+        if let existing = reminders.firstIndex(where: { $0.captureID == captureID && $0.status != .cancelled }) {
+            let id = reminders[existing].id
+            try reschedule(id: id, dueAt: dueAt, timeZoneID: timeZoneID)
+            return reminders[existing]
+        }
         let reminder = Reminder(captureID: captureID, dueAt: dueAt, timeZoneID: timeZoneID)
         reminders.append(reminder)
         return reminder
@@ -130,6 +147,9 @@ public struct Vault: Codable, Equatable, Sendable {
     /// chosen zone unless explicitly replaced, and does not create a Snooze mode.
     public mutating func reschedule(id: UUID, dueAt: Date, timeZoneID: String? = nil) throws {
         guard let i = reminders.firstIndex(where: { $0.id == id }) else { throw VaultError.reminderMissing }
+        guard captures.first(where: { $0.id == reminders[i].captureID })?.allItemsComplete != true else {
+            throw VaultError.checklistComplete
+        }
         if let timeZoneID {
             guard TimeZone(identifier: timeZoneID) != nil else { throw VaultError.invalidTimeZone }
             reminders[i].timeZoneID = timeZoneID
@@ -182,4 +202,16 @@ public struct Vault: Codable, Equatable, Sendable {
     }
 }
 
-public enum VaultError: Error { case captureMissing, reminderMissing, invalidTimeZone }
+public enum VaultError: Error { case captureMissing, reminderMissing, invalidTimeZone, checklistComplete }
+
+// Native surfaces show domain failures without leaking implementation details.
+extension VaultError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .captureMissing: return "The original capture is no longer available."
+        case .reminderMissing: return "The reminder is no longer available."
+        case .invalidTimeZone: return "Choose a valid reminder time zone."
+        case .checklistComplete: return "Reopen the checklist before setting a new reminder."
+        }
+    }
+}
