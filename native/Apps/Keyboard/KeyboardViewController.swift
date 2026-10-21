@@ -16,6 +16,8 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     private let stack = UIStackView()
     private let editor = RoutingTextView()
     private let privateTap = UITapGestureRecognizer()
+    private let privateHold = UILongPressGestureRecognizer()
+    private var allowsCaretMenu = false
     private let results = UIStackView()
     private let scroll = UIScrollView()
     private let status = UILabel()
@@ -129,6 +131,13 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         privateTap.cancelsTouchesInView = false
         privateTap.delegate = self
         editor.addGestureRecognizer(privateTap)
+        // A hold is deliberate menu intent; a simple destination tap is not.
+        // Observe alongside UIKit so selection/loupe gestures remain native.
+        privateHold.minimumPressDuration = 0.3
+        privateHold.cancelsTouchesInView = false
+        privateHold.delegate = self
+        privateHold.addTarget(self, action: #selector(holdPrivatePad))
+        editor.addGestureRecognizer(privateHold)
         editor.routeHostInsert = { [weak self] text in
             guard let self, self.hostInput else { return false }
             self.insert(text); return true
@@ -371,12 +380,33 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     }
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        gestureRecognizer === privateTap || otherGestureRecognizer === privateTap
+        gestureRecognizer === privateTap || otherGestureRecognizer === privateTap ||
+        gestureRecognizer === privateHold || otherGestureRecognizer === privateHold
+    }
+
+    // Clear menu intent at touch-down, before UIKit asks for menu contents.
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        if gestureRecognizer === privateTap || gestureRecognizer === privateHold { allowsCaretMenu = false }
+        return true
+    }
+    @objc private func holdPrivatePad() {
+        guard privateHold.state == .began else { return }
+        selectPrivatePad()
+        allowsCaretMenu = true
+    }
+
+    // A collapsed-caret tap only chooses where to type. A deliberate hold or a
+    // selected range can show UIKit's editing actions; App routing never can.
+    func textView(_ textView: UITextView, editMenuForTextIn range: NSRange,
+                  suggestedActions: [UIMenuElement]) -> UIMenu? {
+        guard !hostInput, allowsCaretMenu || range.length > 0 else { return UIMenu(children: []) }
+        return nil
     }
 
     private func refreshDestination() {
-        // Hide the local caret while keys target the host; preserve its selection.
-        editor.tintColor = hostInput ? .clear : .label
+        // Hiding geometry and selection UI survives native redraws; tint alone
+        // does not define whether an insertion caret exists. Draft/caret stays stored.
+        editor.isPrivateDestination = !hostInput
         destination.setTitle(hostInput ? "Typing into: App" : "Typing into: Private \(model?.mode == 1 ? "search" : model?.mode == 2 ? "chat" : "note")", for: .normal)
     }
 
@@ -458,6 +488,34 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
 // and deletion to the host when the local responder remains active there.
 @MainActor
 private final class RoutingTextView: UITextView {
+    // Both the insertion caret and range adornments belong to the active route.
+    // This changes presentation only, leaving selectedTextRange and text intact.
+    var isPrivateDestination = true {
+        didSet {
+            // Repeated label refreshes must not reactivate or rebuild selection UI.
+            guard oldValue != isPrivateDestination else { return }
+            tintColor = isPrivateDestination ? .label : .clear
+            for interaction in interactions {
+                if let selection = interaction as? UITextSelectionDisplayInteraction {
+                    selection.isActivated = isPrivateDestination
+                    selection.setNeedsSelectionUpdate()
+                }
+                if !isPrivateDestination, let menu = interaction as? UIEditMenuInteraction { menu.dismissMenu() }
+            }
+            setNeedsLayout()
+            setNeedsDisplay()
+        }
+    }
+    override func caretRect(for position: UITextPosition) -> CGRect {
+        isPrivateDestination ? super.caretRect(for: position) : .zero
+    }
+    override func selectionRects(for range: UITextRange) -> [UITextSelectionRect] {
+        isPrivateDestination ? super.selectionRects(for: range) : []
+    }
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        isPrivateDestination && super.canPerformAction(action, withSender: sender)
+    }
+
     var routeHostInsert: ((String) -> Bool)?
     var routeHostDelete: (() -> Bool)?
 
