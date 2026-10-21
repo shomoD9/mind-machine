@@ -4,7 +4,7 @@ This project is defining a headless second brain: capture without filing, then f
 
 ## Native implementation workflow — 2026-10-20
 
-The human approved the Matt Pocock engineering setup, three public test boundaries and eight vertical slices. Root `AGENTS.md` routes tracker/domain guidance through `docs/agents/`. The authoritative native build spec is `.scratch/native-mvp/spec.md`; separate tickets live under `.scratch/native-mvp/issues/`. Ticket 01 is resolved; ticket 02 is claimed. Review compares against c319917 and includes pending changes. Tests exercise keyboard workspace state, saved-vault behavior and encrypted two-vault replication; actual host/device behavior needs separate native evidence. Resurfacing selection remains decision-blocked.
+The human approved the Matt Pocock engineering setup, three public test boundaries and eight vertical slices. Root `AGENTS.md` routes tracker/domain guidance through `docs/agents/`. The authoritative native build spec is `.scratch/native-mvp/spec.md`; separate tickets live under `.scratch/native-mvp/issues/`. Ticket 01 is resolved; ticket 02 is resolved; ticket 03 is claimed. Review compares against c319917 and includes pending changes. Tests exercise keyboard workspace state, saved-vault behavior and encrypted two-vault replication; actual host/device behavior needs separate native evidence. Resurfacing selection remains decision-blocked.
 
 ## Native capture/refind architecture
 
@@ -16,7 +16,7 @@ All three targets compiled with Xcode 26.2. Ticket 01 passed its ten-test checkp
 
 ## Pad sizing and visual editing — implementation in progress
 
-Ticket 01 is resolved after the human confirmed the simulator keyboard capture → Find → original → Insert path, with the host field untouched until Insert. Mac and companion UI checks, the real global shortcut, builds, tests and two review axes were already complete. Ticket 02 is claimed; ticket 06 is unblocked and unclaimed.
+Ticket 01 is resolved after the human confirmed the simulator keyboard capture → Find → original → Insert path, with the host field untouched until Insert. Mac and companion UI checks, the real global shortcut, builds, tests and two review axes were already complete. Ticket 02 is resolved; ticket 03 is claimed; ticket 06 is unblocked and unclaimed.
 
 The native keyboard now uses a public KeyboardWorkspace session for destination, size and per-mode private draft metadata. Private drafts carry original text, RTF, UTF-16 selection and scroll offset; host text stays in the host app. Resizing changes layout constraints around the same live editor. Independent tests established that sizing preserves writing context and that Capture/Find/Chat recover their separate drafts and selections without rerouting host input.
 
@@ -53,7 +53,7 @@ Tap-host-to-type-in-host and tap-note-to-type-in-note are the desired interactio
 
 The human requested the local ask-matt skill stack and approved its setup on 2026-10-20. The route for this native build is setup → spec → vertical tickets → implement/TDD → Standards/Spec review. Root AGENTS.md and docs/agents now configure the retained local Markdown tracker, default triage labels and single domain context.
 
-The [engineering plan](../.scratch/native-mvp/review-plan.md), [published build spec](../.scratch/native-mvp/spec.md), three public test boundaries and eight individual tickets are approved. Review baseline is c319917. Ticket 01 is resolved after saved-vault/workspace tests and native/human acceptance; ticket 02 is claimed. Native runtime evidence and two independent review axes are recorded separately from test approval.
+The [engineering plan](../.scratch/native-mvp/review-plan.md), [published build spec](../.scratch/native-mvp/spec.md), three public test boundaries and eight individual tickets are approved. Review baseline is c319917. Ticket 01 is resolved after saved-vault/workspace tests and native/human acceptance; ticket 02 is resolved; ticket 03 is claimed. Native runtime evidence and two independent review axes are recorded separately from test approval.
 
 The human asked about automatic categorisation. The current proposal is to preserve originals and build an automatic index with provenance, dates, links, explicit structure and local retrieval, adding replaceable topic/tag inference only where it improves outcomes. No mandatory category taxonomy has been chosen. This proposal does not settle resurfacing ranking or privacy eligibility.
 
@@ -195,3 +195,7 @@ Basic routed input passed an earlier human on-screen-key check, but the latest f
 The geometry suppression for the private caret during App routing remains. A previous custom hold/edit-menu gate failed acceptance and is removed from the next candidate. Screenshots show “No Replacements Found”; Apple's text-input-traits documentation describes single-tap spelling corrections, which are separate from ordinary copy/paste edit menus. The next candidate disables native spell checking and autocorrection only in the private editor, retaining UIKit's native selection and copy/paste menus. This keeps fragments and search queries as authored. It compiles and is now installed; private tap/menu acceptance remains pending.
 
 With Apple's keyboard selected, CUA host activation also selected the test word and opened a menu; AX activation is not proof of an equivalent human single tap. The human baseline screenshots show a spelling/autocorrection suggestion popup in the host while our keyboard is inactive. The software keyboard was hidden by Simulator hardware-input mode; Command–K made Apple’s software keyboard visibly open before continuing. This establishes host spelling UI outside our extension, not universal simulator/real-device tap behavior. A decision about accepting the dormant host caret for the keyboard MVP is pending. Do not alter the companion's caret/menus to mask third-party-host limits, and do not close ticket 02 or claim launch until the behavior and any required product compromise are explicit.
+
+## Editor acceptance and reminders — 21 October 2026
+
+The human accepted the installed spelling-isolation editor as working and explicitly chose to keep the keyboard with the dormant host caret visible. Ticket 02 is resolved using prior tests/builds/reviews and this native acceptance. No further cursor testing is requested. Ticket 03 is claimed for interactive checklists, whole-list accepted reminders, Edit/Remove controls, due Chat events and distinct system-notification status. The original typing destination/draft preservation and privacy decisions remain in force.

@@ -2,6 +2,8 @@
 
 ## 2026-10-21 - GPT-6 - Codex App
 
+- Human accepted the installed private editor as working and explicitly accepted the dormant host caret, asking to move forward after tiring QA. Pulled first (up to date, clean), resolved ticket 02 from existing build/test/review/native evidence plus this acceptance, recorded the scope decision in the build spec and DESIGN, and claimed unblocked ticket 03. No more manual checks for this issue. Continued ask-matt implement/TDD through the previously approved saved-vault boundary, inspected existing reminder operations/tests and Apple notification docs before adding the missing native flows.
+
 - Pulled first (already current, clean). Human reported Apple's software keyboard was hidden, then supplied host spelling/autocorrection popup screenshots while our extension was inactive. Acknowledged the incomplete baseline setup; used CUA Command–K and visually confirmed Apple's software keyboard. Host popup evidence supports native correction behavior rather than attributing every popup to our tap handler; real-phone/simulator equivalence is still unproven.
 - Installed the already-built/reviewed b0416c6 private spelling candidate after the baseline response, switched via the native keyboard picker, and verified our keyboard visibly open. Coordinate access to the private editor still failed with noWindowsAvailable. Asked one private spelling/selection-menu test and one necessary product decision about accepting a dormant host caret in the keyboard MVP; no silent relaxation of the single-caret request. Updated living status from uninstalled to installed/pending acceptance. No source or permissions changed; publishing evidence under the standing commit/push instruction.
 

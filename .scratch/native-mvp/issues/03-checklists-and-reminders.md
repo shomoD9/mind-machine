@@ -1,6 +1,6 @@
 # 03 — Capture a checklist, accept a reminder, and change it
 
-Status: needs-info
+Status: claimed
 Blocked by: 01, 02
 Spec: [Native MVP](../spec.md)
 Review baseline: c319917
@@ -20,3 +20,5 @@ Record executable evidence and remaining limitations here. Compilation, simulato
 ## Comments
 
 - 2026-10-20: Human approved the eight-ticket breakdown, blockers, test boundaries and baseline. Waiting for the listed blockers.
+
+- 2026-10-21: Ticket 02 resolved after explicit human acceptance of editor behavior and dormant-host-caret limitation. Claimed this unblocked reminder slice using the previously approved saved-vault test boundary; no further cursor QA requested.

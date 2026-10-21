@@ -1,17 +1,17 @@
 # 02 — Write comfortably and select where keys go
 
-Status: claimed
+Status: resolved
 Blocked by: 01
 Spec: [Native MVP](../spec.md)
 Review baseline: c319917
 
 ## Acceptance criteria
 
-- [ ] Lightweight visual rich-text controls support prose, bullets and explicit checkboxes while preserving originals.
-- [ ] Minimised, Default and Expanded preserve drafts, selections, mode and destination. Minimising alone keeps typing into the selected note.
-- [ ] Host input and private input are visibly distinct. Tap the note to select it and tap the host composer to select host input where native focus allows; verify callbacks rather than claiming universal behavior.
-- [ ] The representative native test host anchors its composer above the complete extension workspace. Other hosts own their geometry.
-- [ ] Prove destination and editing behavior at the approved workspace seam; document real native focus/height observations and Apple-parity/fullscreen limits.
+- [x] Lightweight visual rich-text controls support prose, bullets and explicit checkboxes while preserving originals.
+- [x] Minimised, Default and Expanded preserve drafts, selections, mode and destination. Minimising alone keeps typing into the selected note.
+- [x] Host input and private input are visibly distinct. Tap the note to select it and tap the host composer to select host input where native focus allows; verify callbacks rather than claiming universal behavior.
+- [x] The representative native test host anchors its composer above the complete extension workspace. Other hosts own their geometry.
+- [x] Prove destination and editing behavior at the approved workspace seam; document real native focus/height observations and Apple-parity/fullscreen limits.
 
 ## Verification
 
@@ -28,3 +28,5 @@ Review baseline: c319917
 - 2026-10-20: Ticket 01 resolved after human keyboard-flow confirmation. Claimed this next approved slice; test boundaries remain the previously approved workspace and saved-vault interfaces.
 
 - 2026-10-21: Human confirmed custom-key routing passes and reported simultaneous cursor blinking. Reproduced dual visible carets in Private note, verified local caret hides in App, inspected public SDK/proxy docs, and recorded host ownership without claiming a universal fix. No code/settings changes.
+
+- 2026-10-21: Human accepted the installed editor as working and explicitly chose to retain the keyboard with the dormant host caret visible. This resolves the prior caret scope decision. Closed after the existing builds, 16-test suite, independent reviews and native/human checks. Exact Apple parity and real-device/cross-host proof remain release limits, not claims of this ticket.

@@ -53,6 +53,8 @@ A secondary iPhone keyboard is the primary phone workspace. Capture opens with a
 
 ## Implementation Decisions
 
+- On 21 October the human accepted the installed keyboard editor and retaining a visible dormant host caret while the private note receives typing. A guarantee of exactly one visible caret across host apps is not an MVP requirement. The active route remains labelled; other host/device limitations stay explicit.
+
 - Swift native clients share the existing Vault domain and coordinated persistence. The keyboard controller owns a private input route and a host-proxy route, with explicit destination state.
 - Size and mode changes preserve destination, private selections and drafts. Native host-focus behavior needs a runnable experiment before universal tap-to-focus is promised. A visible destination selector is a proposed fallback, not a silently approved replacement.
 - Background organization begins with provenance, timestamps, URLs, author-chosen structure, keyword indexing and optional on-device embeddings. A permanent category taxonomy is not a prerequisite. Interpretations remain replaceable and never overwrite original material.
