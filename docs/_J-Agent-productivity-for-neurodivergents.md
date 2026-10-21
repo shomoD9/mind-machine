@@ -1,5 +1,10 @@
 # Agent journal — productivity-for-neurodivergents
 
+## 2026-10-21 - GPT-6 - Codex App
+
+- Pulled before continuing: main already current; fetch discovered an unrelated remote product-state-machine branch, which was left untouched. Human confirmed the final on-screen-key routing passes and clarified the earlier replay used on-screen keys. Recorded this acceptance while retaining ticket 02 during the visual follow-up.
+- Continued diagnosing-bugs for simultaneous cursor blinking. Asked which route exhibits it, inspected the current keyboard implementation and installed public UIInputViewController/UITextDocumentProxy headers, and checked official Apple documentation. CUA reproduced visible host/note carets in Private note; selecting the host changed the label to App and hid the private caret. The reviewed public proxy has no host caret styling/visibility control. Recorded that API boundary and the rejected resign-local experiment instead of changing only our test host or mutating host selection to hide the symptom. No source/settings changes or tests were needed for this evidence-only update. Clarification about any remaining private caret in App routing is pending. Publishing the updated evidence under the standing commit/push instruction.
+
 ## 2026-10-20 - GPT-6 - Codex App
 
 - Final clean source compiled and was installed. Repeated native note n → host h, deleted h only from the host, returned to the note and appended p only there. Labels followed taps and extension stayed open. Follow-up Standards and Spec reviews returned zero remaining code findings. Asked one on-screen-only routing confirmation because CUA cannot reliably operate those custom buttons. Keeping ticket 02 claimed, removing the temporary log stream, and publishing the reviewed fix under the standing commit/push instruction.
