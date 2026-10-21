@@ -16,8 +16,6 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     private let stack = UIStackView()
     private let editor = RoutingTextView()
     private let privateTap = UITapGestureRecognizer()
-    private let privateHold = UILongPressGestureRecognizer()
-    private var allowsCaretMenu = false
     private let results = UIStackView()
     private let scroll = UIScrollView()
     private let status = UILabel()
@@ -116,6 +114,11 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         // Rich formatting stays inside the private note. Search and chat remain
         // plain inputs, and authored checkboxes retain their visible source glyph.
         editor.allowsEditingTextAttributes = true
+        // Captured fragments and queries remain as authored. Native spelling
+        // replacements also open word popovers on a single tap, before edit-menu
+        // customization; disable them here while retaining selection/copy/paste.
+        editor.spellCheckingType = .no
+        editor.autocorrectionType = .no
         formatting.distribution = .fillEqually
         for format in NoteFormat.allCases {
             let control = UIButton(type: .system)
@@ -131,13 +134,6 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         privateTap.cancelsTouchesInView = false
         privateTap.delegate = self
         editor.addGestureRecognizer(privateTap)
-        // A hold is deliberate menu intent; a simple destination tap is not.
-        // Observe alongside UIKit so selection/loupe gestures remain native.
-        privateHold.minimumPressDuration = 0.3
-        privateHold.cancelsTouchesInView = false
-        privateHold.delegate = self
-        privateHold.addTarget(self, action: #selector(holdPrivatePad))
-        editor.addGestureRecognizer(privateHold)
         editor.routeHostInsert = { [weak self] text in
             guard let self, self.hostInput else { return false }
             self.insert(text); return true
@@ -380,27 +376,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     }
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        gestureRecognizer === privateTap || otherGestureRecognizer === privateTap ||
-        gestureRecognizer === privateHold || otherGestureRecognizer === privateHold
-    }
-
-    // Clear menu intent at touch-down, before UIKit asks for menu contents.
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        if gestureRecognizer === privateTap || gestureRecognizer === privateHold { allowsCaretMenu = false }
-        return true
-    }
-    @objc private func holdPrivatePad() {
-        guard privateHold.state == .began else { return }
-        selectPrivatePad()
-        allowsCaretMenu = true
-    }
-
-    // A collapsed-caret tap only chooses where to type. A deliberate hold or a
-    // selected range can show UIKit's editing actions; App routing never can.
-    func textView(_ textView: UITextView, editMenuForTextIn range: NSRange,
-                  suggestedActions: [UIMenuElement]) -> UIMenu? {
-        guard !hostInput, allowsCaretMenu || range.length > 0 else { return UIMenu(children: []) }
-        return nil
+        gestureRecognizer === privateTap || otherGestureRecognizer === privateTap
     }
 
     private func refreshDestination() {
