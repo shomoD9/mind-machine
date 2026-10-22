@@ -2,6 +2,8 @@
 
 Capture without filing. Find material where you need it. Let useful thoughts return during your existing day.
 
+**Latest direction, 22 October 2026:** everyday capture and recall must live in the current activity, with resident local copies and cross-device sync from the beginning. Mac access now includes a persistent movable control expanding from its anchor, as well as the hotkey. [Core MVP refinement](MVP-CORE.md) records this direction and the proposed release boundary. Moving Chat, reminders and resurfacing out of the first release awaits the human's scope answer; the full vision and existing work remain preserved. Sections below retain the earlier design where not superseded.
+
 **Status:** research-backed working draft, begun 2026-10-19 and updated 2026-10-20 after round nine; MVP design and launch preparation are authorized. A checklist due date applies to the whole list and also schedules its reminder. There are no individual-item due dates. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. The complete vision remains intact; today’s target is a private native pilot with cross-device sync, iPhone keyboard and Mac global hotkey. Browser fallback is rejected.
 
 ## 1. Product and problem

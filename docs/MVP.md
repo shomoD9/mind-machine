@@ -1,5 +1,7 @@
 # MVP launch design — 20 October 2026
 
+**22 October refinement:** [Capture here. Recall here.](MVP-CORE.md) records the latest core job, persistent Mac entry and local-resident sync requirements. Its proposed Chat/reminder/resurfacing deferral is awaiting the human's answer. This document preserves the earlier scope and implementation history; later explicit decisions take precedence.
+
 Save a thought without filing it. Find it later in your own words. Continue a conversation that remembers it. Receive an accepted reminder and change it from that conversation.
 
 The human has authorized starting MVP design and attempting a launch today. This document makes the first experience reviewable. It does not declare an unbuilt app launched or replace the complete [PRD](PRD.md).

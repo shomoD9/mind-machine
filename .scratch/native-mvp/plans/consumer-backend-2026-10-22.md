@@ -1,5 +1,7 @@
 # Consumer backend and Mac launcher — proposed execution plan
 
+Latest refinement: the human's core-memory brief now requires a persistent movable Mac entry and emphasizes Capture/Find plus local-resident sync. See [core MVP scope](../../../docs/MVP-CORE.md) and its pending scope answer before publishing this breakdown. The Chat/reminder/resurfacing release boundary is being reconsidered; existing work is preserved. Engine choices also need the keyboard-process and multimodal checks in the new research reports.
+
 Status: draft for ticket-granularity review. The human requested a state-machine walkthrough before approval; an overall positive response is not approval to publish the revised tickets. The 22 October product instructions below are authoritative; implementation choices and numeric budgets remain proposals until verified. Existing tickets and their incomplete acceptance evidence remain intact.
 
 ## Product corrections from the human
