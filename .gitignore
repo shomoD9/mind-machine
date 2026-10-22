@@ -1,2 +1,5 @@
 .DS_Store
 .claude/settings.local.json
+
+# Browser verification snapshots and screenshots are local test output.
+.playwright-mcp/
