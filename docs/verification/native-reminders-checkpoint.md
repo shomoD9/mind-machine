@@ -26,8 +26,22 @@ The full Swift package suite passes 21 tests with zero failures. Existing domain
 
 Mac, iPhone companion and embedded keyboard builds succeeded with the commands in native/README.md. Independent Standards and Spec follow-up reviews against the approved c319917 baseline reported zero remaining actionable code findings.
 
-## Pending verification
+## Verification status
 
-Native layout/action verification and actual notification authorization/scheduling/delivery remain separate steps. No new device permission has been granted and no delivery is claimed. This checkpoint does not complete remembered inference, encrypted sync, media or release verification.
+Mac checklist/reminder controls and companion/keyboard reminder inspection were exercised after unlock. Both device notification permissions are enabled under explicit human approval. Simulator background delivery is verified below; Mac visual delivery remains open because the computer-use service failed. Real-phone verification remains a release gate. This checkpoint does not complete remembered inference, encrypted sync, media or release verification.
 
-Initial reviews found scroll clipping for long lists, stale offers after completion, and notification delegate ownership/lifetime. Fixed each: controls/settings scroll, offers validate against saved state, and only app entry points install a process-lifetime foreground presenter. Added save-state disabling and original-reader restoration during date editing. Follow-up reviews are clear and rebuilt native artifacts succeeded. The Mac is currently locked; an unlock request is pending, so no new native interaction or notification permission/delivery proof is claimed.
+Initial reviews found scroll clipping for long lists, stale offers after completion, and notification delegate ownership/lifetime. Fixed each: controls/settings scroll, offers validate against saved state, and only app entry points install a process-lifetime foreground presenter. Added save-state disabling and original-reader restoration during date editing. Follow-up reviews are clear and rebuilt native artifacts succeeded. The earlier locked-Mac block was cleared by the human; subsequent native evidence is recorded below.
+
+## Native checks after unlock
+
+- Mac: saved a test checklist through the visual editor, accepted the optional reminder, found it through Open tasks, edited its date while retaining Asia/Kolkata, completed it (no pending reminder), reopened it (new offer, no automatic schedule), accepted a fresh reminder and removed it while preserving the original.
+- iPhone simulator: installed b02142d, captured an action, accepted and edited its reminder through the companion, enabled notifications with explicit human approval, and observed one pending OS request. The due occurrence appeared in keyboard Chat with Open reminder source, the original showed Overdue, and the pending OS count became zero. This alone does not prove visual notification delivery.
+- Keyboard: directly opened Find and the original, inspected the accepted date/zone in Expanded, opened the in-extension date wheels, cancelled and verified the original reader returned. Custom controls remain absent from AX; visible coordinate actions worked this time.
+- Mac OS notification enablement failed with UNErrorDomain code 1, then “Notifications are not allowed for this application” after ad-hoc signing the app bundle and relaunching. At that stage System Settings did not list the app under Application Notifications. The installed-bundle follow-up below resolved authorization. No permission reset or unrelated setting changes were performed.
+- Human approved notification permission on Mac and simulator. Simulator permission succeeded immediately; Mac permission succeeded after installing the signed bundle and enabling its app-specific system toggle.
+
+### OS delivery evidence
+
+The second explicitly edited simulator occurrence was accepted for 21 October at 21:07 Asia/Kolkata, with one pending OS request shown before backgrounding. At 21:07 the Home screen visibly displayed the OS banner: “A reminder from your vault” / “Open Second brain for the details.” This proves simulator background delivery for that occurrence, independently of Chat reconciliation.
+
+Mac installation follow-up: signing and registering the temporary build did not fix authorization. Installing the same signed bundle at `/Users/shomo/Applications/SecondBrainMac.app` made SecondBrainMac appear in System Settings → Notifications. Enabled its app-specific notification switch under the human's approval; the app then reported one pending request for an accepted 21:12 Asia/Kolkata test occurrence. Opening the Mac notification surface then failed with “Sky Computer Use service startup request failed” after a long blocked tool call; actual Mac visual delivery was not observed. This establishes an installation/setup difference; it does not establish that an Apple membership is needed for local Mac notifications.

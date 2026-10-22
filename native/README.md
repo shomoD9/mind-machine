@@ -16,6 +16,18 @@ All three native targets compile against the installed Xcode 26.2 SDKs. The targ
 
 Run `/tmp/secondbrain-xcode/Build/Products/Debug/SecondBrainMac.app`. Control–Option–Space opens/hides the panel; Escape dismisses it. Capture starts by default. Saved content lives under the application's local Application Support directory. The panel supports resizing.
 
+## Mac development notification setup
+
+The notification check succeeded in registering the app after signing the complete bundle and installing it in the user's Applications folder. Running the unsigned temporary build produced UNErrorDomain code 1; registering only the signed temporary bundle still failed. For local development after the build above:
+
+```sh
+codesign --force --sign - /tmp/secondbrain-xcode/Build/Products/Debug/SecondBrainMac.app
+mkdir -p ~/Applications
+ditto /tmp/secondbrain-xcode/Build/Products/Debug/SecondBrainMac.app ~/Applications/SecondBrainMac.app
+```
+
+Launch the installed copy and deliberately enable device notifications in its settings. If macOS reports notifications disabled, enable SecondBrainMac in System Settings → Notifications. This is local ad-hoc signing; distribution signing and real-phone installation retain their release gates.
+
 ## iPhone setup
 
 For a real phone, select your Apple team in Xcode and register unique bundle identifiers plus a shared App Group. Set `VAULT_APP_GROUP` identically for the companion and keyboard. Current `dev.secondbrain.pilot` identifiers are development defaults. Generated bundle metadata includes its Info dictionary version and development region; confirm actual keyboard availability in Settings after installation, since PlugInKit registration alone is insufficient. Enable the keyboard in iPhone Settings, then enable Full Access to permit access to its device-local shared vault. Full Access is an iOS permission, separate from cloud-AI opt-in. The companion includes a host message field for keyboard testing.
@@ -28,7 +40,7 @@ Ticket 01 is resolved: the human confirmed keyboard capture → Find → origina
 
 Ticket 02 is resolved after human native acceptance, including the dormant-host-caret limitation. Ticket 03 is in progress. The keyboard now offers Min/Default/Expanded through its Size control and preserves independent mode drafts, selections, formatting and destination. Native visual editors provide Bold, Italic, Bullet and Checkbox controls, preserving RTF beside exact original text. The original reader renders matching saved RTF with a text fallback. Selected paragraphs can become a complete authored checklist; capturing alone schedules nothing. The Mac visual bold → Save → Find → reopen path was exercised and retained its formatting. The full package suite now passes 21 tests. Human sizing, routing and formatting checks passed; the simulator tool cannot reliably target extension controls.
 
-Checklist/reminder management is implemented in the current ticket-03 candidate; native scheduling/delivery verification is pending. Complete remembered chat/Forget, encrypted sync, media and release verification retain their subsequent tickets. Chat calls the preliminary configured Ollama-compatible adapter; no model/server is bundled and remembered-chat acceptance is incomplete. Never infer completion from a visible control.
+Checklist/reminder management is implemented in ticket 03. Native Mac controls and companion/keyboard reminder inspection passed; simulator background OS delivery was visibly verified. Mac permission and a pending OS request were verified after installing the signed app, but its visual delivery check was interrupted by computer-use service failure. Remaining keyboard checklist/date-confirm checks and real-phone proof are still open. Complete remembered chat/Forget, encrypted sync, media and release verification retain their subsequent tickets. Chat calls the preliminary configured Ollama-compatible adapter; no model/server is bundled and remembered-chat acceptance is incomplete. Never infer completion from a visible control.
 
 The local JSON document is plaintext device storage, **never the sync payload**. Private app-encrypted replication and account/key provisioning remain ticket 05. No CloudKit container is provisioned and no two-device sync has been verified. See [sync research](../.scratch/scattered-ambitious-pitch/research/24-native-pilot-sync-and-distribution-2026-10-20.md).
 

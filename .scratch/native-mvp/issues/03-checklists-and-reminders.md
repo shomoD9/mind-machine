@@ -17,10 +17,14 @@ Review baseline: c319917
 
 The full package suite passes 21 tests with zero failures, including five new failing-first regressions at the approved saved-vault/presentation boundary. Mac, iPhone companion and embedded keyboard builds succeeded. Independent Standards/Spec follow-up reviews against c319917 found no remaining actionable code findings. See [checkpoint evidence](../../../docs/verification/native-reminders-checkpoint.md).
 
-Native checklist/date-form interaction and actual OS notification authorization, pending requests and delivery remain unverified. The Mac is locked and one unlock request is pending. Ticket remains claimed; compilation and domain tests do not satisfy these native acceptance gates.
+Native Mac checks passed for checklist completion/Open tasks, optional offer, date editing with retained zone, cancellation on completion, reopening/new acceptance, and removal preserving source. Companion reminder acceptance/edit and keyboard Expanded/source/date editor/Cancel/overdue/due Chat were observed. Simulator background delivery was visibly verified at 21:07 on 21 October. Both Mac and simulator permissions are enabled under human approval; each reported a real pending OS request.
+
+Ticket remains claimed for Mac visual delivery and remaining keyboard checklist/date-confirm coverage. The Mac notification-surface tool failed after its accepted 21:12 test occurrence was scheduled; no delivery is inferred from the pending count. Real-phone verification remains a release gate.
 
 ## Comments
 
 - 2026-10-20: Human approved the eight-ticket breakdown, blockers, test boundaries and baseline. Waiting for the listed blockers.
 
 - 2026-10-21: Ticket 02 resolved after explicit human acceptance of editor behavior and dormant-host-caret limitation. Claimed this unblocked reminder slice using the previously approved saved-vault test boundary; no further cursor QA requested.
+
+- 2026-10-22: Recorded native verification and the simulator OS banner. Installed the signed Mac development build in the user Applications folder, which enabled system notification registration; user-approved permission is on. Kept Mac delivery open after computer-use service failure. No cursor QA requested.
