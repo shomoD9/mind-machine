@@ -1,6 +1,6 @@
 # MVP launch design — 20 October 2026
 
-**22 October refinement:** [Capture here. Recall here.](MVP-CORE.md) records the latest core job, persistent Mac entry and local-resident sync requirements. Its proposed Chat/reminder/resurfacing deferral is awaiting the human's answer. This document preserves the earlier scope and implementation history; later explicit decisions take precedence.
+**23 October scope approval:** [Capture here. Recall here.](MVP-CORE.md) is the approved core MVP: Capture/Find/reuse, native keyboard/Mac floating access, offline local copies and private sync. Chat, reminders and resurfacing are deferred; image/voice acceptance remains explicit scope work. This document preserves the earlier scope and implementation history; later explicit decisions take precedence.
 
 Save a thought without filing it. Find it later in your own words. Continue a conversation that remembers it. Receive an accepted reminder and change it from that conversation.
 

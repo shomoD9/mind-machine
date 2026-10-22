@@ -1,5 +1,7 @@
 # Native keyboard-first MVP — build specification
 
+**Release boundary updated 23 October 2026:** the human approved [the core-memory MVP](../../docs/MVP-CORE.md): Capture → Find → reuse, iPhone keyboard, persistent movable Mac control, resident offline copies and private sync. Chat, reminders and resurfacing below are preserved later-release work; their incomplete checks do not block this narrower release. Image/voice acceptance remains explicit scope work. Existing tickets are not automatically completed or reclassified; reconcile the execution breakdown before publishing new tickets.
+
 **Status:** approved on 2026-10-20. Product behavior comes from the current PRD, UX, FigCraft design and the human's later clarifications. The human approved all three test boundaries, eight tickets and review baseline c319917.
 
 ## Problem Statement

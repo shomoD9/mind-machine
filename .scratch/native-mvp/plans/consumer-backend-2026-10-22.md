@@ -1,8 +1,8 @@
 # Consumer backend and Mac launcher — proposed execution plan
 
-Latest refinement: the human's core-memory brief now requires a persistent movable Mac entry and emphasizes Capture/Find plus local-resident sync. See [core MVP scope](../../../docs/MVP-CORE.md) and its pending scope answer before publishing this breakdown. The Chat/reminder/resurfacing release boundary is being reconsidered; existing work is preserved. Engine choices also need the keyboard-process and multimodal checks in the new research reports.
+Scope approved 23 October: [core MVP](../../../docs/MVP-CORE.md) is Capture → Find → reuse, iPhone keyboard, persistent movable Mac control, resident offline copies and private sync. Chat, reminders and resurfacing are deferred; existing work is preserved. Reconcile the five-slice proposal below with this boundary before publishing it. Engine choices also need keyboard-process/resource checks; image and voice acceptance remain explicit scope work.
 
-Status: draft for ticket-granularity review. The human requested a state-machine walkthrough before approval; an overall positive response is not approval to publish the revised tickets. The 22 October product instructions below are authoritative; implementation choices and numeric budgets remain proposals until verified. Existing tickets and their incomplete acceptance evidence remain intact.
+Status: technical breakdown remains a draft. The human approved the narrower product scope on 23 October; the five-slice table below predates that approval and must be reconciled, including deferred Chat/reminders and the persistent Mac control. Implementation choices and numeric budgets remain proposals until verified. Existing tickets and their incomplete acceptance evidence remain intact.
 
 ## Product corrections from the human
 

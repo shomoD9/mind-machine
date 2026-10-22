@@ -2,7 +2,7 @@
 
 The core problem is losing access to something already encountered, thought or saved when it becomes useful. The MVP should let a person save a memory and recover its original from their current activity, on either iPhone or Mac, without filing it or opening a separate notes workspace.
 
-Updated 22 October 2026 from the human's latest clarification. In-place Capture, Find, resident local copies and sync from day one are explicit requirements. The Mac should have a persistent movable control that expands from its anchor; the hotkey remains an additional entry. The proposed deferral of Chat, reminders and resurfacing is awaiting the human's answer. Existing implementation and earlier requirements remain preserved until that scope decision. This document proposes release acceptance; it does not declare the development build ready.
+Approved release scope on 23 October 2026: Capture → Find → reuse, the iPhone keyboard, persistent movable Mac control, resident offline copies and private cross-device sync. Chat, reminders and resurfacing move to later releases, with their existing implementation preserved. Image and voice inclusion/search acceptance remain explicit scope work. The approval settles the product boundary; it does not select an engine, approve every numeric target or declare the development build ready.
 
 ## The product promise
 
@@ -10,7 +10,7 @@ Updated 22 October 2026 from the human's latest clarification. In-place Capture,
 
 The system accepts an explicit capture and preserves its original. The person never needs to choose a category, write a title, organize a collection or start a conversation to find it. Local search can use remembered words, misspellings and meaning. Results expose recognizable originals and a deliberate Copy, Insert or Open action.
 
-This promise covers captured material. Capturing the person's entire browsing or host-app history is not implied. Optional future resurfacing addresses memories the person never thinks to search for; the current release recommendation focuses on intentional capture and recall.
+This promise covers captured material. Capturing the person's entire browsing or host-app history is not implied. Optional future resurfacing addresses memories the person never thinks to search for; the approved first release focuses on intentional capture and recall.
 
 ## Jobs and acceptance stories
 
@@ -71,9 +71,9 @@ The following are distinct promises to accept and verify:
 
 The full vision includes images and voice. This refinement does not silently approve their omission from MVP. It also does not treat a question about MiniSearch as approval of an untested visual-search implementation. Final first-release media acceptance remains explicit scope work.
 
-## Recommended release boundary
+## Approved release boundary
 
-Make Capture → Find → reuse, native entry points, local residency and private sync the release-critical loop. Keep Chat, reminder automation, natural resurfacing, calendar integration and external assistant access as preserved future/product capabilities unless the human keeps them in this release. Existing authored checklists, rich formatting and draft behavior can remain; they must not delay the core save/recall flow. This recommendation awaits the scope answer and does not rewrite approved tickets.
+Capture → Find → reuse, native entry points, local residency and private sync are the release-critical loop. Chat, reminder automation and natural resurfacing are deferred; calendar integration and external assistant access remain later capabilities. Existing authored checklists, rich formatting and draft behavior can remain; they must not delay the core save/recall flow. Preserve unfinished feature work without treating it as complete. The execution breakdown must reflect this boundary before new tickets are published.
 
 The smallest demonstration that proves this product is useful:
 
@@ -93,9 +93,9 @@ Measure the person's whole action: open, type, see the right original, reuse. Al
 ## Reuse and next decisions
 
 - SnipKey typing layer, preserving our accepted notepad and destination routing.
-- EdgeNoted's MIT edge-panel/windowing approach for the Mac control; draggable anchoring still needs adaptation and verification.
+- A native floating UI component satisfying persistent idle access, dragging, remembered position and anchored expansion. The 23 October search compares established overlay implementations; the earlier EdgeNoted recommendation is provisional. Reuse a component only when fit, licensing and resource cost justify it; otherwise build the small AppKit component.
 - MiniSearch versus FTS5 through one retrieval interface; cached semantic vectors remain independent.
 - Local-store plus CloudKit or a compatible non-iCloud replication engine, conditional on real keyboard-process proof and the encryption/key lifecycle.
 - A licensed paired image/text encoder if semantic images are included; OCR alone supports a narrower explicit promise.
 
-This is the revised product lens for the pending [execution plan](../.scratch/native-mvp/plans/consumer-backend-2026-10-22.md). Research and a scope proposal have been produced; no production feature or dependency changes are implied.
+This is the approved product boundary for the pending [execution plan](../.scratch/native-mvp/plans/consumer-backend-2026-10-22.md). Its technical breakdown still needs reconciliation; scope approval does not imply a production feature or dependency changed.
