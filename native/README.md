@@ -1,40 +1,40 @@
 # Native pilot — implementation in progress
 
-The Xcode project has three targets: `SecondBrain` (iPhone companion/test host), `SecondBrainKeyboard` (embedded custom keyboard), and `SecondBrainMac` (global-hotkey panel). Shared `SecondBrainCore` and `SecondBrainUI` libraries remain a local Swift package. The first implemented path is explicit local capture → persisted original → keyword Find → original inspection. Keyboard Insert is deliberate. This is not a launched or synced pilot.
+The Xcode project has three targets: `MindMachine` (iPhone companion/test host), `MindMachineKeyboard` (embedded custom keyboard), and `MindMachineMac` (global-hotkey panel). Shared `MindMachineCore` and `MindMachineUI` libraries remain a local Swift package. The first implemented path is explicit local capture → persisted original → keyword Find → original inspection. Keyboard Insert is deliberate. This is not a launched or synced pilot.
 
 ## Build
 
-Open `native/SecondBrain.xcodeproj`. The project, target membership, plists and schemes can be regenerated with `python3 native/Scripts/generate_project.py`. It uses no third-party project-generation dependency.
+Open `native/MindMachine.xcodeproj`. The project, target membership, plists and schemes can be regenerated with `python3 native/Scripts/generate_project.py`. It uses no third-party project-generation dependency.
 
 ```sh
-swift test --package-path native --scratch-path /tmp/secondbrain-swift-build
-xcodebuild -project native/SecondBrain.xcodeproj -scheme SecondBrainMac -configuration Debug -destination 'platform=macOS,arch=arm64' -derivedDataPath /tmp/secondbrain-xcode CODE_SIGNING_ALLOWED=NO build
-xcodebuild -project native/SecondBrain.xcodeproj -target SecondBrain -configuration Debug -sdk iphonesimulator ARCHS=arm64 CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- SYMROOT=/tmp/secondbrain-ios-products OBJROOT=/tmp/secondbrain-ios-intermediates build
+swift test --package-path native --scratch-path /tmp/mindmachine-swift-build
+xcodebuild -project native/MindMachine.xcodeproj -scheme MindMachineMac -configuration Debug -destination 'platform=macOS,arch=arm64' -derivedDataPath /tmp/mindmachine-xcode CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project native/MindMachine.xcodeproj -target MindMachine -configuration Debug -sdk iphonesimulator ARCHS=arm64 CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- SYMROOT=/tmp/mindmachine-ios-products OBJROOT=/tmp/mindmachine-ios-intermediates build
 ```
 
 All three native targets compile against the installed Xcode 26.2 SDKs. The target-based simulator command also works when Xcode cannot select a scheme destination because only the older iOS 17.5 simulator runtime is installed. The ad-hoc-signed app also installs and launches in that runtime. Its App Group is registered and the setup screen renders. This does not prove custom-keyboard interactions or real-device behavior.
 
-Run `/tmp/secondbrain-xcode/Build/Products/Debug/SecondBrainMac.app`. Control–Option–Space opens/hides the panel; Escape dismisses it. Capture starts by default. Saved content lives under the application's local Application Support directory. The panel supports resizing.
+Run `/tmp/mindmachine-xcode/Build/Products/Debug/MindMachineMac.app`. Control–Option–Space opens/hides the panel; Escape dismisses it. Capture starts by default. Saved content lives under the application's local Application Support directory. The panel supports resizing.
 
 ## Continuous integration
 
-`.github/workflows/native-ci.yml` runs on every push to `main`, every pull request and manual dispatch, only when `native/` or the workflow changes. On a GitHub-hosted `macos-26` runner with Xcode 26.2 it runs `swift test`, builds the `SecondBrain` scheme (iPhone app plus embedded keyboard) for a generic iOS Simulator, and builds `SecondBrainMac`, all with `CODE_SIGNING_ALLOWED=NO`. There is no signing, TestFlight or secrets. A newer run on the same ref cancels the older one. The workflow compiles and runs unit tests only; it does not exercise keyboard interaction or real-device behavior.
+`.github/workflows/native-ci.yml` runs on every push to `main`, every pull request and manual dispatch, only when `native/` or the workflow changes. On a GitHub-hosted `macos-26` runner with Xcode 26.2 it runs `swift test`, builds the `MindMachine` scheme (iPhone app plus embedded keyboard) for a generic iOS Simulator, and builds `MindMachineMac`, all with `CODE_SIGNING_ALLOWED=NO`. There is no signing, TestFlight or secrets. A newer run on the same ref cancels the older one. The workflow compiles and runs unit tests only; it does not exercise keyboard interaction or real-device behavior.
 
 ## Mac development notification setup
 
 The notification check succeeded in registering the app after signing the complete bundle and installing it in the user's Applications folder. Running the unsigned temporary build produced UNErrorDomain code 1; registering only the signed temporary bundle still failed. For local development after the build above:
 
 ```sh
-codesign --force --sign - /tmp/secondbrain-xcode/Build/Products/Debug/SecondBrainMac.app
+codesign --force --sign - /tmp/mindmachine-xcode/Build/Products/Debug/MindMachineMac.app
 mkdir -p ~/Applications
-ditto /tmp/secondbrain-xcode/Build/Products/Debug/SecondBrainMac.app ~/Applications/SecondBrainMac.app
+ditto /tmp/mindmachine-xcode/Build/Products/Debug/MindMachineMac.app ~/Applications/MindMachineMac.app
 ```
 
-Launch the installed copy and deliberately enable device notifications in its settings. If macOS reports notifications disabled, enable SecondBrainMac in System Settings → Notifications. This is local ad-hoc signing; distribution signing and real-phone installation retain their release gates.
+Launch the installed copy and deliberately enable device notifications in its settings. If macOS reports notifications disabled, enable MindMachineMac in System Settings → Notifications. This is local ad-hoc signing; distribution signing and real-phone installation retain their release gates.
 
 ## iPhone setup
 
-For a real phone, select your Apple team in Xcode and register unique bundle identifiers plus a shared App Group. Set `VAULT_APP_GROUP` identically for the companion and keyboard. Current `dev.secondbrain.pilot` identifiers are development defaults. Generated bundle metadata includes its Info dictionary version and development region; confirm actual keyboard availability in Settings after installation, since PlugInKit registration alone is insufficient. Enable the keyboard in iPhone Settings, then enable Full Access to permit access to its device-local shared vault. Full Access is an iOS permission, separate from cloud-AI opt-in. The companion includes a host message field for keyboard testing.
+For a real phone, select your Apple team in Xcode and register unique bundle identifiers plus a shared App Group. Set `VAULT_APP_GROUP` identically for the companion and keyboard. Current `dev.mindmachine.pilot` identifiers are development defaults. Generated bundle metadata includes its Info dictionary version and development region; confirm actual keyboard availability in Settings after installation, since PlugInKit registration alone is insufficient. Enable the keyboard in iPhone Settings, then enable Full Access to permit access to its device-local shared vault. Full Access is an iOS permission, separate from cloud-AI opt-in. The companion includes a host message field for keyboard testing.
 
 The keyboard refuses to create an isolated vault when the shared container is unavailable. Signed App Group availability and full phone behavior need actual device proof. Secure/password fields and hosts that prohibit custom keyboards remain platform limitations.
 

@@ -1,7 +1,7 @@
 /* Native Capture/Find/Chat presentation shared by the iPhone companion and Mac
  hotkey panel. The keyboard has its own UIKit editor and keyplane controller. */
 import SwiftUI
-import SecondBrainCore
+import MindMachineCore
 
 public struct WorkspaceView: View {
     @ObservedObject private var model: VaultModel

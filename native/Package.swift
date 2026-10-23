@@ -4,16 +4,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "SecondBrainCore",
+    name: "MindMachineCore",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
-        .library(name: "SecondBrainCore", targets: ["SecondBrainCore"]),
-        .library(name: "SecondBrainUI", targets: ["SecondBrainUI"])
+        .library(name: "MindMachineCore", targets: ["MindMachineCore"]),
+        .library(name: "MindMachineUI", targets: ["MindMachineUI"])
     ],
     targets: [
-        .target(name: "SecondBrainCore"),
-        .target(name: "SecondBrainUI", dependencies: ["SecondBrainCore"]),
-        .testTarget(name: "SecondBrainCoreTests", dependencies: ["SecondBrainCore"]),
-        .testTarget(name: "SecondBrainUITests", dependencies: ["SecondBrainUI", "SecondBrainCore"])
+        .target(name: "MindMachineCore"),
+        .target(name: "MindMachineUI", dependencies: ["MindMachineCore"]),
+        .testTarget(name: "MindMachineCoreTests", dependencies: ["MindMachineCore"]),
+        .testTarget(name: "MindMachineUITests", dependencies: ["MindMachineUI", "MindMachineCore"])
     ]
 )

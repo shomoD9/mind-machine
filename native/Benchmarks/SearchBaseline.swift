@@ -2,8 +2,8 @@
  Run by Codex during the 22 October backend plan; uses synthetic notes only,
  real VaultFile persistence and VaultModel.results, with OS notifications disabled. */
 import Foundation
-import SecondBrainCore
-import SecondBrainUI
+import MindMachineCore
+import MindMachineUI
 
 @main struct SearchBaseline {
     @MainActor static func main() throws {

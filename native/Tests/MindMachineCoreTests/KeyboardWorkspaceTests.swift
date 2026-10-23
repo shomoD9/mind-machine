@@ -1,7 +1,7 @@
 /* Public keyboard-workspace behavior checks run by SwiftPM. Native keyboard
  controllers use this session for size, mode, destination and private draft state. */
 import XCTest
-import SecondBrainCore
+import MindMachineCore
 
 final class KeyboardWorkspaceTests: XCTestCase {
     // A completed send can clear its old field while another mode is active,

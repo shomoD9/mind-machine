@@ -45,6 +45,8 @@ The FigCraft file is reorganized into Keyboard first, Pad sizes, Typing destinat
 
 Native implementation status: three Xcode targets now compile: iPhone companion, embedded keyboard and Mac hotkey panel. A saved-vault behavior test proves local capture/reopen/refind through public persistence and retrieval. The ticket-01 keyboard flow is human-verified in the simulator; new size/focus behavior, real-device installation and private sync remain unverified. See [native status](../native/README.md).
 
+Code identity: the product is named Mind Machine (GitHub `shomoD9/mind-machine`). Swift modules are `MindMachineCore` and `MindMachineUI`; Xcode project `MindMachine.xcodeproj` has targets `MindMachine`, `MindMachineKeyboard` and `MindMachineMac`; bundle identifiers are `dev.mindmachine.pilot[.keyboard|.mac]` with App Group `group.dev.mindmachine.pilot`. The on-disk vault stays at `SecondBrain/vault.json` and notification identifiers keep the `secondbrain.reminder.` prefix, so existing vaults and pending reminders remain readable; no migration was added. Changed bundle identifiers give a signed install a new sandbox and App Group container, so a signed device install starts with an empty vault.
+
 ### Host composer and focus correction — 2026-10-20
 
 The human pointed out that the mock host composer should move with the keyboard workspace. The generator now anchors it above the full extension at each size, rather than at one fixed screen coordinate; the expanded example keeps the composer visible while its conversation viewport shrinks. This is a representative host layout, not authority to control another app’s composer.

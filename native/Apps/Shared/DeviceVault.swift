@@ -10,7 +10,7 @@ struct DeviceVault {
               !group.isEmpty,
               let directory = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)
         else { throw StorageError.sharedContainerUnavailable }
-        return directory.appendingPathComponent("SecondBrain/vault.json")
+        return directory.appendingPathComponent("SecondBrain/vault.json") // folder name kept from the former product name so existing vaults stay readable
     }
 
     enum StorageError: LocalizedError {

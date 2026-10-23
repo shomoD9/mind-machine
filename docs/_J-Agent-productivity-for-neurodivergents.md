@@ -1,5 +1,10 @@
 # Agent journal — productivity-for-neurodivergents
 
+## 2026-10-23 - Claude Sonnet 5.5 - Claude Code
+
+- Renamed the code identity from SecondBrain to Mind Machine on request: Swift package products/targets, source and test folders, imports, Xcode project and schemes (regenerated with `Scripts/generate_project.py`), Info.plists display names, bundle identifiers and App Group, CI workflow and native README. Done so the code matches the renamed GitHub repo.
+- Kept the `SecondBrain/vault.json` storage path and the `secondbrain.reminder.` notification prefix to avoid orphaning existing vaults and pending reminders; chose no migration. Updated code-path links in research docs; left historical command logs, checkpoints and design mockups unchanged.
+
 ## 2026-10-23 - GPT-6 - Codex App
 
 - Received explicit approval of the core MVP scope. Pulled first, read current scope/domain/plan guidance and prepared to record it; the human said wait before any edits, so stopped immediately. Resumed when the human requested a wider GitHub search and UForm resource assessment. Recorded the approval in MVP-CORE, DESIGN, PRD, historical launch design, build-spec header and pending execution-plan header. Deferred Chat/reminders/resurfacing while preserving their implementation and incomplete evidence; did not infer media scope or technical-breakdown approval.

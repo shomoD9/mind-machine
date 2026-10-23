@@ -1,7 +1,7 @@
 /* Behavioral checks at the saved-vault boundary. SwiftPM runs these without
  Apple signing; native shells use the same Vault and VaultFile interfaces. */
 import XCTest
-import SecondBrainCore
+import MindMachineCore
 
 final class VaultTests: XCTestCase {
     // A second entry point must refind the exact original after reopening storage.

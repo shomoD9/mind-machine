@@ -1,8 +1,8 @@
 /* Behavior checks for the public native workspace presentation interface.
  SwiftPM runs these; native entry adapters call the same activation operation. */
 import XCTest
-import SecondBrainUI
-import SecondBrainCore
+import MindMachineUI
+import MindMachineCore
 #if canImport(AppKit)
 import AppKit
 #endif

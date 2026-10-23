@@ -2,11 +2,11 @@
  It also owns process-lifetime foreground notification presentation.
  The embedded Keyboard target is the primary phone Capture/Find/Chat surface. */
 import SwiftUI
-import SecondBrainUI
+import MindMachineUI
 
 @main
 @MainActor
-struct SecondBrainApp: App {
+struct MindMachineApp: App {
     init() { installReminderNotificationPresentation() }
     var body: some Scene { WindowGroup { CompanionView() } }
 }
@@ -21,14 +21,14 @@ private struct CompanionView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("Your vault, in your keyboard").font(.title2.bold())
-                    Text("Enable Second brain in Settings → General → Keyboard → Keyboards → Add New Keyboard. Then enable Full Access so the keyboard can share your vault on this device.")
+                    Text("Enable Mind Machine in Settings → General → Keyboard → Keyboards → Add New Keyboard. Then enable Full Access so the keyboard can share your vault on this device.")
                     Text("Full Access is an iOS permission. This build saves locally; private device sync is not connected.")
                         .font(.caption).foregroundStyle(.secondary)
                     if case .failure(let error) = storage { Text(error.localizedDescription).font(.caption) }
                     Button("Open vault and settings") { showVault = true }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding()
             }
-            .navigationTitle("Second brain")
+            .navigationTitle("Mind Machine")
             .navigationBarTitleDisplayMode(.inline)
             // Only the conversation/setup content scrolls away. This test host
             // pins its composer above the entire keyboard workspace at any height.

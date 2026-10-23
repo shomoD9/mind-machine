@@ -43,9 +43,9 @@ products = []
 targets = []
 groups = []
 for name, folder, bundle, kind in [
-    ('SecondBrain', 'iOS', 'dev.secondbrain.pilot', 'application'),
-    ('SecondBrainKeyboard', 'Keyboard', 'dev.secondbrain.pilot.keyboard', 'app-extension'),
-    ('SecondBrainMac', 'Mac', 'dev.secondbrain.pilot.mac', 'application'),
+    ('MindMachine', 'iOS', 'dev.mindmachine.pilot', 'application'),
+    ('MindMachineKeyboard', 'Keyboard', 'dev.mindmachine.pilot.keyboard', 'app-extension'),
+    ('MindMachineMac', 'Mac', 'dev.mindmachine.pilot.mac', 'application'),
 ]:
     is_mac = folder == 'Mac'
     files = sorted((ROOT/'Apps'/folder).glob('*.swift'))
@@ -62,7 +62,7 @@ for name, folder, bundle, kind in [
     source_phase = add(name+'sources', 'PBXSourcesBuildPhase', buildActionMask='2147483647', files=array(sources), runOnlyForDeploymentPostprocessing='0')
     dependencies = []
     links = []
-    for module in ['SecondBrainCore', 'SecondBrainUI']:
+    for module in ['MindMachineCore', 'MindMachineUI']:
         dependency = add(name+module, 'XCSwiftPackageProductDependency', package=package, productName=quote(module))
         dependencies.append(dependency)
         links.append(add(name+module+'link', 'PBXBuildFile', productRef=dependency))
@@ -83,7 +83,7 @@ for name, folder, bundle, kind in [
             'SWIFT_OPTIMIZATION_LEVEL':quote('-Onone' if config == 'Debug' else '-O'),
             'ENABLE_APP_SANDBOX':'YES' if is_mac else 'NO',
             'CODE_SIGN_ENTITLEMENTS':quote('Apps/'+folder+'/Vault.entitlements'),
-            'VAULT_APP_GROUP':quote('group.dev.secondbrain.pilot'),
+            'VAULT_APP_GROUP':quote('group.dev.mindmachine.pilot'),
             'LD_RUNPATH_SEARCH_PATHS':quote('$(inherited) @executable_path/Frameworks'+(' @executable_path/../../Frameworks' if kind == 'app-extension' else '')),
         }
         if is_mac: settings['MACOSX_DEPLOYMENT_TARGET']='14.0'
@@ -94,14 +94,14 @@ for name, folder, bundle, kind in [
     phases = [source_phase, framework_phase]
     target_dependencies = []
     if folder == 'iOS':
-        proxy = add('keyboardproxy', 'PBXContainerItemProxy', containerPortal=ident('project'), proxyType='1', remoteGlobalIDString=ident('SecondBrainKeyboardtarget'), remoteInfo=quote('SecondBrainKeyboard'))
-        target_dependencies.append(add('keyboarddependency', 'PBXTargetDependency', target=ident('SecondBrainKeyboardtarget'), targetProxy=proxy))
-        embed = add('keyboardembedfile', 'PBXBuildFile', fileRef=ident('SecondBrainKeyboardproduct'), settings=dictionary({'ATTRIBUTES':array(['RemoveHeadersOnCopy'])}))
+        proxy = add('keyboardproxy', 'PBXContainerItemProxy', containerPortal=ident('project'), proxyType='1', remoteGlobalIDString=ident('MindMachineKeyboardtarget'), remoteInfo=quote('MindMachineKeyboard'))
+        target_dependencies.append(add('keyboarddependency', 'PBXTargetDependency', target=ident('MindMachineKeyboardtarget'), targetProxy=proxy))
+        embed = add('keyboardembedfile', 'PBXBuildFile', fileRef=ident('MindMachineKeyboardproduct'), settings=dictionary({'ATTRIBUTES':array(['RemoveHeadersOnCopy'])}))
         phases.append(add('keyboardembed', 'PBXCopyFilesBuildPhase', buildActionMask='2147483647', dstPath=quote(''), dstSubfolderSpec='13', files=array([embed]), name=quote('Embed Keyboard'), runOnlyForDeploymentPostprocessing='0'))
     targets.append(add(name+'target', 'PBXNativeTarget', buildConfigurationList=config_list, buildPhases=array(phases), buildRules='()', dependencies=array(target_dependencies), name=quote(name), packageProductDependencies=array(dependencies), productName=quote(name), productReference=product, productType=quote('com.apple.product-type.'+kind)))
     # Keep standard bundle version/localization metadata explicit for native
     # discovery. A registered PlugInKit record alone is not Settings availability.
-    info = {'CFBundleDisplayName':'Second brain' if kind!='app-extension' else 'Second brain keyboard',
+    info = {'CFBundleDisplayName':'Mind Machine' if kind!='app-extension' else 'Mind Machine keyboard',
             'CFBundleExecutable':'$(EXECUTABLE_NAME)', 'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)',
             'CFBundleName':'$(PRODUCT_NAME)', 'CFBundleInfoDictionaryVersion':'6.0', 'CFBundleDevelopmentRegion':'en', 'CFBundlePackageType':'XPC!' if kind=='app-extension' else 'APPL',
             'CFBundleShortVersionString':'$(MARKETING_VERSION)', 'CFBundleVersion':'$(CURRENT_PROJECT_VERSION)'}
@@ -121,9 +121,9 @@ for name, folder, bundle, kind in [
     # Shared schemes let xcodebuild reproduce both independent applications.
     if kind != 'app-extension':
         scheme=f'''<?xml version="1.0" encoding="UTF-8"?>
-<Scheme LastUpgradeVersion="2620" version="1.3"><BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident(name+'target')}" BuildableName="{name}.app" BlueprintName="{name}" ReferencedContainer="container:SecondBrain.xcodeproj"/></BuildActionEntry></BuildActionEntries></BuildAction><LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES"><BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident(name+'target')}" BuildableName="{name}.app" BlueprintName="{name}" ReferencedContainer="container:SecondBrain.xcodeproj"/></BuildableProductRunnable></LaunchAction></Scheme>
+<Scheme LastUpgradeVersion="2620" version="1.3"><BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident(name+'target')}" BuildableName="{name}.app" BlueprintName="{name}" ReferencedContainer="container:MindMachine.xcodeproj"/></BuildActionEntry></BuildActionEntries></BuildAction><LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES"><BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident(name+'target')}" BuildableName="{name}.app" BlueprintName="{name}" ReferencedContainer="container:MindMachine.xcodeproj"/></BuildableProductRunnable></LaunchAction></Scheme>
 '''
-        (ROOT/'SecondBrain.xcodeproj/xcshareddata/xcschemes'/f'{name}.xcscheme').write_text(scheme)
+        (ROOT/'MindMachine.xcodeproj/xcshareddata/xcschemes'/f'{name}.xcscheme').write_text(scheme)
 product_group=add('products','PBXGroup',name='Products',children=array(products),sourceTree=quote('<group>'))
 main_group=add('main','PBXGroup',children=array(groups+[product_group]),sourceTree=quote('<group>'))
 project_configs=[add('project'+c,'XCBuildConfiguration',name=quote(c),buildSettings=dictionary({'CLANG_ENABLE_MODULES':'YES','SWIFT_VERSION':'5.0'})) for c in ['Debug','Release']]
@@ -131,4 +131,4 @@ config_list=add('projectconfigs','XCConfigurationList',buildConfigurations=array
 project=add('project','PBXProject',attributes=dictionary({'LastUpgradeCheck':'2620'}),buildConfigurationList=config_list,compatibilityVersion=quote('Xcode 14.0'),developmentRegion='en',hasScannedForEncodings='0',knownRegions=array(['en','Base']),mainGroup=main_group,packageReferences=array([package]),productRefGroup=product_group,projectDirPath=quote(''),projectRoot=quote(''),targets=array(targets))
 # The generated project is committed; regenerating reproduces target membership.
 body='\n'.join(f'{key} = '+dictionary(fields)+';' for key,fields in OBJECTS.items())
-(ROOT/'SecondBrain.xcodeproj/project.pbxproj').write_text('// !$*UTF8*$!\n/* Generated by Scripts/generate_project.py; Xcode builds the three native apps. */\n{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {\n'+body+'\n}; rootObject = '+project+'; }\n')
+(ROOT/'MindMachine.xcodeproj/project.pbxproj').write_text('// !$*UTF8*$!\n/* Generated by Scripts/generate_project.py; Xcode builds the three native apps. */\n{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {\n'+body+'\n}; rootObject = '+project+'; }\n')

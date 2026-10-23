@@ -4,10 +4,10 @@
 import AppKit
 import Carbon
 import SwiftUI
-import SecondBrainUI
+import MindMachineUI
 
 @main
-struct SecondBrainMac: App {
+struct MindMachineMac: App {
     @NSApplicationDelegateAdaptor(MacDelegate.self) private var delegate
     var body: some Scene { Settings { Text("Control–Option–Space opens your vault.").padding() } }
 }
@@ -50,7 +50,7 @@ final class MacDelegate: NSObject, NSApplicationDelegate {
             let window = VaultPanel(contentRect: NSRect(x: 0, y: 0, width: 620, height: 580),
                                     styleMask: [.titled, .closable, .resizable, .nonactivatingPanel],
                                     backing: .buffered, defer: false)
-            window.title = "Second brain · Control–Option–Space"
+            window.title = "Mind Machine · Control–Option–Space"
             window.contentMinSize = NSSize(width: 380, height: 320)
             window.level = .floating
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]

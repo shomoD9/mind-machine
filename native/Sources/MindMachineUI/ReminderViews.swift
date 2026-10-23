@@ -2,7 +2,7 @@
  The keyboard renders the same VaultModel operations with UIKit controls. These
  views never change the original capture text when completion or dates change. */
 import SwiftUI
-import SecondBrainCore
+import MindMachineCore
 
 // Both native renderers show the stored zone, rather than the device's travel zone.
 public func reminderDateLabel(_ reminder: Reminder) -> String {

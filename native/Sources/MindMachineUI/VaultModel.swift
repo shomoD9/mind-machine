@@ -5,7 +5,7 @@ import Foundation
 import SwiftUI
 import NaturalLanguage
 import UserNotifications
-import SecondBrainCore
+import MindMachineCore
 
 @MainActor
 public final class VaultModel: ObservableObject {
@@ -36,7 +36,7 @@ public final class VaultModel: ObservableObject {
 
     public init(url: URL? = nil, notificationAccess: NotificationAccess = .companion) {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        file = VaultFile(url: url ?? base.appendingPathComponent("SecondBrain/vault.json"))
+        file = VaultFile(url: url ?? base.appendingPathComponent("SecondBrain/vault.json") // folder name kept from the former product name so existing vaults stay readable)
         deviceReminders = notificationAccess == .disabled ? nil : DeviceReminders(file: file, allowsPermissionPrompt: notificationAccess == .companion)
         reload()
         // The timer reconciles in-app events only. System delivery uses UN requests;

@@ -25,7 +25,7 @@ env:
 
 jobs:
   package-tests:
-    name: swift test (SecondBrainCore + SecondBrainUI)
+    name: swift test (MindMachineCore + MindMachineUI)
     runs-on: macos-26
     timeout-minutes: 20
     steps:
@@ -41,7 +41,7 @@ jobs:
       - name: swift test
         run: swift test --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-ci"
 
-  # The SecondBrain scheme builds the iPhone app and, through its target dependency, the embedded keyboard extension.
+  # The MindMachine scheme builds the iPhone app and, through its target dependency, the embedded keyboard extension.
   ios-build:
     name: xcodebuild iOS app + keyboard (Simulator)
     runs-on: macos-26
@@ -54,15 +54,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: DerivedData
-          key: dd-ios-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/SecondBrain.xcodeproj/project.pbxproj') }}
+          key: dd-ios-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/MindMachine.xcodeproj/project.pbxproj') }}
           restore-keys: dd-ios-${{ env.XCODE_VERSION }}-
-      - name: Build SecondBrain (includes SecondBrainKeyboard)
+      - name: Build MindMachine (includes MindMachineKeyboard)
         run: |
-          xcodebuild -project native/SecondBrain.xcodeproj -scheme SecondBrain \
+          xcodebuild -project native/MindMachine.xcodeproj -scheme MindMachine \
             -configuration Debug -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
       - name: Confirm keyboard extension was embedded
-        run: find DerivedData -name 'SecondBrainKeyboard.appex' -maxdepth 6 | grep .
+        run: find DerivedData -name 'MindMachineKeyboard.appex' -maxdepth 6 | grep .
 
   mac-build:
     name: xcodebuild Mac app
@@ -76,10 +76,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: DerivedData
-          key: dd-mac-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/SecondBrain.xcodeproj/project.pbxproj') }}
+          key: dd-mac-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/MindMachine.xcodeproj/project.pbxproj') }}
           restore-keys: dd-mac-${{ env.XCODE_VERSION }}-
-      - name: Build SecondBrainMac
+      - name: Build MindMachineMac
         run: |
-          xcodebuild -project native/SecondBrain.xcodeproj -scheme SecondBrainMac \
+          xcodebuild -project native/MindMachine.xcodeproj -scheme MindMachineMac \
             -configuration Debug -destination 'platform=macOS,arch=arm64' \
             -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build

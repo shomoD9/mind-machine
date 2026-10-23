@@ -3,13 +3,13 @@
  and reports scheduling separately from the durable commitment and Chat event. */
 import Foundation
 import UserNotifications
-import SecondBrainCore
+import MindMachineCore
 
 @MainActor
 final class DeviceReminders {
     private let file: VaultFile
     private let allowsPermissionPrompt: Bool
-    private let prefix = "secondbrain.reminder."
+    private let prefix = "secondbrain.reminder." // identifier prefix kept so pending requests from earlier builds are still recognised
 
     init(file: VaultFile, allowsPermissionPrompt: Bool) {
         self.file = file
@@ -19,7 +19,7 @@ final class DeviceReminders {
     // Permission is requested only through the companion/Mac's deliberate control.
     // Keyboard saves never try to present an authorization dialog over a host app.
     func enable() async throws -> String {
-        guard allowsPermissionPrompt else { return "Open Second brain to enable device notifications." }
+        guard allowsPermissionPrompt else { return "Open Mind Machine to enable device notifications." }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         if settings.authorizationStatus == .notDetermined {
@@ -59,7 +59,7 @@ final class DeviceReminders {
             guard stillAccepted(reminder, in: latest), reminder.dueAt > Date() else { continue }
             let content = UNMutableNotificationContent()
             content.title = "A reminder from your vault"
-            content.body = "Open Second brain for the details."
+            content.body = "Open Mind Machine for the details."
             content.sound = .default
             content.userInfo = ["reminderID": reminder.id.uuidString, "captureID": reminder.captureID.uuidString]
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, reminder.dueAt.timeIntervalSinceNow), repeats: false)

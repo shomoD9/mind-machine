@@ -3,8 +3,8 @@
  and uses VaultModel for the same persisted capture/find operations as Mac. */
 import UIKit
 import Combine
-import SecondBrainCore
-import SecondBrainUI
+import MindMachineCore
+import MindMachineUI
 
 @MainActor
 final class KeyboardViewController: UIInputViewController, UITextViewDelegate, UIGestureRecognizerDelegate {
