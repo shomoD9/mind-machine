@@ -36,8 +36,9 @@ def dictionary(values):
     return '{ ' + ' '.join(f'{k} = {v};' for k, v in values.items()) + ' }'
 
 
-# Signing identifiers are defaults for development. A real team must register its
-# own bundle IDs/group and set VAULT_APP_GROUP consistently across the two targets.
+# One xcconfig supplies signing and capability identifiers to all three targets.
+# Command-line CODE_SIGNING_ALLOWED=NO keeps CI independent of a paid team.
+signing_config = add("signingConfig", "PBXFileReference", lastKnownFileType="text.xcconfig", path=quote("Config/MindMachine.xcconfig"), sourceTree=quote("<group>"))
 package = add('package', 'XCLocalSwiftPackageReference', relativePath=quote('.'))
 # Pure pill logic (state machine, geometry, persistence) lives in its own package so CI can test it; only the Mac target links it.
 pill_package = add('pillPackage', 'XCLocalSwiftPackageReference', relativePath=quote('Pill'))
@@ -45,9 +46,9 @@ products = []
 targets = []
 groups = []
 for name, folder, bundle, kind in [
-    ('MindMachine', 'iOS', 'dev.mindmachine.pilot', 'application'),
-    ('MindMachineKeyboard', 'Keyboard', 'dev.mindmachine.pilot.keyboard', 'app-extension'),
-    ('MindMachineMac', 'Mac', 'dev.mindmachine.pilot.mac', 'application'),
+    ('MindMachine', 'iOS', '$(MINDMACHINE_BUNDLE_ID)', 'application'),
+    ('MindMachineKeyboard', 'Keyboard', '$(MINDMACHINE_KEYBOARD_BUNDLE_ID)', 'app-extension'),
+    ('MindMachineMac', 'Mac', '$(MINDMACHINE_MAC_BUNDLE_ID)', 'application'),
 ]:
     is_mac = folder == 'Mac'
     files = sorted((ROOT/'Apps'/folder).glob('*.swift'))
@@ -89,13 +90,12 @@ for name, folder, bundle, kind in [
             'SWIFT_OPTIMIZATION_LEVEL':quote('-Onone' if config == 'Debug' else '-O'),
             'ENABLE_APP_SANDBOX':'YES' if is_mac else 'NO',
             'CODE_SIGN_ENTITLEMENTS':quote('Apps/'+folder+'/Vault.entitlements'),
-            'VAULT_APP_GROUP':quote('group.dev.mindmachine.pilot'),
             'LD_RUNPATH_SEARCH_PATHS':quote('$(inherited) @executable_path/Frameworks'+(' @executable_path/../../Frameworks' if kind == 'app-extension' else '')),
         }
         if is_mac: settings['MACOSX_DEPLOYMENT_TARGET']='14.0'
         else: settings.update(IPHONEOS_DEPLOYMENT_TARGET='17.0', TARGETED_DEVICE_FAMILY=quote('1,2'))
         if kind == 'app-extension': settings.update(APPLICATION_EXTENSION_API_ONLY='YES', SKIP_INSTALL='YES')
-        configurations.append(add(name+config, 'XCBuildConfiguration', name=quote(config), buildSettings=dictionary(settings)))
+        configurations.append(add(name+config, 'XCBuildConfiguration', name=quote(config), baseConfigurationReference=signing_config, buildSettings=dictionary(settings)))
     config_list=add(name+'configs', 'XCConfigurationList', buildConfigurations=array(configurations), defaultConfigurationIsVisible='0', defaultConfigurationName='Release')
     phases = [source_phase, framework_phase]
     target_dependencies = []
@@ -111,7 +111,10 @@ for name, folder, bundle, kind in [
             'CFBundleExecutable':'$(EXECUTABLE_NAME)', 'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)',
             'CFBundleName':'$(PRODUCT_NAME)', 'CFBundleInfoDictionaryVersion':'6.0', 'CFBundleDevelopmentRegion':'en', 'CFBundlePackageType':'XPC!' if kind=='app-extension' else 'APPL',
             'CFBundleShortVersionString':'$(MARKETING_VERSION)', 'CFBundleVersion':'$(CURRENT_PROJECT_VERSION)'}
-    if not is_mac: info['VaultAppGroup']='$(VAULT_APP_GROUP)'
+    info['VaultAppGroup']='$(VAULT_APP_GROUP)'
+    info['VaultCloudContainer']='$(VAULT_ICLOUD_CONTAINER)'
+    info['VaultKeychainGroup']='$(VAULT_KEYCHAIN_GROUP)'
+    if folder=='iOS': info['UIBackgroundModes']=['remote-notification']
     if folder=='iOS': info.update(UILaunchScreen={}, UISupportedInterfaceOrientations=['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'])
     if kind=='app-extension':
         info['NSExtension']={'NSExtensionPointIdentifier':'com.apple.keyboard-service',
@@ -123,6 +126,11 @@ for name, folder, bundle, kind in [
     if not is_mac: info['NSLocalNetworkUsageDescription']='Connect to the inference server you configure for chat.'
     (ROOT/'Apps'/folder/'Info.plist').write_bytes(plistlib.dumps(info,sort_keys=False))
     entitlements={'com.apple.security.app-sandbox':True,'com.apple.security.network.client':True} if is_mac else {'com.apple.security.application-groups':['$(VAULT_APP_GROUP)']}
+    entitlements.update({'com.apple.security.application-groups':['$(VAULT_APP_GROUP)'],
+        'com.apple.developer.icloud-container-identifiers':['$(VAULT_ICLOUD_CONTAINER)'],
+        'com.apple.developer.icloud-services':['CloudKit'],
+        'keychain-access-groups':['$(VAULT_KEYCHAIN_GROUP)']})
+    if kind != 'app-extension': entitlements['aps-environment' if not is_mac else 'com.apple.developer.aps-environment']='development'
     (ROOT/'Apps'/folder/'Vault.entitlements').write_bytes(plistlib.dumps(entitlements))
     # Shared schemes let xcodebuild reproduce both independent applications.
     if kind != 'app-extension':
@@ -131,7 +139,7 @@ for name, folder, bundle, kind in [
 '''
         (ROOT/'MindMachine.xcodeproj/xcshareddata/xcschemes'/f'{name}.xcscheme').write_text(scheme)
 product_group=add('products','PBXGroup',name='Products',children=array(products),sourceTree=quote('<group>'))
-main_group=add('main','PBXGroup',children=array(groups+[product_group]),sourceTree=quote('<group>'))
+main_group=add('main','PBXGroup',children=array(groups+[signing_config, product_group]),sourceTree=quote('<group>'))
 project_configs=[add('project'+c,'XCBuildConfiguration',name=quote(c),buildSettings=dictionary({'CLANG_ENABLE_MODULES':'YES','SWIFT_VERSION':'5.0'})) for c in ['Debug','Release']]
 config_list=add('projectconfigs','XCConfigurationList',buildConfigurations=array(project_configs),defaultConfigurationIsVisible='0',defaultConfigurationName='Release')
 project=add('project','PBXProject',attributes=dictionary({'LastUpgradeCheck':'2620'}),buildConfigurationList=config_list,compatibilityVersion=quote('Xcode 14.0'),developmentRegion='en',hasScannedForEncodings='0',knownRegions=array(['en','Base']),mainGroup=main_group,packageReferences=array([package, pill_package]),productRefGroup=product_group,projectDirPath=quote(''),projectRoot=quote(''),targets=array(targets))

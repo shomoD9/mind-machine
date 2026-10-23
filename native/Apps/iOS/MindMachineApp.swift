@@ -22,9 +22,13 @@ private struct CompanionView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("Your vault, in your keyboard").font(.title2.bold())
                     Text("Enable Mind Machine in Settings → General → Keyboard → Keyboards → Add New Keyboard. Then enable Full Access so the keyboard can share your vault on this device.")
-                    Text("Full Access is an iOS permission. This build saves locally; private device sync is not connected.")
+                    Text("Full Access lets the keyboard use the shared App Group and connect to your private iCloud database. Host typing is never captured as a note. Secure fields and apps that block custom keyboards use Apple’s keyboard.")
                         .font(.caption).foregroundStyle(.secondary)
                     if case .failure(let error) = storage { Text(error.localizedDescription).font(.caption) }
+                    Button("Open iOS Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                    }
+                    PrivateSyncSetupView()
                     Button("Open vault and settings") { showVault = true }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding()
             }

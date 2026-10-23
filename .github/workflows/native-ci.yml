@@ -38,6 +38,12 @@ jobs:
           path: .build-ci
           key: mm-spm-${{ runner.os }}-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Tests/**') }}
           restore-keys: mm-spm-${{ runner.os }}-${{ env.XCODE_VERSION }}-
+      - name: Release 10k search and durable capture benchmark
+        run: set -o pipefail; swift test -c release --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-release-ci" --filter SearchPerformanceTests | tee search-benchmark.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: search-benchmark
+          path: search-benchmark.txt
       - name: swift test
         run: swift test --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-ci"
       # Pure pill logic (state machine, geometry, position persistence, motion) is a separate package.

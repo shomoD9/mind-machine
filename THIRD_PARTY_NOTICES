@@ -1,0 +1,17 @@
+Mind Machine native core
+
+SQLite / FTS5
+https://sqlite.org/fts5.html
+https://sqlite.org/copyright.html
+SQLite is in the public domain. The native core links the SQLite implementation
+provided by Apple's operating systems; no third-party SQLite source is vendored.
+The FTS5 BM25, prefix and highlighting implementations are supplied by SQLite.
+
+Apple sample-cloudkit-sync-engine (API reference only)
+https://github.com/apple/sample-cloudkit-sync-engine
+The CKSyncEngine delegate/event and batching API usage was checked against Apple's
+sample. No sample source was copied. Mind Machine's revision/encryption/store,
+account isolation and key setup implementation is project-authored.
+
+MiniSearch 7.1.0 (MIT) remains an isolated, non-shipping comparison benchmark.
+No MiniSearch JavaScript or Obsidian GPL plugin code is included in the product.

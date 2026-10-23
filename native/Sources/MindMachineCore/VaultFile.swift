@@ -207,7 +207,7 @@ public final class VaultFile: @unchecked Sendable {
     public func syncValue(_ key: String) throws -> Data? { try withStore { try value("sync." + key) } }
     public func setSyncValue(_ key: String, _ data: Data) throws { try withStore { try put("sync." + key, data) } }
     public func pendingRevisions() throws -> [NoteRevision] {
-        try withStore { try revisions("SELECT payload FROM revisions WHERE pending=1 ORDER BY rowid") }
+        try withStore { try revisions("SELECT payload FROM revisions WHERE pending=1 ORDER BY rowid LIMIT 100") }
     }
     public func acknowledge(_ ids: [UUID]) throws {
         try withStore { try transaction { for id in ids { try execute("UPDATE revisions SET pending=0 WHERE id=?", [id.uuidString]) } } }

@@ -2,6 +2,7 @@
  It coordinates durable indexed writes, private sync, configured inference and alerts;
  Vault owns shared retrieval ranking and domain transitions. */
 import Foundation
+import CryptoKit
 import SwiftUI
 import UserNotifications
 import MindMachineCore
@@ -31,21 +32,51 @@ public final class VaultModel: ObservableObject {
     private let file: VaultFile
     private let deviceReminders: DeviceReminders?
     private var timer: Timer?
+    private var sync: PrivateCloudSync?
+    private var syncing = false
+    private let enablesSync: Bool
+    @Published public var syncStatus = "Local vault · pair private sync in setup"
+
 
     public init(url: URL? = nil, notificationAccess: NotificationAccess = .companion) {
+        enablesSync = notificationAccess != .disabled
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         // Folder name kept from the former product name so existing vaults stay readable.
         file = VaultFile(url: url ?? base.appendingPathComponent("SecondBrain/vault.json"))
         deviceReminders = notificationAccess == .disabled ? nil : DeviceReminders(file: file, allowsPermissionPrompt: notificationAccess == .companion)
         reload()
+        Task { [weak self] in await self?.syncNow() }
         // The timer reconciles in-app events only. System delivery uses UN requests;
         // foreground reconciliation is never described as closed-app notification proof.
         timer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.reload() }
+            Task { @MainActor in self?.reload(); await self?.syncNow() }
         }
     }
 
     deinit { timer?.invalidate() }
+
+    /// Unsigned tests never initialize CloudKit. Signed clients start only after
+    /// explicit key setup and keep save acknowledgement independent of networking.
+    public func syncNow() async {
+        guard enablesSync, !syncing,
+              let container = Bundle.main.object(forInfoDictionaryKey: "VaultCloudContainer") as? String,
+              let group = Bundle.main.object(forInfoDictionaryKey: "VaultKeychainGroup") as? String,
+              !container.contains("$("), !group.contains("$(") else { return }
+        syncing = true; defer { syncing = false }
+        do {
+            if sync == nil {
+                guard let bytes = try PrivateSyncKey.load(group: group) else { syncStatus = "Local vault · pair private sync in setup"; return }
+                sync = PrivateCloudSync(store: file, containerIdentifier: container,
+                                        key: SymmetricKey(data: bytes), client: Bundle.main.bundleIdentifier ?? "app")
+            }
+            guard let sync else { return }
+            syncStatus = "Syncing privately…"
+            try await sync.synchronize()
+            syncStatus = await sync.status
+            let latest = try file.read()
+            if latest != vault { vault = latest }
+        } catch { syncStatus = "Local vault · \(error.localizedDescription)" }
+    }
 
     public var searchDescription: String { "On-device indexed search · prefix and typo matching" }
     public var conversation: [ChatMessage] { temporary ? temporaryMessages : vault.messages }
@@ -73,7 +104,7 @@ public final class VaultModel: ObservableObject {
     /// follows a successful atomic save, keeping failures distinct from Saved.
     @discardableResult
     private func change(_ mutate: (inout Vault) throws -> Void) -> Bool {
-        do { vault = try file.update(mutate); clearInvalidReminderOffer(); return true }
+        do { vault = try file.update(mutate); clearInvalidReminderOffer(); Task { [weak self] in await self?.syncNow() }; return true }
         catch { self.error = "Could not save: \(error.localizedDescription)"; return false }
     }
 
@@ -98,6 +129,7 @@ public final class VaultModel: ObservableObject {
         do {
             try file.append(capture)
             vault.captures.append(capture)
+            Task { [weak self] in await self?.syncNow() }
             draft = ""; richDraft = nil; notice = "Saved on this device"
             // A soft offer follows persistence and does not classify or rewrite it.
             let action = capture.text.lowercased().trimmingCharacters(in: .whitespaces)

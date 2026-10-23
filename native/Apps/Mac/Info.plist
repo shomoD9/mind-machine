@@ -20,6 +20,12 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>VaultAppGroup</key>
+	<string>$(VAULT_APP_GROUP)</string>
+	<key>VaultCloudContainer</key>
+	<string>$(VAULT_ICLOUD_CONTAINER)</string>
+	<key>VaultKeychainGroup</key>
+	<string>$(VAULT_KEYCHAIN_GROUP)</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
