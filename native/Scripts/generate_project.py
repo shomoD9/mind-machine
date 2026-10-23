@@ -43,7 +43,8 @@ def dictionary(values):
     return '{ ' + ' '.join(f'{k} = {v};' for k, v in values.items()) + ' }'
 
 
-# One xcconfig supplies signing and capability identifiers to all three targets.
+# One xcconfig supplies signing and capability identifiers to all three targets. The iPhone and Mac apps share
+# one bundle ID (universal purchase: one App Store Connect record); only the keyboard extension has its own suffix.
 # Command-line CODE_SIGNING_ALLOWED=NO keeps CI independent of a paid team.
 signing_config = add("signingConfig", "PBXFileReference", lastKnownFileType="text.xcconfig", path=quote("Config/MindMachine.xcconfig"), sourceTree=quote("<group>"))
 package = add('package', 'XCLocalSwiftPackageReference', relativePath=quote('.'))
@@ -55,7 +56,7 @@ groups = []
 for name, folder, bundle, kind in [
     ('MindMachine', 'iOS', '$(MINDMACHINE_BUNDLE_ID)', 'application'),
     ('MindMachineKeyboard', 'Keyboard', '$(MINDMACHINE_KEYBOARD_BUNDLE_ID)', 'app-extension'),
-    ('MindMachineMac', 'Mac', '$(MINDMACHINE_MAC_BUNDLE_ID)', 'application'),
+    ('MindMachineMac', 'Mac', '$(MINDMACHINE_BUNDLE_ID)', 'application'),
 ]:
     is_mac = folder == 'Mac'
     files = sorted((ROOT/'Apps'/folder).glob('*.swift'))

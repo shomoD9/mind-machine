@@ -3,7 +3,6 @@
 DEVELOPMENT_TEAM =
 MINDMACHINE_BUNDLE_ID = com.statemachine.mindmachine
 MINDMACHINE_KEYBOARD_BUNDLE_ID = $(MINDMACHINE_BUNDLE_ID).keyboard
-MINDMACHINE_MAC_BUNDLE_ID = $(MINDMACHINE_BUNDLE_ID).mac
 VAULT_APP_GROUP = group.com.statemachine.mindmachine
 VAULT_ICLOUD_CONTAINER = iCloud.com.statemachine.mindmachine
 VAULT_KEYCHAIN_GROUP = $(AppIdentifierPrefix)com.statemachine.mindmachine

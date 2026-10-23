@@ -116,7 +116,7 @@ jobs:
       # Launches the built app and drives the floating pill through its real window: window flags, expand,
       # tab shortcuts, typing, Esc, click-away, hotkey, hide/show, drag + persistence, Reduce Motion, timings.
       - name: Verify expanded Mac identifiers
-        run: python3 native/Scripts/verify_bundle_configuration.py DerivedData/Build/Products/Debug/MindMachineMac.app com.statemachine.mindmachine.mac
+        run: python3 native/Scripts/verify_bundle_configuration.py DerivedData/Build/Products/Debug/MindMachineMac.app com.statemachine.mindmachine
       - name: Pill self-test
         run: |
           mkdir -p pill-selftest
