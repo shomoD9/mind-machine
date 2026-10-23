@@ -1,6 +1,8 @@
 /* Durable SQLite source/index shared by the companion, keyboard and Mac through
  VaultModel. The legacy JSON URL remains the migration source and is never removed.
- Every acknowledged write commits originals, FTS and replication revisions together. */
+ Every acknowledged write commits originals, FTS and replication revisions together.
+ Called by VaultModel (reads, saves, Recall), DeviceReminders (reminder-source snapshots),
+ PrivateCloudSync (outbox, merge, cursor state), VaultIntegrityProbe and the Core tests. */
 import Foundation
 import CSQLite
 

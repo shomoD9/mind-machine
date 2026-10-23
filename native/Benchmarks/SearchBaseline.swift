@@ -1,6 +1,6 @@
 /* One-off public-interface latency probe for the current saved-vault retrieval.
- Run by Codex during the 22 October backend plan; uses synthetic notes only,
- real VaultFile persistence and VaultModel.results, with OS notifications disabled. */
+ Run by hand (see docs/verification/search-baseline-2026-10-22.md); nothing in the apps or CI calls it.
+ Uses synthetic notes only, real VaultFile persistence and VaultModel.results, with OS notifications disabled. */
 import Foundation
 import MindMachineCore
 import MindMachineUI

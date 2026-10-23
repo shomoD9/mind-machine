@@ -1,6 +1,9 @@
 /* Authenticated app-side encryption for the CloudKit and fake-engine boundary.
  Content is encrypted before CKRecord.encryptedValues adds Apple's encryption.
- The founder pairs a 256-bit recovery key; no service receives that key. */
+ The founder pairs a 256-bit recovery key; no service receives that key.
+ RevisionCipher is called by PrivateCloudSync (seal on upload, open on fetch) and by ReplicationTests.
+ SyncFailure, declared below, is thrown by PrivateCloudSync, PrivateSyncKey and VaultFile.bindSyncAccount,
+ and shown to the person by VaultModel.syncStatus and PrivateSyncSetupView. */
 import Foundation
 import CryptoKit
 
