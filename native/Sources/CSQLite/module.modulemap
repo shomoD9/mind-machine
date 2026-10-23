@@ -1,0 +1,6 @@
+// System SQLite bridge consumed by MindMachineCore; Apple SDK supplies libsqlite3.
+module CSQLite [system] {
+    header "shim.h"
+    link "sqlite3"
+    export *
+}

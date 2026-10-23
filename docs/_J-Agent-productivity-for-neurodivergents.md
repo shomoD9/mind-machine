@@ -6,6 +6,11 @@
 - Kept the `SecondBrain/vault.json` storage path and the `secondbrain.reminder.` notification prefix to avoid orphaning existing vaults and pending reminders; chose no migration. Updated code-path links in research docs; left historical command logs, checkpoints and design mockups unchanged.
 - First CI run failed: a comment I inserted broke a call in `VaultModel.swift`, and restored build caches carried the old checkout path. Moved the comment, and prefixed cache keys with `mm-` so old caches no longer match.
 
+### GPT-6 - Codex API (Linux shared-core workspace)
+
+- Read AGENTS, CONTEXT, MVP-CORE, DESIGN, domain/ADR/tracker conventions and research before implementing the tonight core request. Applied Matt Pocock TDD at the already approved saved-vault and replication seams. Recorded issue 09; excluded docs/PRODUCT.md and the parallel agent's Mac window/pill area.
+- Added a migration/prefix/typo/highlight acceptance test, committed it as the red tracer and ran macOS CI. Confirmed its failure is the absent search API. Implemented transactional SQLite WAL persistence, retained JSON migration, capture append, bounded FTS5 BM25/prefix queries and dictionary-based typo alternatives to eliminate whole-vault semantic computation on typing. Added system SQLite bridge with no downloaded dependency. CI verification continues.
+
 ## 2026-10-23 - GPT-6 - Codex App
 
 - Received explicit approval of the core MVP scope. Pulled first, read current scope/domain/plan guidance and prepared to record it; the human said wait before any edits, so stopped immediately. Resumed when the human requested a wider GitHub search and UForm resource assessment. Recorded the approval in MVP-CORE, DESIGN, PRD, historical launch design, build-spec header and pending execution-plan header. Deferred Chat/reminders/resurfacing while preserving their implementation and incomplete evidence; did not infer media scope or technical-breakdown approval.

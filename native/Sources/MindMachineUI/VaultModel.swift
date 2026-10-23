@@ -1,9 +1,8 @@
 /* Observable presentation model called by WorkspaceView and the UIKit keyboard.
- It coordinates durable writes, local embeddings, configured inference and alerts;
+ It coordinates durable indexed writes, private sync, configured inference and alerts;
  Vault owns shared retrieval ranking and domain transitions. */
 import Foundation
 import SwiftUI
-import NaturalLanguage
 import UserNotifications
 import MindMachineCore
 
@@ -31,7 +30,6 @@ public final class VaultModel: ObservableObject {
     @Published public var deviceNotificationStatus = "Device notification status not checked"
     private let file: VaultFile
     private let deviceReminders: DeviceReminders?
-    private let embedding = NLEmbedding.sentenceEmbedding(for: .english)
     private var timer: Timer?
 
     public init(url: URL? = nil, notificationAccess: NotificationAccess = .companion) {
@@ -49,7 +47,7 @@ public final class VaultModel: ObservableObject {
 
     deinit { timer?.invalidate() }
 
-    public var searchDescription: String { embedding == nil ? "Keyword search" : "Keyword + on-device semantic search" }
+    public var searchDescription: String { "On-device indexed search · prefix and typo matching" }
     public var conversation: [ChatMessage] { temporary ? temporaryMessages : vault.messages }
 
     /// Both native entry points open Capture while keeping all three private
@@ -97,32 +95,26 @@ public final class VaultModel: ObservableObject {
             return nil
         }
         let capture = Capture(text: draft, richText: richDraft, checklist: items)
-        if change({ $0.captures.append(capture) }) {
+        do {
+            try file.append(capture)
+            vault.captures.append(capture)
             draft = ""; richDraft = nil; notice = "Saved on this device"
             // A soft offer follows persistence and does not classify or rewrite it.
             let action = capture.text.lowercased().trimmingCharacters(in: .whitespaces)
             let actionable = !items.isEmpty || ["buy ","call ","apply ","remember ","send ","book "].contains(where: action.hasPrefix)
             offeredCapture = actionable && !capture.allItemsComplete ? capture.id : nil
-        }
+        } catch { self.error = "Could not save: \(error.localizedDescription)" }
     }
 
-    /// The original text is the retrieval source. Optional system embeddings are
-    /// computed locally; unavailable models leave a correctly labeled keyword path.
+    /// Find reads only the ranked page from SQLite. Models and network requests
+    /// never execute on the typing path; a query cannot re-embed the whole vault.
     public func results(openTasks: Bool = false) -> [Capture] {
-        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty, let queryVector = embedding?.vector(for: q) else {
-            return vault.findCaptures(q, openTasks: openTasks)
-        }
-        // Platform embeddings supply only replaceable scores. Both native
-        // entry points use the Vault's single lexical/ranking implementation.
-        var scores: [UUID: Double] = [:]
-        for capture in vault.captures {
-            guard let vector = embedding?.vector(for: String(capture.text.prefix(2500))), vector.count == queryVector.count else { continue }
-            let numerator = zip(queryVector, vector).reduce(0) { $0 + $1.0 * $1.1 }
-            let denominator = sqrt(queryVector.reduce(0) { $0 + $1*$1 } * vector.reduce(0) { $0 + $1*$1 })
-            if denominator > 0 { scores[capture.id] = numerator / denominator }
-        }
-        return vault.findCaptures(q, openTasks: openTasks, semanticScores: scores)
+        searchHits(openTasks: openTasks).map(\.capture)
+    }
+
+    public func searchHits(openTasks: Bool = false) -> [SearchHit] {
+        do { return try file.search(query, openTasks: openTasks) }
+        catch { self.error = "Could not search: \(error.localizedDescription)"; return [] }
     }
 
     public func setItem(captureID: UUID, itemID: UUID, complete: Bool) {

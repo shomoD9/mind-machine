@@ -11,7 +11,8 @@ let package = Package(
         .library(name: "MindMachineUI", targets: ["MindMachineUI"])
     ],
     targets: [
-        .target(name: "MindMachineCore"),
+        .systemLibrary(name: "CSQLite", pkgConfig: "sqlite3"),
+        .target(name: "MindMachineCore", dependencies: ["CSQLite"]),
         .target(name: "MindMachineUI", dependencies: ["MindMachineCore"]),
         .testTarget(name: "MindMachineCoreTests", dependencies: ["MindMachineCore"]),
         .testTarget(name: "MindMachineUITests", dependencies: ["MindMachineUI", "MindMachineCore"])
