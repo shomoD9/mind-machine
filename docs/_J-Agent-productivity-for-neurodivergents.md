@@ -34,6 +34,8 @@
 
 - Verified final code run 39912435428 green: both unsigned native targets, 28 package tests with the Release performance case run separately, query p95 3.813292ms/durable append 7.766667ms at 10k, SIGKILL 40/40 and concurrent writers 200/200. Isolated FTS5 p95 3.677209ms/11.50MiB peak RSS versus MiniSearch 21.535542ms/81.375MiB. Recorded source-linked comparison/reproduction limits and physical-device gates in verification and TESTING-TONIGHT, updated README/DESIGN and moved only issue 09 to ready-for-human. Confirmed docs/PRODUCT.md remains untracked and untouched; no Mac window/pill source edits. Preparing final documentation checkpoint and exact-head CI verification/result file.
 
+- Watched documentation checkpoint run 39913012393 green. Added a final artifact check that reads actual built Info.plists for all three targets and asserts expanded bundle/App Group/CloudKit/Keychain values, so configuration verification does not stop at source inspection or compilation.
+
 ## 2026-10-23 - GPT-6 - Codex App
 
 - Received explicit approval of the core MVP scope. Pulled first, read current scope/domain/plan guidance and prepared to record it; the human said wait before any edits, so stopped immediately. Resumed when the human requested a wider GitHub search and UForm resource assessment. Recorded the approval in MVP-CORE, DESIGN, PRD, historical launch design, build-spec header and pending execution-plan header. Deferred Chat/reminders/resurfacing while preserving their implementation and incomplete evidence; did not infer media scope or technical-breakdown approval.
