@@ -1,0 +1,179 @@
+# TestFlight delivery: archives the iPhone app (with its keyboard extension) and the Mac app on GitHub-hosted
+# macOS runners, signs them with Xcode automatic signing and cloud-managed certificates, and uploads both to the
+# one universal App Store Connect record (bundle ID com.statemachine.mindmachine).
+# Triggered by manual runs (workflow_dispatch) and by pushes to main that touch native/; nothing in the repo calls it.
+# Documented in docs/DESIGN.md ("TestFlight delivery").
+# The unsigned native-ci.yml workflow is separate and unchanged in purpose: it never sees these secrets.
+#
+# Repository secrets used (all set by the founder, none is ever printed):
+#   ASC_API_KEY_P8   App Store Connect API private key (.p8, PEM text)
+#   ASC_KEY_ID       that key's ID
+#   ASC_ISSUER_ID    the issuer ID shown above the key list in App Store Connect
+#   APPLE_TEAM_ID    ten-character Team ID, used as DEVELOPMENT_TEAM and in the export options
+name: testflight
+
+on:
+  push:
+    branches: [main]
+    paths: ['native/**']
+  workflow_dispatch:
+
+# Uploads run one after another so build numbers reach App Store Connect in order. A running upload is never
+# cancelled halfway, because that can leave a half-processed build.
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Same Xcode as native-ci.yml; native/README.md records that all targets compile on it.
+  XCODE_VERSION: '26.2'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  upload:
+    name: ${{ matrix.name }}
+    runs-on: macos-26
+    timeout-minutes: 60
+    strategy:
+      # An iPhone failure must not hide the Mac result, and the reverse.
+      fail-fast: false
+      matrix:
+        include:
+          - name: TestFlight iPhone app + keyboard
+            scheme: MindMachine
+            destination: generic/platform=iOS
+            app: MindMachine.app
+          - name: TestFlight Mac app
+            scheme: MindMachineMac
+            destination: generic/platform=macOS
+            app: MindMachineMac.app
+    env:
+      # Paths are absolute because xcodebuild's -authenticationKeyPath requires an absolute path.
+      KEY_DIR: ${{ runner.temp }}/asc-key
+      ARCHIVE: ${{ runner.temp }}/${{ matrix.scheme }}.xcarchive
+      EXPORT_DIR: ${{ runner.temp }}/${{ matrix.scheme }}-export
+      EXPORT_OPTIONS: ${{ runner.temp }}/${{ matrix.scheme }}-ExportOptions.plist
+      # One auto-incrementing number per workflow run. Both platforms use it, and so does the keyboard extension
+      # because the build setting is applied to every target of the archive.
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+
+      # The key goes to a temporary file that only this job can read. Apple's tooling expects the name AuthKey_<ID>.p8.
+      # The secret reaches the shell through the environment, so it is masked in logs and never appears in a command line.
+      - name: Write App Store Connect API key
+        env:
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for name in ASC_API_KEY_P8 ASC_KEY_ID ASC_ISSUER_ID APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then echo "::error::Repository secret $name is not set"; exit 1; fi
+          done
+          umask 077
+          mkdir -p "$KEY_DIR"
+          printf '%s\n' "$ASC_API_KEY_P8" > "$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
+          # Fail early, with no key material in the message, if the secret is not a readable PEM private key.
+          openssl pkey -in "$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8" -noout >/dev/null 2>&1 || { echo "::error::ASC_API_KEY_P8 is not a valid PEM private key"; exit 1; }
+
+      # Export options for `xcodebuild -exportArchive`: app-store-connect with destination upload signs the archive with
+      # the cloud-managed distribution certificate and sends it to App Store Connect (TestFlight) in one step.
+      # manageAppVersionAndBuildNumber is off so App Store Connect keeps the run number we set rather than choosing one.
+      - name: Write export options
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cat > "$EXPORT_OPTIONS" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          EOF
+
+      # Automatic signing with an API key: -allowProvisioningUpdates lets Xcode register the App Group and iCloud
+      # container, create the profiles and use cloud-managed certificates, authenticating as the API key.
+      # DEVELOPMENT_TEAM overrides the empty value in native/Config/MindMachine.xcconfig for this build only.
+      - name: Archive ${{ matrix.scheme }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcodebuild archive \
+            -project native/MindMachine.xcodeproj -scheme "${{ matrix.scheme }}" \
+            -configuration Release -destination "${{ matrix.destination }}" \
+            -archivePath "$ARCHIVE" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" 2>&1 | tee "$RUNNER_TEMP/archive.log"
+
+      # Reads the archived Info.plists, as native-ci.yml does for unsigned builds, plus the build number set above.
+      - name: Verify archived identifiers and build number
+        run: |
+          PRODUCTS="$ARCHIVE/Products/Applications/${{ matrix.app }}"
+          python3 native/Scripts/verify_bundle_configuration.py "$PRODUCTS" com.statemachine.mindmachine "$BUILD_NUMBER"
+          if [ "${{ matrix.scheme }}" = "MindMachine" ]; then
+            python3 native/Scripts/verify_bundle_configuration.py "$PRODUCTS/PlugIns/MindMachineKeyboard.appex" com.statemachine.mindmachine.keyboard "$BUILD_NUMBER"
+          fi
+
+      # Records what provisioning produced. Only an App Group or iCloud container missing here means signing failed to
+      # attach the capability. The values are identifiers, not credentials; the Team ID prefix is masked by Actions.
+      - name: Show signed entitlements
+        run: |
+          PRODUCTS="$ARCHIVE/Products/Applications/${{ matrix.app }}"
+          echo "== ${{ matrix.app }}"
+          codesign -d --entitlements :- "$PRODUCTS" 2>/dev/null | plutil -p - || true
+          if [ "${{ matrix.scheme }}" = "MindMachine" ]; then
+            echo "== MindMachineKeyboard.appex"
+            codesign -d --entitlements :- "$PRODUCTS/PlugIns/MindMachineKeyboard.appex" 2>/dev/null | plutil -p - || true
+          fi
+
+      - name: Export and upload ${{ matrix.scheme }} to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE" \
+            -exportOptionsPlist "$EXPORT_OPTIONS" \
+            -exportPath "$EXPORT_DIR" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" 2>&1 | tee "$RUNNER_TEMP/export.log"
+
+      # When Apple rejects a signing or upload step, xcodebuild prints only a log path. This prints the lines that carry
+      # the exact Apple error; Actions masks any secret value that appears in them.
+      - name: Show Apple errors from distribution logs
+        if: failure()
+        run: |
+          find "${TMPDIR:-/tmp}" "$RUNNER_TEMP" -maxdepth 3 -name '*.xcdistributionlogs' 2>/dev/null | while read -r dir; do
+            echo "== $dir"
+            grep -h -i -E 'error|rejected|ITMS-|not valid|invalid|failed|unable|missing' "$dir"/*.log 2>/dev/null | sort -u | head -n 60
+          done || true
+
+      # The key never outlives the job, even when an earlier step failed.
+      - name: Remove API key
+        if: always()
+        run: rm -rf "$KEY_DIR"
