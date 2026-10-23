@@ -16,7 +16,7 @@ xcodebuild -project native/MindMachine.xcodeproj -target MindMachine -configurat
 
 All three native targets compile against the installed Xcode 26.2 SDKs. The target-based simulator command also works when Xcode cannot select a scheme destination because only the older iOS 17.5 simulator runtime is installed. The ad-hoc-signed app also installs and launches in that runtime. Its App Group is registered and the setup screen renders. This does not prove custom-keyboard interactions or real-device behavior.
 
-Run `/tmp/mindmachine-xcode/Build/Products/Debug/MindMachineMac.app`. Control–Option–Space opens/hides the panel; Escape dismisses it. Capture starts by default. Saved content lives under the application's local Application Support directory. The panel supports resizing.
+Run `/tmp/mindmachine-xcode/Build/Products/Debug/MindMachineMac.app`. Control–Option–Space opens/hides the panel; Escape dismisses it. Capture starts by default. Saved content lives under the application's local Application Support directory. The control expands from its remembered anchor; see DESIGN for the current Mac behavior.
 
 ## Continuous integration
 
