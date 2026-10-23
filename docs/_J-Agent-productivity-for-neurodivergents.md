@@ -28,6 +28,8 @@
 
 - Watched run 39910611792 green after the conflict-copy regression. Same-corpus isolated FTS5 p95 2.536667ms, cold open/first query 11.958667ms and peak RSS 11.171875MiB; MiniSearch p95 11.137625ms, startup/index 932.709458ms and peak RSS 80.265625MiB. MiniSearch missed adjacent-transposition query gardne at fuzzy 0.2. Kept FTS5 for latency, disk-backed memory and atomic multi-process freshness. Expanded the final budget to include empty and broad one/two-letter prefixes, and added failed-transaction rollback coverage.
 
+- The expanded broad-prefix test caught a remaining 17.290625ms p95 failure (p at 21.21ms, pr at 14.25ms). Reproduced query plans with real SQLite on Linux, then added explicit broad-clue recency ranking using the created index/integer FTS membership; specific clues retain BM25. Aligned source/index row IDs in a transaction and retained the unchanged <10ms CI assertion. Updated current README/DESIGN descriptions to remove obsolete JSON/unimplemented-sync claims while retaining live-device gates.
+
 ## 2026-10-23 - GPT-6 - Codex App
 
 - Received explicit approval of the core MVP scope. Pulled first, read current scope/domain/plan guidance and prepared to record it; the human said wait before any edits, so stopped immediately. Resumed when the human requested a wider GitHub search and UForm resource assessment. Recorded the approval in MVP-CORE, DESIGN, PRD, historical launch design, build-spec header and pending execution-plan header. Deferred Chat/reminders/resurfacing while preserving their implementation and incomplete evidence; did not infer media scope or technical-breakdown approval.

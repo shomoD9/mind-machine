@@ -21,6 +21,7 @@ final class SearchPerformanceTests: XCTestCase {
         let queries = ["", "p", "pr", "teles", "telescpoe", "passport", "birthd", "gardne", "item9876", "recipe project", "nohitsxyz"]
         XCTAssertEqual(try store.search("item9876").first?.capture.text.contains("reference code item9876"), true)
         XCTAssertFalse(try store.search("telescpoe").isEmpty)
+        XCTAssertEqual(try store.search("pr").first?.capture.text.contains("project 9999"), true)
         for query in queries { _ = try store.search(query) }
         var timings: [Double] = []
         var perQuery: [String: [Double]] = [:]

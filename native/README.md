@@ -1,6 +1,8 @@
 # Native pilot — implementation in progress
 
-The Xcode project has three targets: `MindMachine` (iPhone companion/test host), `MindMachineKeyboard` (embedded custom keyboard), and `MindMachineMac` (global-hotkey panel). Shared `MindMachineCore` and `MindMachineUI` libraries remain a local Swift package. The first implemented path is explicit local capture → persisted original → keyword Find → original inspection. Keyboard Insert is deliberate. This is not a launched or synced pilot.
+The Xcode project has three targets: `MindMachine` (iPhone companion/test host), `MindMachineKeyboard` (embedded custom keyboard), and `MindMachineMac` (floating control). Shared core/UI libraries remain a local Swift package. Capture commits originals, the FTS5 index and a private-sync revision in SQLite before acknowledging Saved. Find returns ranked prefix/typo matches and highlighted previews; Insert/Copy uses the original. The private CloudKit adapter compiles and has fake-cloud replication tests. Live signed-device sync and real iPhone keyboard memory/typing acceptance remain open.
+
+Start with [TESTING-TONIGHT](../docs/TESTING-TONIGHT.md): one Team ID in `Config/MindMachine.xcconfig`, shared App Group/iCloud/Keychain capabilities, key pairing and exact device checks. CI measurements and engine selection are in [core verification](../docs/verification/core-tonight-2026-10-23.md).
 
 ## Build
 
@@ -18,7 +20,7 @@ Run `/tmp/mindmachine-xcode/Build/Products/Debug/MindMachineMac.app`. Control–
 
 ## Continuous integration
 
-`.github/workflows/native-ci.yml` runs on every push to `main`, every pull request and manual dispatch, only when `native/` or the workflow changes. On a GitHub-hosted `macos-26` runner with Xcode 26.2 it runs `swift test`, builds the `MindMachine` scheme (iPhone app plus embedded keyboard) for a generic iOS Simulator, and builds `MindMachineMac`, all with `CODE_SIGNING_ALLOWED=NO`. There is no signing, TestFlight or secrets. A newer run on the same ref cancels the older one. The workflow compiles and runs unit tests only; it does not exercise keyboard interaction or real-device behavior.
+`.github/workflows/native-ci.yml` runs on every push to `main`, every pull request and manual dispatch, only when `native/` or the workflow changes. On a GitHub-hosted `macos-26` runner with Xcode 26.2 it runs `swift test`, builds the `MindMachine` scheme (iPhone app plus embedded keyboard) for a generic iOS Simulator, and builds `MindMachineMac`, all with `CODE_SIGNING_ALLOWED=NO`. There is no signing, TestFlight or secrets. A newer run on the same ref cancels the older one. The workflow also runs the Release 10k latency budget, same-corpus FTS5/MiniSearch comparison and a SIGKILL/concurrent-writer durability probe. It does not establish real-device keyboard interaction or CloudKit signing/delivery.
 
 ## Mac development notification setup
 
@@ -34,7 +36,7 @@ Launch the installed copy and deliberately enable device notifications in its se
 
 ## iPhone setup
 
-For a real phone, select your Apple team in Xcode and register unique bundle identifiers plus a shared App Group. Set `VAULT_APP_GROUP` identically for the companion and keyboard. Current `dev.mindmachine.pilot` identifiers are development defaults. Generated bundle metadata includes its Info dictionary version and development region; confirm actual keyboard availability in Settings after installation, since PlugInKit registration alone is insufficient. Enable the keyboard in iPhone Settings, then enable Full Access to permit access to its device-local shared vault. Full Access is an iOS permission, separate from cloud-AI opt-in. The companion includes a host message field for keyboard testing.
+For a real phone, set `DEVELOPMENT_TEAM` in `Config/MindMachine.xcconfig`. Bundle IDs are `com.getstatemachine.mindmachine`, `.keyboard`, `.mac`; App Group is `group.com.getstatemachine.mindmachine`, and iCloud container is `iCloud.com.getstatemachine.mindmachine`. All targets use the same configuration. Register capabilities with the same Apple team, then follow TESTING-TONIGHT. Enable the keyboard in iPhone Settings and enable Full Access for shared storage/networking. The companion documents this permission and provides a host message field, private-key setup and actual keyboard memory-report viewer.
 
 The keyboard refuses to create an isolated vault when the shared container is unavailable. Signed App Group availability and full phone behavior need actual device proof. Secure/password fields and hosts that prohibit custom keyboards remain platform limitations.
 
@@ -46,7 +48,7 @@ Ticket 02 is resolved after human native acceptance, including the dormant-host-
 
 Checklist/reminder management is implemented in ticket 03. Native Mac controls and companion/keyboard reminder inspection passed; simulator background OS delivery was visibly verified. Mac permission and a pending OS request were verified after installing the signed app, but its visual delivery check was interrupted by computer-use service failure. Remaining keyboard checklist/date-confirm checks and real-phone proof are still open. Complete remembered chat/Forget, encrypted sync, media and release verification retain their subsequent tickets. Chat calls the preliminary configured Ollama-compatible adapter; no model/server is bundled and remembered-chat acceptance is incomplete. Never infer completion from a visible control.
 
-The local JSON document is plaintext device storage, **never the sync payload**. Private app-encrypted replication and account/key provisioning remain ticket 05. No CloudKit container is provisioned and no two-device sync has been verified. See [sync research](../.scratch/scattered-ambitious-pitch/research/24-native-pilot-sync-and-distribution-2026-10-20.md).
+The legacy JSON is retained as a migration/recovery source. SQLite is the protected local source/index; immutable revisions are AES-GCM encrypted before entering CloudKit encrypted fields. Explicit key pairing, account isolation and fake-cloud concurrent-edit/deletion behavior are implemented. A founder-signed container and real bidirectional device sync remain unverified. See TESTING-TONIGHT for those acceptance gates.
 
 See [checkpoint evidence](../docs/verification/native-capture-checkpoint.md) for commands, results and remaining acceptance gates.
 

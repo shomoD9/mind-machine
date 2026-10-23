@@ -65,6 +65,16 @@ public final class VaultFile: @unchecked Sendable {
                     for note in notes { try materialize(note) }
                     try put("projections.initialized", Data([1]))
                 }
+                if try value("fts.rowids.aligned") == nil {
+                    // Share source row IDs so broad matches use integer membership
+                    // and the created-date index without sorting every full note.
+                    try execute("DELETE FROM notes")
+                    try rows("SELECT rowid,payload FROM captures") { statement in
+                        let capture = try JSONDecoder().decode(Capture.self, from: blob(statement,1))
+                        try execute("INSERT INTO notes(rowid,id,text) VALUES(?,?,?)", [column(statement,0),capture.id.uuidString,capture.text])
+                    }
+                    try put("fts.rowids.aligned", Data([1]))
+                }
             }
             #if os(iOS)
             // The containing directory protects SQLite, its WAL and SHM sidecars.
@@ -157,8 +167,10 @@ public final class VaultFile: @unchecked Sendable {
                 return hits
             }
             var clauses: [String] = []
+            var highlightTerms: [String] = []
             for word in words {
                 var alternatives = ["\"\(word)\"*"]
+                highlightTerms.append(word)
                 var knownPrefix = false
                 try rows("SELECT term FROM vocabulary WHERE term >= ? AND term < ? LIMIT 1", [word, word + "\u{10FFFF}"]) { _ in knownPrefix = true }
                 if word.count >= 4 && !knownPrefix {
@@ -168,23 +180,62 @@ public final class VaultFile: @unchecked Sendable {
                     }
                     for candidate in candidates.sorted() where candidate != word && Self.near(word, candidate) {
                         alternatives.append("\"\(candidate)\"")
+                        highlightTerms.append(candidate)
                         if alternatives.count == 12 { break }
                     }
                 }
                 clauses.append("(" + alternatives.joined(separator: " OR ") + ")")
             }
+            let expression = clauses.joined(separator: " AND ")
+            var candidateCount = 0
+            try rows("SELECT count(*) FROM (SELECT rowid FROM notes WHERE notes MATCH ? LIMIT 501)", [expression]) { candidateCount = Int(column($0,0)) ?? 0 }
+            if candidateCount > 500 {
+                // Common clues have weak specificity. Prefer the newest originals
+                // using an indexed recent scan over integer FTS membership. This
+                // avoids scoring/sorting all 10k notes for each early keystroke.
+                var hits: [SearchHit] = []
+                try rows("""
+                    SELECT payload FROM captures INDEXED BY captures_created
+                    WHERE rowid IN (SELECT rowid FROM notes WHERE notes MATCH ?)
+                    ORDER BY created DESC,id LIMIT ?
+                    """, [expression,String(max(1,min(limit,100)))]) { statement in
+                    let capture = try JSONDecoder().decode(Capture.self, from: blob(statement,0))
+                    if !openTasks || (!capture.checklist.isEmpty && !capture.allItemsComplete) {
+                        hits.append(SearchHit(capture: capture, highlightedText: Self.mark(capture.text, terms: highlightTerms)))
+                    }
+                }
+                return hits
+            }
             var hits: [SearchHit] = []
             // All remembered tokens must match, with prefix/one-edit alternatives.
             try rows("""
                 SELECT c.payload, highlight(notes,1,'⟦','⟧') FROM notes
-                JOIN captures c ON c.id=notes.id WHERE notes MATCH ?
+                JOIN captures c ON c.rowid=notes.rowid WHERE notes MATCH ?
                 ORDER BY rank LIMIT ?
-                """, [clauses.joined(separator: " AND "), String(max(1, min(limit, 100)))]) { stmt in
+                """, [expression, String(max(1, min(limit, 100)))]) { stmt in
                 let capture = try JSONDecoder().decode(Capture.self, from: blob(stmt, 0))
                 if !openTasks || (!capture.checklist.isEmpty && !capture.allItemsComplete) { hits.append(SearchHit(capture: capture, highlightedText: column(stmt, 1))) }
             }
             return hits
         }
+    }
+
+    // Broad-result previews preserve wording and punctuation, adding delimiters
+    // only around matching original tokens. Full source text is never truncated.
+    private static func mark(_ text: String, terms: [String]) -> String {
+        var output = "", token = ""
+        func flush() {
+            guard !token.isEmpty else { return }
+            let normalized = words(token).first ?? ""
+            output += terms.contains(where: { normalized.hasPrefix($0) }) ? "⟦" + token + "⟧" : token
+            token = ""
+        }
+        for character in text.prefix(500) {
+            if character.isLetter || character.isNumber { token.append(character) }
+            else { flush(); output.append(character) }
+        }
+        flush()
+        return output
     }
 
     private static func words(_ text: String) -> [String] {
@@ -223,7 +274,7 @@ public final class VaultFile: @unchecked Sendable {
     private func write(_ capture: Capture) throws {
         try execute("INSERT OR REPLACE INTO captures(id,payload,created) VALUES(?,?,?)", [capture.id.uuidString, String(data: try JSONEncoder().encode(capture), encoding: .utf8)!, String(capture.createdAt.timeIntervalSince1970)])
         try execute("DELETE FROM notes WHERE id=?", [capture.id.uuidString])
-        try execute("INSERT INTO notes(id,text) VALUES(?,?)", [capture.id.uuidString, capture.text])
+        try execute("INSERT INTO notes(rowid,id,text) SELECT rowid,id,? FROM captures WHERE id=?", [capture.text,capture.id.uuidString])
         for word in Set(Self.words(capture.text)) where word.count >= 4 {
             for signature in Self.signatures(word) { try execute("INSERT OR IGNORE INTO spellings(term,word) VALUES(?,?)", [signature,word]) }
         }
