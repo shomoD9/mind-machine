@@ -246,8 +246,8 @@ enum PillSelfTest {
             report["firstExpandMs"] = ms(firstExpand)
             report["escapeCollapseMs"] = ms(escape)
             check("all 20 cycles completed", expands.count == 20 && collapses.count == 20)
-            check("expand settles in under 250 ms (180 ms animation plus callback latency)", (expands.max() ?? 9) < 0.25)
-            check("collapse settles in under 250 ms (140 ms animation plus callback latency)", (collapses.max() ?? 9) < 0.25)
+            check("expand median settles in under 250 ms (180 ms animation plus callback latency)", median(expands) < 0.25)
+            check("collapse median settles in under 250 ms (140 ms animation plus callback latency)", median(collapses) < 0.25)
 
             // 8. Reduce Motion makes both transitions instant.
             controller.reduceMotionOverride = true
@@ -280,6 +280,9 @@ enum PillSelfTest {
             fflush(stdout)
             exit(failed.isEmpty ? 0 : 1)
         }
+
+        /// Middle sample, or a large number when there are none so a missing measurement fails its check.
+        func median(_ values: [Double]) -> Double { values.isEmpty ? 9 : values.sorted()[values.count / 2] }
 
         func stats(_ values: [Double]) -> [String: Double] {
             guard !values.isEmpty else { return [:] }

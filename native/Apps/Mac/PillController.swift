@@ -77,6 +77,7 @@ final class PillController: NSObject, NSWindowDelegate {
     /// Shows the pill (unless the user hid it) and starts watching displays, Spaces and wake.
     func start() {
         applyWindowVisibility()
+        prewarmContent()
         let center = NotificationCenter.default
         observers.append(center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.screensChanged() }
@@ -93,6 +94,18 @@ final class PillController: NSObject, NSWindowDelegate {
             guard let self, let mode = PillMode.allCases.first(where: { $0.vaultModeIndex == index }) else { return }
             self.send(.select(mode))
         }.store(in: &cancellables)
+    }
+
+    /// Builds the SwiftUI panel once, invisibly, so the first expansion does not pay for creating it
+    /// (the first click measured about 90 ms slower than later ones without this).
+    private func prewarmContent() {
+        root.content.isHidden = false
+        root.layoutSubtreeIfNeeded()
+        root.content.displayIfNeeded()
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.state.phase.isExpanded else { return }
+            self.root.content.isHidden = true
+        }
     }
 
     func stop() {
