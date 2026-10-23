@@ -139,41 +139,7 @@ jobs:
       - name: Preserve archive entitlements for distribution signing
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import os, plistlib, subprocess, tempfile
-
-          archive = Path(os.environ['ARCHIVE']) / 'Products/Applications'
-          team = os.environ['APPLE_TEAM_ID']
-          for folder, relative in [('Keyboard', 'MindMachine.app/PlugIns/MindMachineKeyboard.appex'),
-                                   ('iOS', 'MindMachine.app'), ('Mac', 'MindMachineMac.app')]:
-              app = archive / relative
-              if not app.exists():
-                  continue
-              info_path = app / ('Contents/Info.plist' if folder == 'Mac' else 'Info.plist')
-              info = plistlib.loads(info_path.read_bytes())
-              variables = {'VAULT_APP_GROUP': info['VaultAppGroup'],
-                           'VAULT_ICLOUD_CONTAINER': info['VaultCloudContainer'],
-                           'VAULT_KEYCHAIN_GROUP': info['VaultKeychainGroup']}
-              source = Path('native/Apps') / folder / 'Vault.entitlements'
-              xml = source.read_text()
-              for key, value in variables.items():
-                  xml = xml.replace('$(' + key + ')', value)
-              assert '$(' not in xml, 'Unexpanded archive entitlement'
-              entitlements = plistlib.loads(xml.encode())
-              identifier_key = 'com.apple.application-identifier' if folder == 'Mac' else 'application-identifier'
-              entitlements[identifier_key] = team + '.' + info['CFBundleIdentifier']
-              entitlements['com.apple.developer.team-identifier'] = team
-              assert info['VaultKeychainGroup'].startswith(team + '.'), 'Keychain prefix must match signing team'
-              with tempfile.TemporaryDirectory() as temporary:
-                  path = Path(temporary) / 'entitlements.plist'
-                  path.write_bytes(plistlib.dumps(entitlements))
-                  subprocess.run(['codesign', '--force', '--sign', '-', '--entitlements', str(path), str(app)], check=True)
-              signed = subprocess.check_output(['codesign', '--display', '--entitlements', '-', str(app)])
-              assert plistlib.loads(signed) == entitlements, 'Archive signature lost entitlements'
-              print(f'MM_ARCHIVE {folder}: signed requested entitlements PASS', flush=True)
-          PY
+        run: python3 native/Scripts/preserve_archive_entitlements.py "$ARCHIVE" "$APPLE_TEAM_ID"
 
       # Reads the archived Info.plists, as native-ci.yml does for unsigned builds, plus the build number set above.
       - name: Verify archived identifiers and build number
