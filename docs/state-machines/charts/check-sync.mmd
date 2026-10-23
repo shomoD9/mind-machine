@@ -29,7 +29,7 @@ stateDiagram-v2
       SignedOut --> Waiting : you sign back in to iCloud
       Syncing --> Paused : iCloud account changes
       Syncing --> Paused : the cloud data cannot be read
-      Paused --> Waiting : you relaunch with the original account
+      Paused --> Waiting : the next sync retries with the original account
     }
     --
     state "Notes not yet in the cloud" as Outbox {

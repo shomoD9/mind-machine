@@ -8,6 +8,8 @@
 - The fixed store passed all four regressions and all 32 package tests (one Release-only skip) in CI 40023821620. TLC fixed-converges passed in 756 seconds; the four-revision safety run exceeded the initial 30-minute job timeout. Added explicit push/extended bounds without weakening any invariant; retained full configs for extended CI. Native CI 40023821584 passed iOS but hit documented runner-sensitive search/animation budgets. Added a real 151-revision reversed-batch regression.
 - Selectively copied PR #2 model/charts (no merge), documented intended transitions before implementation, and tracked overnight work locally. No external messaging, credentials, signing logic or UI design changes.
 
+- Task 2: updated charts first, then changed only keyboard input/status controller logic (no view construction/layout/visuals) to block unsavable private typing/paste/custom keys/save with existing copy and subscribe to sync status. Marked saves pending synchronously. Added an in-process stopped-engine retry that revalidates account binding and rejects old-engine callbacks; preserved outbox/cursor/key and all permanent failure guards. Copy/Mac Insert and missing-model recreation after granting access remain integration follow-ups. CloudKit service events still need signed devices; unsigned CI proves compilation and local invariants.
+
 ## 2026-10-23 - Claude Sonnet 5.5 - Claude Code
 
 ### GPT-6 - Codex API (icon-sandbox worktree)

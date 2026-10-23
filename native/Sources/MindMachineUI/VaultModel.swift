@@ -111,6 +111,7 @@ public final class VaultModel: ObservableObject {
             var latest = try file.update(mutate)
             if let captureLimit { latest.captures = Array(latest.captures.sorted { $0.createdAt > $1.createdAt }.prefix(captureLimit)) }
             vault = latest; clearInvalidReminderOffer()
+            if enablesSync { syncStatus = "Saved locally · sync pending" }
             Task { [weak self] in await self?.syncNow() }
             return true
         }
@@ -137,6 +138,9 @@ public final class VaultModel: ObservableObject {
         let capture = Capture(text: draft, richText: richDraft, checklist: items)
         do {
             try file.append(capture)
+            // Save acknowledgement is local. Clear a previous Up to date value
+            // synchronously, before the asynchronous exchange can start.
+            if enablesSync { syncStatus = "Saved locally · sync pending" }
             vault.captures.append(capture)
             if let captureLimit { vault.captures = Array(vault.captures.suffix(captureLimit)) }
             Task { [weak self] in await self?.syncNow() }

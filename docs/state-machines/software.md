@@ -2,7 +2,7 @@
 
 This branch selectively carries PR #2's model and charts without merging that branch. The historical audit below describes `c45031b`; this section describes the implemented transitions and supersedes that audit for core behavior.
 
-Before implementation: the agreed visible projection keeps a complete original until a replacement has its full parent chain. Equivalent concurrent heads appear once; editing/deleting that displayed copy names all equivalent heads. A delete names only its selected copy, so concurrent unseen edits and different conflict copies survive. All revisions remain immutable and durable, including revisions awaiting parents.
+The agreed visible projection keeps a complete original until a replacement has its full parent chain. Equivalent concurrent heads appear once; editing/deleting that displayed copy names all equivalent heads. A delete names only its selected copy, so concurrent unseen edits and different conflict copies survive. All revisions remain immutable and durable, including revisions awaiting parents.
 
 ```mermaid
 stateDiagram-v2
@@ -16,6 +16,8 @@ stateDiagram-v2
 ```
 
 The deterministic Swift regressions replay the four TLC stories through `VaultFile`. The model abstracts all capture fields into a value; Swift equivalence compares the full normalized capture, including formatting, checklist IDs/ticks and original creation time. Stable per-branch display IDs for different conflicts remain the M11 follow-up.
+
+The sync actor now retries a stopped exchange on the next existing activation/timer/Sync now request, reconstructing its engine from the last committed cursor. Every retry checks the resident account binding before exchange; wrong accounts and unreadable records remain blocked without dropping data. Events from superseded engines are ignored. The keyboard input adapter denies private input/save without Full Access and a shared model, using the existing shared-container error copy. Its status subscription includes the already published sync status. Copy and Mac Insert remain follow-ups.
 
 ---
 
