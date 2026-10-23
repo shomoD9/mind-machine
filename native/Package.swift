@@ -8,12 +8,14 @@ let package = Package(
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "MindMachineCore", targets: ["MindMachineCore"]),
-        .library(name: "MindMachineUI", targets: ["MindMachineUI"])
+        .library(name: "MindMachineUI", targets: ["MindMachineUI"]),
+        .executable(name: "VaultIntegrityProbe", targets: ["VaultIntegrityProbe"])
     ],
     targets: [
         .systemLibrary(name: "CSQLite", pkgConfig: "sqlite3"),
         .target(name: "MindMachineCore", dependencies: ["CSQLite"]),
         .target(name: "MindMachineUI", dependencies: ["MindMachineCore"]),
+        .executableTarget(name: "VaultIntegrityProbe", dependencies: ["MindMachineCore"]),
         .testTarget(name: "MindMachineCoreTests", dependencies: ["MindMachineCore"]),
         .testTarget(name: "MindMachineUITests", dependencies: ["MindMachineUI", "MindMachineCore"])
     ]

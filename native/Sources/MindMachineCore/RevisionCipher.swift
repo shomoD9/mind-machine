@@ -15,16 +15,6 @@ public enum RevisionCipher {
     }
 }
 
-extension VaultFile {
-    /// A resident vault cannot be uploaded into a different iCloud account.
-    /// Changing account requires a separate explicit export/new-vault decision.
-    public func bindSyncAccount(_ account: String) throws {
-        let identity = Data(account.utf8)
-        if let previous = try syncValue("account"), previous != identity { throw SyncFailure.accountChanged }
-        try setSyncValue("account", identity)
-    }
-}
-
 public enum SyncFailure: LocalizedError {
     case accountChanged, missingKey, invalidKey, unavailable, remoteReset
     public var errorDescription: String? {

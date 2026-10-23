@@ -220,6 +220,13 @@ public final class VaultFile: @unchecked Sendable {
     // Public sync state stays in the same durable database as its mutation queue.
     public func syncValue(_ key: String) throws -> Data? { try withStore { try value("sync." + key) } }
     public func setSyncValue(_ key: String, _ data: Data) throws { try withStore { try put("sync." + key, data) } }
+    public func bindSyncAccount(_ account: String) throws {
+        try withStore { try transaction {
+            let identity = Data(account.utf8)
+            if let old = try value("sync.account"), old != identity { throw SyncFailure.accountChanged }
+            try put("sync.account", identity)
+        } }
+    }
     public func pendingRevisions() throws -> [NoteRevision] {
         try withStore { try revisions("SELECT payload FROM revisions WHERE pending=1 ORDER BY rowid LIMIT 100") }
     }

@@ -78,7 +78,8 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     // companion setup. Sampling never loads the corpus or a semantic model.
     private func recordMemory() {
         guard let memory = ProcessMemory.sample(), let url = try? DeviceVault.sharedURL() else { return }
-        let report = "Keyboard footprint: \(String(format: "%.1f", memory.footprintMiB)) MiB · OS headroom: \(String(format: "%.1f", memory.availableMiB)) MiB · \(Date().formatted())"
+        let headroom = memory.availableMiB.map { String(format: "%.1f", $0) } ?? "unavailable"
+        let report = "Keyboard footprint: \(String(format: "%.1f", memory.footprintMiB)) MiB · OS headroom: \(headroom) MiB · \(Date().formatted())"
         try? Data(report.utf8).write(to: url.deletingLastPathComponent().appendingPathComponent("keyboard-memory.txt"), options: .atomic)
     }
 

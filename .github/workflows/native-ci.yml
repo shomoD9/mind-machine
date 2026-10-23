@@ -40,7 +40,12 @@ jobs:
           restore-keys: mm-spm-${{ runner.os }}-${{ env.XCODE_VERSION }}-
       - name: Release 10k search and durable capture benchmark
         run: set -o pipefail; swift test -c release --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-release-ci" --filter SearchPerformanceTests | tee search-benchmark.txt
+      - name: Kill recovery and concurrent-process capture
+        run: |
+          BIN=$(swift build -c release --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-release-ci" --show-bin-path)
+          python3 native/Scripts/verify_vault_processes.py "$BIN/VaultIntegrityProbe"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: search-benchmark
           path: search-benchmark.txt

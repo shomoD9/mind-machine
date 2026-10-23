@@ -7,7 +7,7 @@ import os
 
 public struct ProcessMemory: Codable, Sendable {
     public let footprintMiB: Double
-    public let availableMiB: Double
+    public let availableMiB: Double?
     public static func sample() -> ProcessMemory? {
         var info = task_vm_info_data_t()
         var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
@@ -17,7 +17,11 @@ public struct ProcessMemory: Codable, Sendable {
             }
         }
         guard code == KERN_SUCCESS else { return nil }
-        return ProcessMemory(footprintMiB: Double(info.phys_footprint)/1048576,
-                             availableMiB: Double(os_proc_available_memory())/1048576)
+        #if os(iOS)
+        let available: Double? = Double(os_proc_available_memory())/1048576
+        #else
+        let available: Double? = nil // macOS does not expose the iOS jetsam budget.
+        #endif
+        return ProcessMemory(footprintMiB: Double(info.phys_footprint)/1048576, availableMiB: available)
     }
 }
