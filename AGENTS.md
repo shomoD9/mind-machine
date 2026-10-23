@@ -29,3 +29,7 @@ Use the five default triage roles. Before changing ticket status, read `docs/age
 ### Domain docs
 
 Use the single-context glossary and ADRs. Before implementation or review, read `docs/agents/domain.md`.
+
+## State machines first
+
+Every feature change updates the relevant statechart before the code: `docs/state-machines/product.md` for what a person sees, `docs/state-machines/software.md` for the code underneath. Check a changed slice with the `statechart` skill (`from-chart`). A change to sync, revisions or the shared vault must keep `spec/run-tlc.sh` green (skill `verify-mindmachine-sync`); never weaken a rule or an `expect:` line to get there. The agent pipeline is in `docs/state-machines/factory-pipeline.md`.
