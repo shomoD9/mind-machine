@@ -120,6 +120,8 @@ for name, folder, bundle, kind in [
             'LD_RUNPATH_SEARCH_PATHS':quote('$(inherited) @executable_path/Frameworks'+(' @executable_path/../../Frameworks' if kind == 'app-extension' else '')),
         }
         if kind != 'app-extension': settings['ASSETCATALOG_COMPILER_APPICON_NAME']=quote('AppIcon')
+        # Xcode's standard Debug flag; the companion's CI screenshot launch arguments compile only under it.
+        if config == 'Debug': settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS']=quote('DEBUG')
         if is_mac: settings['MACOSX_DEPLOYMENT_TARGET']='14.0'
         else: settings.update(IPHONEOS_DEPLOYMENT_TARGET='17.0', TARGETED_DEVICE_FAMILY=quote('1,2'))
         if kind == 'app-extension': settings.update(APPLICATION_EXTENSION_API_ONLY='YES', SKIP_INSTALL='YES')
