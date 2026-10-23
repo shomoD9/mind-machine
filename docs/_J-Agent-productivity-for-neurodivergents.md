@@ -1,6 +1,8 @@
 # Agent journal — productivity-for-neurodivergents
 
-## 2026-10-23 - GPT-6 - Codex API (icon-sandbox worktree)
+## 2026-10-23 - Claude Sonnet 5.5 - Claude Code
+
+### GPT-6 - Codex API (icon-sandbox worktree)
 
 - Read project, domain, ADR and local tracker guidance; inspected the generator, app APIs, release workflow and actual logs for failed run 39950939908. Claimed ticket 18 for the founder-authorized release repair. Read TDD, diagnosis, root-cause and artifact-verification skills; this change affects build configuration and resources, so existing compiled-bundle verification and actual Apple validation are the applicable checks, with no new domain test seam.
 - Copied the approved opaque 1024px icon into iOS and generated all Mac app-icon slots with Pillow Lanczos resizing. Added resource phases and AppIcon selection in the project generator, regenerated the committed project, enabled Release dSYMs and replaced the menu-bar SF Symbol with the approved template image. Bundled its SVG too.
@@ -10,7 +12,9 @@
 - Watched native-ci 39952747313 pass all three jobs. Automatic release run 39952747292 (build 6) and explicit dispatch 39952753954 (build 7) both archived and verified icon resources and source entitlement signatures, then failed provisioning with DeveloperAPIServiceErrorDomain Code=5 Authentication failed and missing distribution profiles. Consulted Apple primary docs: individual keys cannot provision; logs cannot identify the configured key type. Recorded the exact blocker and account-owner credential/provisioning-access checks rather than disabling capabilities to force an upload.
 - Added local ad-hoc sandbox signing around the existing Mac pill smoke test so CI verifies Carbon registration, panel behavior and throwaway capture under sandbox; moved its output into the app container and copies artifacts back. Restricted cloud/shared-storage grants remain a signed-device gate. Updated entitlement diagnostics to read real signatures, removing the ineffective .xcent search and deprecated codesign output argument.
 
-## 2026-10-23 - Claude Sonnet 5.5 - Claude Code
+- Verified sandbox CI 39971747216: package/iOS jobs passed; first Mac run passed all sandbox-relevant behavior but failed two documented animation timing checks (49/51). Downloaded/read actual JSON/stdout/signature logs, reran only the failed Mac job without changing assertions and verified attempt 2 green with 51/51 checks. Updated ticket 18 to ready-for-human for the exact provisioning-authentication blocker; left distribution-capability acceptance open. Recorded Release dSYM generation and the failed upload build numbers (6 and 7). Grouped this journal entry under the existing day as required. Writing /tmp/mm-icon-result.md under 150 words and publishing the final documentation checkpoint after rebase.
+
+### Claude Sonnet 5.5 - Claude Code
 
 - Quality pass over the day's 28 commits, requested before tonight's test. Ran the code-review skill as two parallel read-only sub-agents (Standards against AGENTS.md plus the smell baseline, Spec against the native MVP spec and tickets 01/04/05/08/09), then read the core files myself because the agents' line numbers were unreliable (one cited lines past the end of a 30-line file). Checked each claim against the code before acting on it.
 - Fixed two things. `WorkspaceView` ran two SQLite searches per render (list plus an empty-state check); it now runs one. Three file headers lacked callers or were stale (`VaultFile`, `RevisionCipher`, `SearchBaseline`); rewrote them. Chose not to touch anything else: no Swift toolchain here, so CI is the only compiler and test runner, and the remaining findings were either slow paths needing a measured design change, behaviour or wording decisions (kept as instructed), or needed a signed device. The view change has no test: a SwiftUI body is not a seam the existing tests reach, and the change is behaviour-preserving, so the existing suites and the CI build are its check.

@@ -1,16 +1,21 @@
 # 18: TestFlight icons and preserved sandbox entitlements
 
-Status: claimed
-Blocked by: none
+Status: ready-for-human
+Blocked by: account-owner repair of Apple provisioning API authentication
 
 The founder authorized the approved `/tmp/m2-icon` artwork and direct-to-main release repair. Run 39950939908 rejected both apps for missing icons and the Mac app for a missing sandbox entitlement in the uploaded executable.
 
-- [ ] Generated project compiles AppIcon catalogs for both apps; keyboard has no icon.
-- [ ] Mac menu-bar item uses the approved template images.
+- [x] Generated project compiles AppIcon catalogs for both apps; keyboard has no icon.
+- [x] Mac menu-bar item uses the approved template images.
 - [ ] Distribution preserves sandbox, network client, App Group, CloudKit and Keychain capabilities.
-- [ ] Check Carbon hotkey, floating panel and file-access requirements under sandbox.
-- [ ] Both TestFlight uploads succeed and native-ci is green, or record the exact account-owner blocker.
+- [x] Check Carbon hotkey, floating panel and file-access requirements under sandbox.
+- [x] Both TestFlight uploads succeed and native-ci is green, or record the exact account-owner blocker.
 
 ## Comments
 
 - 2026-10-23, GPT-6 / Codex API: Read generator, workflow and rejected-run logs. Source entitlements already include sandbox and network client, but the unsigned archive has no signing/packaging step or expanded-entitlements output. Preserve entitlement metadata before cloud distribution signing. Use actual bundle verification and Apple validation for this configuration repair; no new domain behavior or unit-test seam is introduced.
+
+- 2026-10-23, GPT-6 / Codex API: Commits 57140d2 and 6c8c84c pushed after rebase on origin/main. Approved icon pixels, every Mac slot, deterministic project regeneration and workflow syntax verified locally. Real native/Release bundles passed compiled-icon checks; Release dSYMs were generated for all targets.
+- Native CI [39971747216](https://github.com/shomoD9/mind-machine/actions/runs/39971747216) is green (attempt 2). Mac App Sandbox signature was read in CI; all 51 existing pill checks passed, including Carbon registration, panel interactions, typing, mouse click-away and position persistence. Attempt 1 had two previously documented runner-sensitive animation checks fail; reran only the failed Mac job with thresholds unchanged. No sandbox-related runtime feature failure observed. CloudKit/shared Keychain/App Group behavior still needs real signed profiles/devices; development vaults outside the new container are not auto-migrated.
+- TestFlight [39952753954](https://github.com/shomoD9/mind-machine/actions/runs/39952753954), manual build 7, failed both exports after archives and entitlement-signature checks passed. Automatic build 6 in run 39952747292 failed identically. Neither iPhone nor Mac uploaded. Apple returned `DeveloperAPIServiceErrorDomain Code=5: Authentication failed` with recovery suggestion `Make sure a bearer token was provided, it is properly configured and signed, and it has not expired.` Xcode then reported no iOS/Mac App Store profile for `com.statemachine.mindmachine`, plus no iOS profile for `com.statemachine.mindmachine.keyboard`.
+- Founder: verify a provisioning-capable Team API key (Admin), matching `ASC_API_KEY_P8`, `ASC_KEY_ID`, `ASC_ISSUER_ID` and signing team, then rerun testflight.yml. Individual API keys cannot call provisioning endpoints according to Apple; the logs do not establish the configured key type. The distribution-capability criterion remains open until authenticated export and signed-device checks pass.
