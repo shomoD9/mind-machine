@@ -1,5 +1,12 @@
 # Agent journal — productivity-for-neurodivergents
 
+## 2026-10-23 - GPT-6 - Codex API (icon-sandbox worktree)
+
+- Read project, domain, ADR and local tracker guidance; inspected the generator, app APIs, release workflow and actual logs for failed run 39950939908. Claimed ticket 18 for the founder-authorized release repair. Read TDD, diagnosis, root-cause and artifact-verification skills; this change affects build configuration and resources, so existing compiled-bundle verification and actual Apple validation are the applicable checks, with no new domain test seam.
+- Copied the approved opaque 1024px icon into iOS and generated all Mac app-icon slots with Pillow Lanczos resizing. Added resource phases and AppIcon selection in the project generator, regenerated the committed project, enabled Release dSYMs and replaced the menu-bar SF Symbol with the approved template image. Bundled its SVG too.
+- Confirmed sandbox and network-client flags already exist in source, while unsigned archiving produced no entitlement packaging/signing output. Added pre-export ad-hoc signatures containing each target's expanded source entitlements and read-back checks, preserving sandbox/App Group/CloudKit/Keychain capabilities through distribution signing. Set the archive AppIdentifierPrefix to the signing team to keep Keychain metadata consistent.
+- Audited Carbon global-hotkey registration, AppKit floating panel, mouse-only click-away monitoring and container storage. Found no user-selected file feature needing extra access; documented the old unsandboxed development-vault migration limit and pending signed-device sync/interaction checks. Kept docs/PRODUCT.md untouched. Preparing local artifact checks, then rebase/push and live native-ci/TestFlight verification.
+
 ## 2026-10-23 - Claude Sonnet 5.5 - Claude Code
 
 - Quality pass over the day's 28 commits, requested before tonight's test. Ran the code-review skill as two parallel read-only sub-agents (Standards against AGENTS.md plus the smell baseline, Spec against the native MVP spec and tickets 01/04/05/08/09), then read the core files myself because the agents' line numbers were unreliable (one cited lines past the end of a 30-line file). Checked each claim against the code before acting on it.

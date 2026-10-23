@@ -15,8 +15,9 @@ final class PillMenuBar: NSObject, NSMenuDelegate {
     func install() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "brain.head.profile", accessibilityDescription: "Mind Machine")
-                ?? NSImage(systemSymbolName: "circle.grid.2x2.fill", accessibilityDescription: "Mind Machine")
+            // Asset catalog supplies the approved 1x/2x artwork; template rendering follows menu-bar contrast.
+            button.image = NSImage(named: "MenuBarIcon")
+            button.setAccessibilityLabel("Mind Machine")
             button.image?.isTemplate = true
             button.toolTip = "Mind Machine"
         }

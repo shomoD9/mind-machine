@@ -114,10 +114,11 @@ jobs:
           </plist>
           EOF
 
-      # The archive is built unsigned on purpose. Archiving with automatic signing makes Xcode create an Apple Development
+      # The archive is compiled unsigned on purpose. Archiving with automatic signing makes Xcode create an Apple Development
       # profile, which Apple refuses when the team has no registered device ("Your team has no devices from which to
       # generate a provisioning profile"). TestFlight needs only distribution signing, which -exportArchive below does with
       # cloud-managed certificates and registers the App Group and iCloud container through -allowProvisioningUpdates.
+      # The next step attaches ad-hoc signatures carrying the requested entitlements, which unsigned compilation drops.
       # DEVELOPMENT_TEAM overrides the empty value in native/Config/MindMachine.xcconfig for this build only.
       - name: Archive ${{ matrix.scheme }}
         env:
@@ -129,7 +130,50 @@ jobs:
             -archivePath "$ARCHIVE" \
             CODE_SIGNING_ALLOWED=NO \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            AppIdentifierPrefix="$APPLE_TEAM_ID." \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" 2>&1 | tee "$RUNNER_TEMP/archive.log"
+
+      # Export reads entitlements from the archive's signatures. Without these, even ENABLE_APP_SANDBOX=YES
+      # produces an upload with no sandbox entitlement. Sign the keyboard first, then its containing app.
+      # These temporary ad-hoc signatures need no certificate/device; export replaces them with cloud distribution signing.
+      - name: Preserve archive entitlements for distribution signing
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, plistlib, subprocess, tempfile
+
+          archive = Path(os.environ['ARCHIVE']) / 'Products/Applications'
+          team = os.environ['APPLE_TEAM_ID']
+          for folder, relative in [('Keyboard', 'MindMachine.app/PlugIns/MindMachineKeyboard.appex'),
+                                   ('iOS', 'MindMachine.app'), ('Mac', 'MindMachineMac.app')]:
+              app = archive / relative
+              if not app.exists():
+                  continue
+              info_path = app / ('Contents/Info.plist' if folder == 'Mac' else 'Info.plist')
+              info = plistlib.loads(info_path.read_bytes())
+              variables = {'VAULT_APP_GROUP': info['VaultAppGroup'],
+                           'VAULT_ICLOUD_CONTAINER': info['VaultCloudContainer'],
+                           'VAULT_KEYCHAIN_GROUP': info['VaultKeychainGroup']}
+              source = Path('native/Apps') / folder / 'Vault.entitlements'
+              xml = source.read_text()
+              for key, value in variables.items():
+                  xml = xml.replace('$(' + key + ')', value)
+              assert '$(' not in xml, 'Unexpanded archive entitlement'
+              entitlements = plistlib.loads(xml.encode())
+              identifier_key = 'com.apple.application-identifier' if folder == 'Mac' else 'application-identifier'
+              entitlements[identifier_key] = team + '.' + info['CFBundleIdentifier']
+              entitlements['com.apple.developer.team-identifier'] = team
+              assert info['VaultKeychainGroup'].startswith(team + '.'), 'Keychain prefix must match signing team'
+              with tempfile.TemporaryDirectory() as temporary:
+                  path = Path(temporary) / 'entitlements.plist'
+                  path.write_bytes(plistlib.dumps(entitlements))
+                  subprocess.run(['codesign', '--force', '--sign', '-', '--entitlements', str(path), str(app)], check=True)
+              signed = subprocess.check_output(['codesign', '--display', '--entitlements', ':-', str(app)])
+              assert plistlib.loads(signed) == entitlements, 'Archive signature lost entitlements'
+              print(f'MM_ARCHIVE {folder}: signed requested entitlements PASS', flush=True)
+          PY
 
       # Reads the archived Info.plists, as native-ci.yml does for unsigned builds, plus the build number set above.
       - name: Verify archived identifiers and build number

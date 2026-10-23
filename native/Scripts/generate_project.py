@@ -69,6 +69,16 @@ for name, folder, bundle, kind in [
         ref = add(name+rel+'ref', 'PBXFileReference', lastKnownFileType='sourcecode.swift', path=quote(rel), sourceTree=quote('<group>'))
         refs.append(ref)
         sources.append(add(name+rel, 'PBXBuildFile', fileRef=ref))
+    # App icons and the Mac menu-bar template must be compiled/copied as bundle resources.
+    # The keyboard extension deliberately has no asset catalog or app icon.
+    resources = []
+    for resource, file_type in [('Assets.xcassets', 'folder.assetcatalog'), ('menubar-template.svg', 'image.svg')]:
+        path = ROOT/'Apps'/folder/resource
+        if path.exists():
+            ref = add(name+resource+'ref', 'PBXFileReference', lastKnownFileType=file_type, path=quote(path.relative_to(ROOT).as_posix()), sourceTree=quote('<group>'))
+            refs.append(ref)
+            resources.append(add(name+resource, 'PBXBuildFile', fileRef=ref))
+    resource_phase = add(name+'resources', 'PBXResourcesBuildPhase', buildActionMask='2147483647', files=array(resources), runOnlyForDeploymentPostprocessing='0')
     groups.append(add(name+'group', 'PBXGroup', name=quote(name), children=array(refs), sourceTree=quote('<group>')))
     source_phase = add(name+'sources', 'PBXSourcesBuildPhase', buildActionMask='2147483647', files=array(sources), runOnlyForDeploymentPostprocessing='0')
     dependencies = []
@@ -96,16 +106,18 @@ for name, folder, bundle, kind in [
             'SDKROOT':'macosx' if is_mac else 'iphoneos',
             'SUPPORTED_PLATFORMS':quote('macosx' if is_mac else 'iphoneos iphonesimulator'),
             'SWIFT_OPTIMIZATION_LEVEL':quote('-Onone' if config == 'Debug' else '-O'),
+            'DEBUG_INFORMATION_FORMAT':quote('dwarf' if config == 'Debug' else 'dwarf-with-dsym'),
             'ENABLE_APP_SANDBOX':'YES' if is_mac else 'NO',
             'CODE_SIGN_ENTITLEMENTS':quote('Apps/'+folder+'/Vault.entitlements'),
             'LD_RUNPATH_SEARCH_PATHS':quote('$(inherited) @executable_path/Frameworks'+(' @executable_path/../../Frameworks' if kind == 'app-extension' else '')),
         }
+        if kind != 'app-extension': settings['ASSETCATALOG_COMPILER_APPICON_NAME']=quote('AppIcon')
         if is_mac: settings['MACOSX_DEPLOYMENT_TARGET']='14.0'
         else: settings.update(IPHONEOS_DEPLOYMENT_TARGET='17.0', TARGETED_DEVICE_FAMILY=quote('1,2'))
         if kind == 'app-extension': settings.update(APPLICATION_EXTENSION_API_ONLY='YES', SKIP_INSTALL='YES')
         configurations.append(add(name+config, 'XCBuildConfiguration', name=quote(config), baseConfigurationReference=signing_config, buildSettings=dictionary(settings)))
     config_list=add(name+'configs', 'XCConfigurationList', buildConfigurations=array(configurations), defaultConfigurationIsVisible='0', defaultConfigurationName='Release')
-    phases = [source_phase, framework_phase]
+    phases = [source_phase, framework_phase, resource_phase]
     target_dependencies = []
     if folder == 'iOS':
         proxy = add('keyboardproxy', 'PBXContainerItemProxy', containerPortal=ident('project'), proxyType='1', remoteGlobalIDString=ident('MindMachineKeyboardtarget'), remoteInfo=quote('MindMachineKeyboard'))
