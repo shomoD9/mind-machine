@@ -1,5 +1,6 @@
 /* Explicit private-key pairing UI reused by iPhone setup and shared workspace
- settings. Creating a key is deliberate; sync never creates unrelated device keys. */
+ settings. Creating a key is deliberate; sync never creates unrelated device keys.
+ Styling comes from Greyscale.swift; the iPhone companion wraps it in a card. */
 import SwiftUI
 import MindMachineCore
 
@@ -12,33 +13,38 @@ public struct PrivateSyncSetupView: View {
     private var group: String? { Bundle.main.object(forInfoDictionaryKey: "VaultKeychainGroup") as? String }
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Private device sync").font(.headline)
+            Text("Private device sync").font(.headline).foregroundStyle(Greyscale.ink.color)
+                .accessibilityIdentifier("sync-heading")
             Text("Use the same iCloud account on iPhone and Mac. Create a key on one device only. On the second device, wait for iCloud Keychain or paste that key here. Keep a recovery copy: losing every copy makes cloud notes unreadable.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(Greyscale.inkSecondary.color).accessibilityIdentifier("sync-explanation")
             if paired {
                 Text("Private key paired. Sync runs while Mind Machine or its keyboard is active.").font(.caption)
+                    .foregroundStyle(Greyscale.ink.color).accessibilityIdentifier("sync-paired")
                 Button("Show recovery key") { perform { recoveryKey = try existingKey().base64EncodedString() } }
+                    .buttonStyle(GreyscaleButtonStyle()).accessibilityIdentifier("show-recovery-key")
             } else {
                 SecureField("Private sync key from your first device", text: $enteredKey)
-                    .textFieldStyle(.roundedBorder).autocorrectionDisabled()
+                    .textFieldStyle(GreyscaleFieldStyle()).autocorrectionDisabled().accessibilityIdentifier("sync-key-field")
                 Button("Pair this device") {
                     perform {
                         guard let data = Data(base64Encoded: enteredKey.trimmingCharacters(in: .whitespacesAndNewlines)) else { throw SyncFailure.invalidKey }
                         try install(data); enteredKey = ""
                     }
-                }.disabled(enteredKey.isEmpty)
+                }.buttonStyle(GreyscaleButtonStyle(.prominent)).disabled(enteredKey.isEmpty).accessibilityIdentifier("pair-device")
                 Button("Create key on my first device") {
                     perform { let data = PrivateSyncKey.create(); try install(data); recoveryKey = data.base64EncodedString() }
-                }
+                }.buttonStyle(GreyscaleButtonStyle()).accessibilityIdentifier("create-sync-key")
             }
             if !recoveryKey.isEmpty {
-                Text("Recovery key — keep private").font(.caption.bold())
+                Text("Recovery key — keep private").font(.caption.bold()).foregroundStyle(Greyscale.ink.color)
                 Text(recoveryKey).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                    .foregroundStyle(Greyscale.ink.color).accessibilityIdentifier("recovery-key")
                 Button("Hide recovery key") { recoveryKey = "" }
+                    .buttonStyle(GreyscaleButtonStyle()).accessibilityIdentifier("hide-recovery-key")
             }
-            if !status.isEmpty { Text(status).font(.caption) }
+            if !status.isEmpty { Text(status).font(.caption).foregroundStyle(Greyscale.ink.color).accessibilityIdentifier("sync-key-status") }
             Text("Local notes remain available offline. An iCloud account change pauses sync and keeps this vault on the device.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(Greyscale.inkSecondary.color).accessibilityIdentifier("sync-offline-note")
         }
         .task { perform { paired = try group.flatMap { try PrivateSyncKey.load(group: $0) } != nil } }
     }

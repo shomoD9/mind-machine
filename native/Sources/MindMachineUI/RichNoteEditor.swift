@@ -1,5 +1,6 @@
 /* Native visual note editor used by WorkspaceView on Mac/iPhone. The keyboard
- reuses RichTextEditing for the same bold/italic/list operations and RTF format. */
+ reuses RichTextEditing for the same bold/italic/list operations and RTF format.
+ The editor surface and formatting chips use the Greyscale palette. */
 import SwiftUI
 #if os(iOS)
 import UIKit
@@ -125,13 +126,25 @@ public struct RichNoteEditor: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Formatting is optional and never adds an organizing step to capture.
-            HStack {
+            HStack(spacing: 4) {
                 ForEach(NoteFormat.allCases, id: \.rawValue) { format in
-                    Button(format.rawValue) { controller.apply(format) }
-                        .accessibilityLabel(format == .checkbox ? "Checkbox" : format == .bullet ? "Bullet" : format.rawValue)
+                    // Titles stay as authored; the weight or slant previews the effect.
+                    Button { controller.apply(format) } label: {
+                        Text(format.rawValue)
+                            .fontWeight(format == .bold ? .bold : .medium)
+                            .italic(format == .italic)
+                            .padding(.horizontal, 9).padding(.vertical, 4)
+                            .background(Greyscale.fill.color, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    }
+                    .buttonStyle(.plain).font(.subheadline).foregroundStyle(Greyscale.ink.color)
+                    .accessibilityLabel(format == .checkbox ? "Checkbox" : format == .bullet ? "Bullet" : format.rawValue)
+                    .accessibilityIdentifier("format-\(format == .checkbox ? "checkbox" : format == .bullet ? "bullet" : format.rawValue.lowercased())")
                 }
             }
             NativeNoteAdapter(text: $text, richText: $richText, controller: controller)
+                .padding(6)
+                .background(Greyscale.paper.color, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Greyscale.hairline.color, lineWidth: 1))
                 .accessibilityLabel("Private note").accessibilityIdentifier("capture-editor")
         }
     }
@@ -159,6 +172,9 @@ private struct NativeNoteAdapter: UIViewRepresentable {
     func makeUIView(context: Context) -> UITextView {
         let editor = UITextView()
         editor.font = .preferredFont(forTextStyle: .body)
+        // The rounded paper surface is drawn by SwiftUI around this view.
+        editor.backgroundColor = .clear
+        editor.tintColor = Greyscale.ink.uiColor
         editor.allowsEditingTextAttributes = true
         editor.delegate = context.coordinator
         controller.editor = editor
@@ -191,6 +207,9 @@ private struct NativeNoteAdapter: NSViewRepresentable {
         let scroll = NSTextView.scrollableTextView()
         guard let editor = scroll.documentView as? NSTextView else { return scroll }
         editor.isRichText = true
+        // The rounded paper surface is drawn by SwiftUI around this view.
+        scroll.drawsBackground = false
+        editor.drawsBackground = false
         editor.importsGraphics = false
         editor.font = .systemFont(ofSize: NSFont.systemFontSize)
         editor.delegate = context.coordinator
