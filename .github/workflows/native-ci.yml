@@ -1,6 +1,7 @@
 # Native CI: builds and tests the Swift package and the Xcode app targets on GitHub-hosted macOS runners.
 # Triggered by push to main, pull requests and manual runs (workflow_dispatch); nothing in the repo calls it.
-# Documented in native/README.md ("Continuous integration"). No signing, TestFlight or secrets are used.
+# Documented in native/README.md ("Continuous integration"). No distribution signing, TestFlight or secrets are used;
+# the Mac smoke test uses a local ad-hoc signature to exercise the real App Sandbox.
 name: native-ci
 
 on:
@@ -117,17 +118,32 @@ jobs:
       # tab shortcuts, typing, Esc, click-away, hotkey, hide/show, drag + persistence, Reduce Motion, timings.
       - name: Verify expanded Mac identifiers
         run: python3 native/Scripts/verify_bundle_configuration.py DerivedData/Build/Products/Debug/MindMachineMac.app com.statemachine.mindmachine
-      - name: Pill self-test
+      - name: Pill self-test under App Sandbox
         run: |
           mkdir -p pill-selftest
           APP=$(find DerivedData -name MindMachineMac.app -maxdepth 6 | head -1)
+          # The smoke test disables sync and uses a throwaway vault, so it needs only the unrestricted
+          # sandbox/network flags. CloudKit/App Group/Keychain grants require Apple's distribution profiles.
+          python3 - <<'PY'
+          import plistlib
+          from pathlib import Path
+          source = plistlib.loads(Path('native/Apps/Mac/Vault.entitlements').read_bytes())
+          flags = {key: source[key] for key in ['com.apple.security.app-sandbox', 'com.apple.security.network.client']}
+          Path('pill-selftest/sandbox.entitlements').write_bytes(plistlib.dumps(flags))
+          PY
+          codesign --force --sign - --entitlements pill-selftest/sandbox.entitlements "$APP"
+          codesign --display --entitlements - "$APP"
+          # A sandboxed process can write its snapshots/report only inside its container.
+          SANDBOX_RESULTS="$HOME/Library/Containers/com.statemachine.mindmachine/Data/tmp/pill-selftest"
+          mkdir -p "$SANDBOX_RESULTS"
           echo "Launching $APP"
-          "$APP/Contents/MacOS/MindMachineMac" --pill-selftest "$PWD/pill-selftest/result.json" > pill-selftest/stdout.txt 2>&1 &
+          "$APP/Contents/MacOS/MindMachineMac" --pill-selftest "$SANDBOX_RESULTS/result.json" > pill-selftest/stdout.txt 2>&1 &
           PID=$!
           for i in $(seq 1 120); do kill -0 "$PID" 2>/dev/null || break; sleep 1; done
           if kill -0 "$PID" 2>/dev/null; then echo "self-test did not finish"; kill "$PID"; cat pill-selftest/stdout.txt; exit 1; fi
           STATUS=0
           wait "$PID" || STATUS=$?
+          cp -R "$SANDBOX_RESULTS/." pill-selftest/
           cat pill-selftest/stdout.txt
           exit $STATUS
       - name: Upload pill self-test output
