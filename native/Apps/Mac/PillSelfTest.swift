@@ -87,6 +87,9 @@ enum PillSelfTest {
 
             // 1. Window recipe: what makes it appear everywhere without stealing focus.
             report["screens"] = NSScreen.screens.count
+            // A CI VM may have Reduce Motion on, which would make every timing below an instant jump.
+            report["systemReduceMotion"] = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            controller.reduceMotionOverride = false
             report["activationPolicy"] = NSApp.activationPolicy().rawValue
             report["hotkeyRegistrationStatus"] = Int(hotkeyStatus)
             report["hotkeyRegistered"] = hotkeyStatus == noErr
@@ -204,6 +207,31 @@ enum PillSelfTest {
             _ = await settle { controller.send(.escape) }
             check("collapse returns to the dragged spot", controller.pillFrame.origin == moved.origin)
             handle.mouseLocation = { NSEvent.mouseLocation }
+
+            // 6b. The window must pass through intermediate sizes, otherwise nothing is actually animating.
+            var widths: [CGFloat] = []
+            let sampler = Task { @MainActor [self] in
+                while !Task.isCancelled { widths.append(panel.frame.width); await sleep(0.004) }
+            }
+            let sampledExpand = await settle { controller.send(.clickPill) }
+            sampler.cancel()
+            let between = PillGeometry.pillSize.width + 20 ..< PillGeometry.panelSize.width - 20
+            let intermediate = Set(widths.filter { between.contains($0) }).count
+            report["expandIntermediateWidths"] = intermediate
+            report["expandSampledMs"] = ms(sampledExpand)
+            check("expand passes through intermediate frames", intermediate >= 3)
+            check("expand animation lasts about its configured duration", (sampledExpand ?? 0) >= PillMotion.expand * 0.8)
+            widths = []
+            let sampler2 = Task { @MainActor [self] in
+                while !Task.isCancelled { widths.append(panel.frame.width); await sleep(0.004) }
+            }
+            let sampledCollapse = await settle { controller.send(.escape) }
+            sampler2.cancel()
+            report["collapseIntermediateWidths"] = Set(widths.filter { between.contains($0) }).count
+            report["collapseSampledMs"] = ms(sampledCollapse)
+            check("collapse passes through intermediate frames", Set(widths.filter { between.contains($0) }).count >= 3)
+            check("collapse animation lasts about its configured duration", (sampledCollapse ?? 0) >= PillMotion.collapse * 0.8)
+            await sleep(0.1)
 
             // 7. Timing: 20 expand/collapse cycles.
             var expands: [Double] = [], collapses: [Double] = []
