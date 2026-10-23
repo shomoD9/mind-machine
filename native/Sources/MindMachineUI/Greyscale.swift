@@ -30,9 +30,10 @@ public enum Greyscale {
     // Surfaces: the screen canvas, raised cards/fields and the keyboard backdrop behind the keys.
     // The backdrop matches, in pure grey, the iOS 26 system strip drawn below a custom keyboard
     // (measured 223,223,227 light and 26,26,27 dark in the CI simulator), so keys and strip read as one surface.
+    // Its values sit slightly outside that target because the grain pulls tones toward mid-grey (see GrainTexture).
     public static let canvas = Tone(0.955, 0.075)
     public static let paper = Tone(0.995, 0.135)
-    public static let backdrop = Tone(0.875, 0.102)
+    public static let backdrop = Tone(0.89, 0.085)
     // Control fills, hairlines and the one prominent fill used by the primary action on each screen.
     public static let fill = Tone(0, 1, alpha: 0.06, darkAlpha: 0.09)
     public static let fillPressed = Tone(0, 1, alpha: 0.12, darkAlpha: 0.16)
@@ -74,7 +75,8 @@ public extension Greyscale.Tone {
 
 /// A small tile of black and white pixels, thresholded from hashed noise mixed with a
 /// 4×4 ordered-dither (Bayer) matrix. Drawn at a few percent opacity over a flat grey it
-/// reads as paper grain; half the pixels lighten and half darken, so the mean tone is unchanged.
+/// reads as paper grain. Half the pixels lighten and half darken, which pulls a surface a few
+/// levels toward mid-grey (about -3.5 of 255 on the light backdrop, +4 on the dark one).
 /// The tile is 128×128 RGBA (64 KiB) and is generated once per process.
 public enum GrainTexture {
     public static let pixelSize = 128
@@ -106,7 +108,7 @@ public enum GrainTexture {
 
     /// Grain opacity per appearance; dark surfaces need slightly more to stay visible.
     public static let lightOpacity: CGFloat = 0.035
-    public static let darkOpacity: CGFloat = 0.05
+    public static let darkOpacity: CGFloat = 0.04
 
     #if os(iOS)
     /// A tiling pattern colour for UIKit backgrounds (the keyboard panel's grain layer).
