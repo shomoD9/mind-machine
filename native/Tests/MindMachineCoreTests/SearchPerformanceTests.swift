@@ -13,9 +13,14 @@ final class SearchPerformanceTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: folder) }
         let store = VaultFile(url: folder.appendingPathComponent("vault.json"))
         let nouns = ["telescope", "birthday", "passport", "recipe", "meeting", "garden", "invoice", "holiday", "bicycle", "library"]
+        // Each note is one millisecond newer than the last, all in the past ten seconds. Default `Date()` stamps tie for about
+        // 40% of neighbours in this tight loop, and ties order by random ID, which made the
+        // newest-first "pr" assertion below pass or fail by chance.
+        let start = Date()
         try store.update { vault in
             for i in 0..<10_000 {
-                vault.captures.append(Capture(text: "\(nouns[i % 10]) project \(i) remember the original plan for Mira with reference code item\(i) and a useful link https://example.com/\(i)"))
+                vault.captures.append(Capture(text: "\(nouns[i % 10]) project \(i) remember the original plan for Mira with reference code item\(i) and a useful link https://example.com/\(i)",
+                                              createdAt: start.addingTimeInterval(Double(i - 10_000) / 1000)))
             }
         }
         let queries = ["", "p", "pr", "teles", "telescpoe", "passport", "birthd", "gardne", "item9876", "recipe project", "nohitsxyz"]

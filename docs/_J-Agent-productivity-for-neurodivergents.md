@@ -1,5 +1,14 @@
 # Agent journal — productivity-for-neurodivergents
 
+## 2026-10-24 - Claude Opus 5.5 - Claude Code
+
+- Founder feedback on TestFlight build 10: remove Next keyboard, make the keys feel like Apple's, restyle the panel and companion in greyscale with grain, no copy or behaviour change. Read AGENTS, CONTEXT, DESIGN, the tracker/triage/domain guides and the keyboard controller first. Opened ticket 19.
+- Researched keyboard libraries against primary sources (GitHub API, cloned tags into /tmp). KeyboardKit's licence changed to a closed-source Kankoda licence at 10.0 (Oct 2025) and 10.x/11.x ship binaries, so the task's "MIT core" premise no longer holds for current versions. 9.9.1 (Aug 2025) is the last MIT source release and has no dependencies. Read its controller, context, action handler, behaviour, feedback, layout and view code to find the seams before writing anything. Other imitation keyboards are iOS 8-era and unmaintained. Chose 9.9.1 with an exact pin.
+- Integrated through KeyboardKit's own `textInputProxy` seam rather than overriding its action handler, so word delete, double-space period, space drag and autocapitalisation all read and write the chosen destination. Wrote `RoutedTextProxy` over the existing host-proxy validation, and changed the controller's routing reads to `originalTextDocumentProxy` because KeyboardKit overrides `textDocumentProxy`. Hosted `KeyboardView` once below the panel and collapsed its toolbar. Used `playInputClick` for sound because it is the only API that follows the system Keyboard Clicks setting.
+- Added the shared greyscale palette, dithered grain and styles in MindMachineUI and applied them to the keyboard panel, companion, workspace, sync and reminder views, keeping every string. Added accessibility identifiers to every interactive control and status label.
+- No Swift toolchain here, so CI is the compiler. Added a non-blocking CI step that ad-hoc signs the simulator build, enables the keyboard and screenshots companion, vault and keyboard in light and dark, so the design could be looked at, not assumed. First run: screens identical because the generated project never defined `DEBUG`; added it. Second run: keyboard rendered; sampled pixels showed my backdrop darker than the iOS 26 system strip below the keys, so matched it in pure grey (0.875/0.102) and left-aligned the destination chip.
+- The Release benchmark failed on this PR and on another agent's branch at the newest-first assertion. Ran a throwaway probe on a deleted branch rather than guessing: 4,276 of 10,000 fixture captures tie on timestamp and ties sort by random UUID. Fixed the test fixture with explicit millisecond-spaced timestamps; left storage ordering alone as instructed.
+
 ## 2026-10-23 - Claude Sonnet 5.5 - Claude Code
 
 ### GPT-6 - Codex API (icon-sandbox worktree)

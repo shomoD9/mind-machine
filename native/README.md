@@ -6,7 +6,7 @@ Start with [TESTING-TONIGHT](../docs/TESTING-TONIGHT.md): one Team ID in `Config
 
 ## Build
 
-Open `native/MindMachine.xcodeproj`. The project, target membership, plists and schemes can be regenerated with `python3 native/Scripts/generate_project.py`. It uses no third-party project-generation dependency.
+Open `native/MindMachine.xcodeproj`. The project, target membership, plists and schemes can be regenerated with `python3 native/Scripts/generate_project.py`. It uses no third-party project-generation dependency. The keyboard target links one remote Swift package, KeyboardKit pinned to exactly 9.9.1 (its last MIT release); Xcode resolves it from GitHub on first build. See `THIRD_PARTY_NOTICES.md` and DESIGN ("Native-feel keyboard and greyscale UI").
 
 ```sh
 swift test --package-path native --scratch-path /tmp/mindmachine-swift-build
@@ -20,7 +20,7 @@ Run `/tmp/mindmachine-xcode/Build/Products/Debug/MindMachineMac.app`. Control–
 
 ## Continuous integration
 
-`.github/workflows/native-ci.yml` runs on every push to `main`, every pull request and manual dispatch, only when `native/` or the workflow changes. On a GitHub-hosted `macos-26` runner with Xcode 26.2 it runs `swift test`, builds the `MindMachine` scheme (iPhone app plus embedded keyboard) for a generic iOS Simulator, and builds `MindMachineMac`, all with `CODE_SIGNING_ALLOWED=NO`. There is no signing, TestFlight or secrets. A newer run on the same ref cancels the older one. The workflow also runs the Release 10k latency budget, same-corpus FTS5/MiniSearch comparison and a SIGKILL/concurrent-writer durability probe. It does not establish real-device keyboard interaction or CloudKit signing/delivery.
+`.github/workflows/native-ci.yml` runs on every push to `main`, every pull request and manual dispatch, only when `native/` or the workflow changes. On a GitHub-hosted `macos-26` runner with Xcode 26.2 it runs `swift test`, builds the `MindMachine` scheme (iPhone app plus embedded keyboard) for a generic iOS Simulator, and builds `MindMachineMac`, all with `CODE_SIGNING_ALLOWED=NO`. There is no distribution signing, TestFlight or secrets. After the iOS build, a non-blocking step re-signs the simulator build ad hoc and runs `Scripts/simulator_screenshots.sh`, uploading companion, vault and keyboard screenshots (light and dark) as the `simulator-screenshots` artifact. A newer run on the same ref cancels the older one. The workflow also runs the Release 10k latency budget, same-corpus FTS5/MiniSearch comparison and a SIGKILL/concurrent-writer durability probe. It does not establish real-device keyboard interaction or CloudKit signing/delivery.
 
 ## Mac development notification setup
 

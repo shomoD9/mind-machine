@@ -54,7 +54,7 @@ enum PanelStyle {
             }
             button.configuration = updated
         }
-        if kind == .row { button.contentHorizontalAlignment = .leading }
+        if kind == .row || kind == .chip { button.contentHorizontalAlignment = .leading }
         button.accessibilityIdentifier = id
         return button
     }

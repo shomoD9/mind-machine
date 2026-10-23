@@ -28,10 +28,11 @@ public enum Greyscale {
     public static let inkSecondary = Tone(0.38, 0.64)
     public static let inkTertiary = Tone(0.56, 0.46)
     // Surfaces: the screen canvas, raised cards/fields and the keyboard backdrop behind the keys.
-    // The backdrop values are KeyboardKit's own keyboard background made neutral, so its keys sit as on Apple's.
+    // The backdrop matches, in pure grey, the iOS 26 system strip drawn below a custom keyboard
+    // (measured 223,223,227 light and 26,26,27 dark in the CI simulator), so keys and strip read as one surface.
     public static let canvas = Tone(0.955, 0.075)
     public static let paper = Tone(0.995, 0.135)
-    public static let backdrop = Tone(0.835, 0.173)
+    public static let backdrop = Tone(0.875, 0.102)
     // Control fills, hairlines and the one prominent fill used by the primary action on each screen.
     public static let fill = Tone(0, 1, alpha: 0.06, darkAlpha: 0.09)
     public static let fillPressed = Tone(0, 1, alpha: 0.12, darkAlpha: 0.16)

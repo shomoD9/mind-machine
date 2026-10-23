@@ -55,5 +55,9 @@ for appearance in light dark; do
     shoot "vault-$appearance" -open-vault
     shoot "keyboard-$appearance" -focus-host-composer
 done
+# The keyboard writes its measured footprint into the shared App Group container when it loads.
+# Simulator numbers are indicative only; the companion shows the device figure on a phone.
+GROUP=$(xcrun simctl get_app_container "$UDID" "$BUNDLE" group.com.statemachine.mindmachine 2>/dev/null)
+if [ -n "$GROUP" ]; then find "$GROUP" -name keyboard-memory.txt -exec cat {} \; -exec cp {} "$OUT/" \; ; fi
 xcrun simctl shutdown "$UDID"
 ls -la "$OUT"
