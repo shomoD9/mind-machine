@@ -18,7 +18,7 @@ final class SearchPerformanceTests: XCTestCase {
                 vault.captures.append(Capture(text: "\(nouns[i % 10]) project \(i) remember the original plan for Mira with reference code item\(i) and a useful link https://example.com/\(i)"))
             }
         }
-        let queries = ["teles", "telescpoe", "passport", "birthd", "gardne", "item9876", "recipe project", "nohitsxyz"]
+        let queries = ["", "p", "pr", "teles", "telescpoe", "passport", "birthd", "gardne", "item9876", "recipe project", "nohitsxyz"]
         XCTAssertEqual(try store.search("item9876").first?.capture.text.contains("reference code item9876"), true)
         XCTAssertFalse(try store.search("telescpoe").isEmpty)
         for query in queries { _ = try store.search(query) }

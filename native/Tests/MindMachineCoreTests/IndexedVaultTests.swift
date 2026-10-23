@@ -22,4 +22,21 @@ final class IndexedVaultTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: url), source)
         XCTAssertEqual(try VaultFile(url: url).read(), legacy)
     }
+    // A failed transaction cannot acknowledge a half-written source or outbox.
+    func testFailedMutationRetainsOriginalAndPendingRevision() throws {
+        enum Failure: Error { case cancelled }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("vault.json")
+        let store = VaultFile(url: url)
+        let note = Capture(text: "Original survives aborted transaction")
+        try store.append(note)
+        XCTAssertThrowsError(try store.update { vault in
+            vault.captures[0].text = "Must never become visible"
+            throw Failure.cancelled
+        })
+        XCTAssertEqual(try VaultFile(url: url).search("aborted").first?.capture, note)
+        XCTAssertEqual(try store.pendingRevisions().map(\.capture), [note])
+    }
+
 }

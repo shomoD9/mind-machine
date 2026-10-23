@@ -21,7 +21,7 @@ import Darwin
         """)
         if let exception = context.exception { throw NSError(domain: "MiniSearch", code:1, userInfo:[NSLocalizedDescriptionKey:exception.toString() ?? "JS failure"]) }
         JSGarbageCollect(context.jsGlobalContextRef)
-        let queries = ["teles", "telescpoe", "passport", "birthd", "gardne", "item9876", "recipe project", "nohitsxyz"]
+        let queries = ["", "p", "pr", "teles", "telescpoe", "passport", "birthd", "gardne", "item9876", "recipe project", "nohitsxyz"]
         let cold = Double(DispatchTime.now().uptimeNanoseconds-start)/1_000_000
         var timings: [Double] = []
         let function = context.objectForKeyedSubscript("queryTop")!

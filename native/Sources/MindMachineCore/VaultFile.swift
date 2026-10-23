@@ -36,6 +36,7 @@ public final class VaultFile: @unchecked Sendable {
             try execute("""
                 CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value BLOB NOT NULL);
                 CREATE TABLE IF NOT EXISTS captures(id TEXT PRIMARY KEY, payload BLOB NOT NULL, created REAL NOT NULL);
+                CREATE INDEX IF NOT EXISTS captures_created ON captures(created DESC,id);
                 CREATE VIRTUAL TABLE IF NOT EXISTS notes USING fts5(id UNINDEXED, text, tokenize='unicode61 remove_diacritics 2', prefix='2 3 4');
                 CREATE VIRTUAL TABLE IF NOT EXISTS vocabulary USING fts5vocab(notes, 'row');
                 CREATE TABLE IF NOT EXISTS revisions(id TEXT PRIMARY KEY, note TEXT NOT NULL, payload BLOB NOT NULL, pending INTEGER NOT NULL);

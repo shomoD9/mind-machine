@@ -23,7 +23,7 @@ do {
             }
         }
     } else if args[1] == "benchmark" {
-        let queries = ["teles", "telescpoe", "passport", "birthd", "gardne", "item9876", "recipe project", "nohitsxyz"]
+        let queries = ["", "p", "pr", "teles", "telescpoe", "passport", "birthd", "gardne", "item9876", "recipe project", "nohitsxyz"]
         let start = DispatchTime.now().uptimeNanoseconds
         _ = try store.search("teles")
         let cold = Double(DispatchTime.now().uptimeNanoseconds-start)/1_000_000

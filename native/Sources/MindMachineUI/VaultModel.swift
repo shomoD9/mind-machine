@@ -133,7 +133,7 @@ public final class VaultModel: ObservableObject {
             vault.captures.append(capture)
             if let captureLimit { vault.captures = Array(vault.captures.suffix(captureLimit)) }
             Task { [weak self] in await self?.syncNow() }
-            draft = ""; richDraft = nil; notice = "Saved on this device"
+            draft = ""; richDraft = nil; error = nil; notice = "Saved on this device"
             // A soft offer follows persistence and does not classify or rewrite it.
             let action = capture.text.lowercased().trimmingCharacters(in: .whitespaces)
             let actionable = !items.isEmpty || ["buy ","call ","apply ","remember ","send ","book "].contains(where: action.hasPrefix)
