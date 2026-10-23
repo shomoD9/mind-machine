@@ -1,5 +1,7 @@
 /* Native Capture/Find/Chat presentation shared by the iPhone companion and Mac
- hotkey panel. The keyboard has its own UIKit editor and keyplane controller. */
+ hotkey panel. The keyboard has its own UIKit editor and keyplane controller.
+ The Mac floating pill (native/Apps/Mac/PillPanelView.swift) embeds it with showsHeader: false and
+ draws its own Capture/Find tabs; every other caller keeps the default header. */
 import SwiftUI
 import MindMachineCore
 
@@ -7,12 +9,17 @@ public struct WorkspaceView: View {
     @ObservedObject private var model: VaultModel
     @State private var openTasks = false
     @State private var showSettings = false
+    private let showsHeader: Bool
 
-    public init(model: VaultModel) { self.model = model }
+    /// `showsHeader: false` hides the mode picker and settings button for hosts that supply their own switcher.
+    public init(model: VaultModel, showsHeader: Bool = true) {
+        self.model = model
+        self.showsHeader = showsHeader
+    }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
+            if showsHeader { HStack {
                 Picker("Workspace", selection: $model.mode) {
                     Text("Capture").tag(0)
                     Text("Find").tag(1)
@@ -20,7 +27,7 @@ public struct WorkspaceView: View {
                 }.pickerStyle(.segmented).accessibilityIdentifier("workspace-mode")
                 Button { showSettings.toggle() } label: { Image(systemName: "gearshape") }
                     .accessibilityLabel("Settings")
-            }
+            } }
             // Saved is displayed only after the model's coordinated write succeeds.
             if let error = model.error {
                 HStack { Text(error); Button("Dismiss") { model.error = nil } }.font(.caption)

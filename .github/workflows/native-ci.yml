@@ -40,6 +40,9 @@ jobs:
           restore-keys: mm-spm-${{ runner.os }}-${{ env.XCODE_VERSION }}-
       - name: swift test
         run: swift test --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-ci"
+      # Pure pill logic (state machine, geometry, position persistence, motion) is a separate package.
+      - name: swift test (MindMachinePill)
+        run: swift test --package-path native/Pill --scratch-path "$GITHUB_WORKSPACE/.build-ci-pill"
 
   # The MindMachine scheme builds the iPhone app and, through its target dependency, the embedded keyboard extension.
   ios-build:
@@ -76,10 +79,31 @@ jobs:
         uses: actions/cache@v4
         with:
           path: DerivedData
-          key: mm-dd-mac-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/MindMachine.xcodeproj/project.pbxproj') }}
+          key: mm-dd-mac-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/Pill/**', 'native/MindMachine.xcodeproj/project.pbxproj') }}
           restore-keys: mm-dd-mac-${{ env.XCODE_VERSION }}-
       - name: Build MindMachineMac
         run: |
           xcodebuild -project native/MindMachine.xcodeproj -scheme MindMachineMac \
             -configuration Debug -destination 'platform=macOS,arch=arm64' \
             -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
+      # Launches the built app and drives the floating pill through its real window: window flags, expand,
+      # tab shortcuts, typing, Esc, click-away, hotkey, hide/show, drag + persistence, Reduce Motion, timings.
+      - name: Pill self-test
+        run: |
+          mkdir -p pill-selftest
+          APP=$(find DerivedData -name MindMachineMac.app -maxdepth 6 | head -1)
+          echo "Launching $APP"
+          "$APP/Contents/MacOS/MindMachineMac" --pill-selftest "$PWD/pill-selftest/result.json" > pill-selftest/stdout.txt 2>&1 &
+          PID=$!
+          for i in $(seq 1 120); do kill -0 "$PID" 2>/dev/null || break; sleep 1; done
+          if kill -0 "$PID" 2>/dev/null; then echo "self-test did not finish"; kill "$PID"; cat pill-selftest/stdout.txt; exit 1; fi
+          STATUS=0
+          wait "$PID" || STATUS=$?
+          cat pill-selftest/stdout.txt
+          exit $STATUS
+      - name: Upload pill self-test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pill-selftest
+          path: pill-selftest
