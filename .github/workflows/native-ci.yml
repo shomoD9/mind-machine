@@ -44,11 +44,23 @@ jobs:
         run: |
           BIN=$(swift build -c release --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-release-ci" --show-bin-path)
           python3 native/Scripts/verify_vault_processes.py "$BIN/VaultIntegrityProbe"
+      - name: Same-corpus FTS5 versus MiniSearch resource comparison
+        run: |
+          set -o pipefail
+          BIN=$(swift build -c release --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-release-ci" --show-bin-path)
+          mkdir -p "$RUNNER_TEMP/mm-search-comparison"
+          "$BIN/VaultIntegrityProbe" seed "$RUNNER_TEMP/mm-search-comparison/vault.json"
+          "$BIN/VaultIntegrityProbe" benchmark "$RUNNER_TEMP/mm-search-comparison/vault.json" | tee search-comparison.txt
+          python3 native/Scripts/fetch_minisearch_probe.py "$RUNNER_TEMP/mm-search-comparison"
+          swiftc -O -parse-as-library native/Benchmarks/MiniSearchComparison.swift -framework JavaScriptCore -o "$RUNNER_TEMP/mm-search-comparison/minisearch-probe"
+          "$RUNNER_TEMP/mm-search-comparison/minisearch-probe" "$RUNNER_TEMP/mm-search-comparison/index.js" | tee -a search-comparison.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: search-benchmark
-          path: search-benchmark.txt
+          path: |
+            search-benchmark.txt
+            search-comparison.txt
       - name: swift test
         run: swift test --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-ci"
       # Pure pill logic (state machine, geometry, position persistence, motion) is a separate package.

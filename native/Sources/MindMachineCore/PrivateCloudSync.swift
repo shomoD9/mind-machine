@@ -42,15 +42,20 @@ public actor PrivateCloudSync: CKSyncEngineDelegate {
                 engine = CKSyncEngine(config)
             }
             guard let engine else { return }
-            let pending = try store.pendingRevisions()
-            if !pending.isEmpty {
+            // Bounded batches let a keyboard save overtake an initial backlog.
+            // A failed batch leaves its queue durable for the next activation.
+            for _ in 0..<5 {
+                let pending = try store.pendingRevisions()
+                guard !pending.isEmpty else { break }
                 engine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: zone))])
                 engine.state.add(pendingRecordZoneChanges: pending.map { .saveRecord(recordID($0.id)) })
                 try await engine.sendChanges()
+                if let stopped { throw stopped }
+                if Set(try store.pendingRevisions().map(\.id)) == Set(pending.map(\.id)) { break }
             }
             try await engine.fetchChanges()
             if let stopped { throw stopped }
-            status = "Private sync up to date"
+            status = try store.pendingRevisions().isEmpty ? "Private sync up to date" : "Saved locally · sync pending"
         } catch { status = "Sync waiting: \(error.localizedDescription)"; throw error }
     }
 

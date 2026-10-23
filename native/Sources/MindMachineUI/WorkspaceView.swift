@@ -93,10 +93,11 @@ public struct WorkspaceView: View {
             Text(model.searchDescription).font(.caption).foregroundStyle(.secondary)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(model.results(openTasks: openTasks)) { original in
+                    ForEach(model.searchHits(openTasks: openTasks), id: \.capture.id) { hit in
+                        let original = hit.capture
                         Button { model.selectedCapture = original.id } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(original.text).lineLimit(3).multilineTextAlignment(.leading)
+                                Text(SearchPreview.attributed(hit.highlightedText)).lineLimit(3).multilineTextAlignment(.leading)
                                 Text(original.createdAt, style: .date).font(.caption).foregroundStyle(.secondary)
                                 if model.vault.isOverdue(captureID: original.id, now: Date()) { Text("Overdue").font(.caption.bold()) }
                             }.frame(maxWidth: .infinity, alignment: .leading).padding(10)

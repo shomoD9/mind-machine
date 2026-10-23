@@ -40,6 +40,7 @@ public final class VaultFile: @unchecked Sendable {
                 CREATE VIRTUAL TABLE IF NOT EXISTS vocabulary USING fts5vocab(notes, 'row');
                 CREATE TABLE IF NOT EXISTS revisions(id TEXT PRIMARY KEY, note TEXT NOT NULL, payload BLOB NOT NULL, pending INTEGER NOT NULL);
                 CREATE INDEX IF NOT EXISTS revisions_note ON revisions(note);
+                CREATE TABLE IF NOT EXISTS projections(id TEXT PRIMARY KEY, note TEXT NOT NULL, revision TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS spellings(term TEXT NOT NULL, word TEXT NOT NULL, PRIMARY KEY(term,word));
                 """)
             try transaction {
@@ -55,6 +56,13 @@ public final class VaultFile: @unchecked Sendable {
                         try queue(NoteRevision(capture: capture, parents: []))
                     }
                     try put("initialized", Data([1]))
+                }
+                // Upgrade the first SQLite pilot without changing its sources.
+                if try value("projections.initialized") == nil {
+                    var notes: [UUID] = []
+                    try rows("SELECT DISTINCT note FROM revisions") { if let id = UUID(uuidString: column($0,0)) { notes.append(id) } }
+                    for note in notes { try materialize(note) }
+                    try put("projections.initialized", Data([1]))
                 }
             }
             #if os(iOS)
@@ -105,25 +113,32 @@ public final class VaultFile: @unchecked Sendable {
             try mutate(&latest)
             let previous = Dictionary(uniqueKeysWithValues: old.captures.map { ($0.id, $0) })
             let current = Set(latest.captures.map(\.id))
+            var affected = Set<UUID>()
             for capture in latest.captures where previous[capture.id] != capture {
-                try write(capture)
-                try queue(NoteRevision(capture: capture, parents: try heads(capture.id).map(\.id)))
+                let (note, parent) = try identity(capture.id)
+                let source = Capture(id: note, text: capture.text, richText: capture.richText, checklist: capture.checklist, createdAt: capture.createdAt)
+                try queue(NoteRevision(noteID: note, capture: source, parents: parent.map { [$0] } ?? []))
+                affected.insert(note)
             }
             for capture in old.captures where !current.contains(capture.id) {
-                try remove(capture.id)
-                try queue(NoteRevision(noteID: capture.id, capture: nil, parents: try heads(capture.id).map(\.id)))
+                let (note, _) = try identity(capture.id)
+                try queue(NoteRevision(noteID: note, capture: nil, parents: try heads(note).map(\.id)))
+                affected.insert(note)
             }
+            for note in affected { try materialize(note) }
             var metadata = latest; metadata.captures = []
             try put("vault", JSONEncoder().encode(metadata))
-            return latest
+            return try readCurrent()
         } }
     }
 
     /// Capture's hot path does not decode or rewrite 10k older originals.
     public func append(_ capture: Capture) throws {
         try withStore { try transaction {
-            try write(capture)
-            try queue(NoteRevision(capture: capture, parents: try heads(capture.id).map(\.id)))
+            let (note, parent) = try identity(capture.id)
+            let source = Capture(id: note, text: capture.text, richText: capture.richText, checklist: capture.checklist, createdAt: capture.createdAt)
+            try queue(NoteRevision(noteID: note, capture: source, parents: parent.map { [$0] } ?? []))
+            try materialize(note)
         } }
     }
 
@@ -228,7 +243,7 @@ public final class VaultFile: @unchecked Sendable {
         } }
     }
     public func pendingRevisions() throws -> [NoteRevision] {
-        try withStore { try revisions("SELECT payload FROM revisions WHERE pending=1 ORDER BY rowid LIMIT 100") }
+        try withStore { try revisions("SELECT payload FROM revisions WHERE pending=1 ORDER BY rowid DESC LIMIT 100") }
     }
     public func acknowledge(_ ids: [UUID]) throws {
         try withStore { try transaction { for id in ids { try execute("UPDATE revisions SET pending=0 WHERE id=?", [id.uuidString]) } } }
@@ -254,17 +269,30 @@ public final class VaultFile: @unchecked Sendable {
         let superseded = Set(all.flatMap(\.parents))
         return all.filter { !superseded.contains($0.id) }.sorted { $0.id.uuidString < $1.id.uuidString }
     }
+    // Projection IDs remember exactly which branch a visible original belongs
+    // to, so editing a conflict copy advances that branch without erasing others.
+    private func identity(_ id: UUID) throws -> (UUID, UUID?) {
+        var result: (UUID, UUID?) = (id, nil)
+        try rows("SELECT note,revision FROM projections WHERE id=?", [id.uuidString]) {
+            if let note = UUID(uuidString: column($0,0)), let revision = UUID(uuidString: column($0,1)) { result = (note, revision) }
+        }
+        return result
+    }
     private func materialize(_ note: UUID) throws {
         let all = try revisions("SELECT payload FROM revisions WHERE note=?", [note.uuidString])
-        // A durable tombstone dominates stale replicas. Concurrent originals stay
-        // as deterministic revision-ID copies rather than last-writer data loss.
+        var projected: [UUID] = []
+        try rows("SELECT id FROM projections WHERE note=?", [note.uuidString]) { if let id = UUID(uuidString: column($0,0)) { projected.append(id) } }
         try remove(note)
-        for revision in all { try remove(revision.id) }
+        for id in projected { try remove(id) }
+        try execute("DELETE FROM projections WHERE note=?", [note.uuidString])
+        // A logical-note tombstone dominates stale branches; an ordinary edit
+        // advances one head and preserves all other concurrent source originals.
         guard !all.contains(where: { $0.capture == nil }) else { return }
         for (index, revision) in try heads(note).enumerated() {
             guard let source = revision.capture else { continue }
             let capture = Capture(id: index == 0 ? note : revision.id, text: source.text, richText: source.richText, checklist: source.checklist, createdAt: source.createdAt)
             try write(capture)
+            try execute("INSERT OR REPLACE INTO projections(id,note,revision) VALUES(?,?,?)", [capture.id.uuidString,note.uuidString,revision.id.uuidString])
         }
     }
 

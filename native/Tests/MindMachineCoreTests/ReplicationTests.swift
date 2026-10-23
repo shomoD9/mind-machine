@@ -34,6 +34,27 @@ final class ReplicationTests: XCTestCase {
         XCTAssertThrowsError(try RevisionCipher.open(cloud.payloads[0], key: SymmetricKey(size: .bits256)))
     }
 
+    // Editing one concurrent result must retain the other branch and remain
+    // stable when an older source revision is delivered again.
+    func testEditingConflictCopyPreservesBothBranches() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = VaultFile(url: folder.appendingPathComponent("vault.json"))
+        let original = Capture(text: "base")
+        let base = NoteRevision(capture: original, parents: [])
+        let phone = NoteRevision(noteID: original.id, capture: Capture(id: original.id, text: "phone"), parents: [base.id])
+        let mac = NoteRevision(noteID: original.id, capture: Capture(id: original.id, text: "mac"), parents: [base.id])
+        try store.merge([base, phone, mac])
+        let copy = try XCTUnwrap(try store.read().captures.first { $0.id != original.id })
+        let retained = try XCTUnwrap(try store.read().captures.first { $0.id == original.id }).text
+        try store.update { vault in
+            let index = vault.captures.firstIndex { $0.id == copy.id }!
+            vault.captures[index].text = "edited conflict copy"
+        }
+        try store.merge([base])
+        XCTAssertEqual(Set(try store.read().captures.map(\.text)), [retained, "edited conflict copy"])
+    }
+
     // Account changes pause exchange before a single original can cross accounts.
     func testAccountBindingRetainsVaultAndRejectsAnotherAccount() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

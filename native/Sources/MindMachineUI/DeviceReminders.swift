@@ -1,5 +1,5 @@
 /* Device notification adapter called by VaultModel after saved reminder changes.
- It reads the same coordinated vault, reconciles revision-specific system requests,
+ It reads a bounded reminder-source snapshot of the shared vault, reconciles revision-specific system requests,
  and reports scheduling separately from the durable commitment and Chat event. */
 import Foundation
 import UserNotifications
@@ -34,7 +34,7 @@ final class DeviceReminders {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         let pending = await center.pendingNotificationRequests()
-        let current = try file.read()
+        let current = try snapshot()
         let desired = current.reminders.filter { isPending($0, in: current) }
         // Due Chat reconciliation must not cancel a notification that the OS is
         // just about to display. Keep its accepted revision until system delivery.
@@ -55,7 +55,7 @@ final class DeviceReminders {
         }
         let existing = Set(pending.map(\.identifier))
         for reminder in desired where !existing.contains(identifier(reminder)) {
-            let latest = try file.read()
+            let latest = try snapshot()
             guard stillAccepted(reminder, in: latest), reminder.dueAt > Date() else { continue }
             let content = UNMutableNotificationContent()
             content.title = "A reminder from your vault"
@@ -67,16 +67,24 @@ final class DeviceReminders {
             try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
             // An edit or completion may have happened while the OS accepted it.
             // Remove only this old revision, never the newer request's identifier.
-            if !stillAccepted(reminder, in: try file.read()) {
+            if !stillAccepted(reminder, in: try snapshot()) {
                 center.removePendingNotificationRequests(withIdentifiers: [id])
             }
         }
         let registered = Set(await center.pendingNotificationRequests().map(\.identifier))
-        let latest = try file.read()
+        let latest = try snapshot()
         let expected = latest.reminders.filter { isPending($0, in: latest) }.map(identifier)
         let missing = expected.filter { !registered.contains($0) }.count
         if missing > 0 { return "\(missing) saved reminder(s) have no pending device notification. Reopen the vault to retry." }
         return "\(expected.count) pending device notification(s). Delivery still depends on system notification settings."
+    }
+
+    // Keyboard notification reconciliation reads only sources referenced by
+    // reminders, keeping a large Capture/Find corpus out of this deferred path.
+    private func snapshot() throws -> Vault {
+        var vault = try file.read(captureLimit: 1)
+        vault.captures = try Set(vault.reminders.map(\.captureID)).compactMap { try file.capture(id: $0) }
+        return vault
     }
 
     private func identifier(_ reminder: Reminder) -> String { "\(prefix)\(reminder.id.uuidString).r\(reminder.revision)" }
