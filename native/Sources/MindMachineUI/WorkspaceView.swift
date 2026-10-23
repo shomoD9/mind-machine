@@ -9,6 +9,7 @@ public struct WorkspaceView: View {
     @ObservedObject private var model: VaultModel
     @State private var openTasks = false
     @State private var showSettings = false
+    @State private var showSyncSetup = false
     private let showsHeader: Bool
 
     /// `showsHeader: false` hides the mode picker and settings button for hosts that supply their own switcher.
@@ -44,7 +45,21 @@ public struct WorkspaceView: View {
                 default: chat
                 }
             }
-            Text("Local vault · sync not connected").font(.caption2).foregroundStyle(.secondary)
+            HStack {
+                Text(model.syncStatus).font(.caption2).foregroundStyle(.secondary)
+                Spacer()
+                Button("Sync setup") { showSyncSetup = true }.font(.caption)
+            }
+        }
+        .sheet(isPresented: $showSyncSetup) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    PrivateSyncSetupView()
+                    Text(model.syncStatus).font(.caption)
+                    Button("Sync now") { Task { await model.syncNow() } }
+                    Button("Done") { showSyncSetup = false }
+                }.padding(20)
+            }.frame(minWidth: 280, minHeight: 350)
         }
         .padding(16)
         .tint(.primary)
@@ -160,7 +175,7 @@ public struct WorkspaceView: View {
             TextField("Server URL", text: $model.endpoint).textFieldStyle(.roundedBorder)
             TextField("Model", text: $model.modelName).textFieldStyle(.roundedBorder)
             Toggle("Allow cloud AI processing", isOn: $model.cloudOptIn)
-            Text("Sync and cloud AI are separate. Private device sync is not connected in this build.").font(.caption)
+            Text("Sync and cloud AI are separate. Your sync key never authorizes cloud inference.").font(.caption)
             Spacer()
         }
     }

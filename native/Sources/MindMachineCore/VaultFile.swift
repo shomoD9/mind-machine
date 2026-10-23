@@ -67,20 +67,32 @@ public final class VaultFile: @unchecked Sendable {
         } catch { sqlite3_close(db); db = nil; throw error }
     }
 
-    public func read() throws -> Vault {
+    public func read(captureLimit: Int? = nil) throws -> Vault {
         try withStore {
             // One read transaction keeps metadata and sources at one generation.
             try execute("BEGIN DEFERRED")
-            do { let vault = try readCurrent(); try execute("COMMIT"); return vault }
+            do { let vault = try readCurrent(captureLimit: captureLimit); try execute("COMMIT"); return vault }
             catch { try? execute("ROLLBACK"); throw error }
         }
     }
-    private func readCurrent() throws -> Vault {
+    private func readCurrent(captureLimit: Int? = nil) throws -> Vault {
         var vault = try JSONDecoder().decode(Vault.self, from: value("vault") ?? Data())
-        try rows("SELECT payload FROM captures ORDER BY created, rowid") { stmt in
+        let sql = captureLimit.map { "SELECT payload FROM captures ORDER BY created DESC, rowid DESC LIMIT \(max(1,$0))" } ?? "SELECT payload FROM captures ORDER BY created, rowid"
+        try rows(sql) { stmt in
             vault.captures.append(try JSONDecoder().decode(Capture.self, from: blob(stmt, 0)))
         }
         return vault
+    }
+
+    /// Original inspection loads one source even when the keyboard snapshot is bounded.
+    public func capture(id: UUID) throws -> Capture? {
+        try withStore {
+            var capture: Capture?
+            try rows("SELECT payload FROM captures WHERE id=?", [id.uuidString]) {
+                capture = try JSONDecoder().decode(Capture.self, from: blob($0,0))
+            }
+            return capture
+        }
     }
 
     // Existing rich-text/checklist/reminder callers retain their mutation API.
@@ -131,7 +143,9 @@ public final class VaultFile: @unchecked Sendable {
             var clauses: [String] = []
             for word in words {
                 var alternatives = ["\"\(word)\"*"]
-                if word.count >= 4 {
+                var knownPrefix = false
+                try rows("SELECT term FROM vocabulary WHERE term >= ? AND term < ? LIMIT 1", [word, word + "\u{10FFFF}"]) { _ in knownPrefix = true }
+                if word.count >= 4 && !knownPrefix {
                     var candidates = Set<String>()
                     for signature in Self.signatures(word) {
                         try rows("SELECT word FROM spellings WHERE term=? LIMIT 64", [signature]) { candidates.insert(column($0, 0)) }
@@ -148,7 +162,7 @@ public final class VaultFile: @unchecked Sendable {
             try rows("""
                 SELECT c.payload, highlight(notes,1,'⟦','⟧') FROM notes
                 JOIN captures c ON c.id=notes.id WHERE notes MATCH ?
-                ORDER BY bm25(notes), c.created DESC, c.id LIMIT ?
+                ORDER BY rank LIMIT ?
                 """, [clauses.joined(separator: " AND "), String(max(1, min(limit, 100)))]) { stmt in
                 let capture = try JSONDecoder().decode(Capture.self, from: blob(stmt, 0))
                 if !openTasks || (!capture.checklist.isEmpty && !capture.allItemsComplete) { hits.append(SearchHit(capture: capture, highlightedText: column(stmt, 1))) }

@@ -23,10 +23,13 @@ final class SearchPerformanceTests: XCTestCase {
         XCTAssertFalse(try store.search("telescpoe").isEmpty)
         for query in queries { _ = try store.search(query) }
         var timings: [Double] = []
+        var perQuery: [String: [Double]] = [:]
         for i in 0..<240 {
             let start = DispatchTime.now().uptimeNanoseconds
             _ = try store.search(queries[i % queries.count])
-            timings.append(Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000)
+            let ms = Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
+            timings.append(ms)
+            perQuery[queries[i % queries.count], default: []].append(ms)
         }
         var saves: [Double] = []
         for i in 0..<30 {
@@ -34,6 +37,7 @@ final class SearchPerformanceTests: XCTestCase {
             try store.append(Capture(text: "Fresh capture \(i)"))
             saves.append(Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000)
         }
+        for query in queries { let samples = perQuery[query]!.sorted(); print("MM_QUERY \(query) p95_ms=\(samples[Int(Double(samples.count)*0.95)-1])") }
         let p95 = timings.sorted()[Int(Double(timings.count) * 0.95)-1]
         let saveP95 = saves.sorted()[Int(Double(saves.count) * 0.95)-1]
         var usage = rusage(); getrusage(RUSAGE_SELF, &usage)

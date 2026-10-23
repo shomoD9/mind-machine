@@ -34,11 +34,13 @@ public final class VaultModel: ObservableObject {
     private var timer: Timer?
     private var sync: PrivateCloudSync?
     private var syncing = false
+    private let captureLimit: Int?
     private let enablesSync: Bool
     @Published public var syncStatus = "Local vault · pair private sync in setup"
 
 
     public init(url: URL? = nil, notificationAccess: NotificationAccess = .companion) {
+        captureLimit = notificationAccess == .keyboard ? 100 : nil
         enablesSync = notificationAccess != .disabled
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         // Folder name kept from the former product name so existing vaults stay readable.
@@ -73,7 +75,7 @@ public final class VaultModel: ObservableObject {
             syncStatus = "Syncing privately…"
             try await sync.synchronize()
             syncStatus = await sync.status
-            let latest = try file.read()
+            let latest = try file.read(captureLimit: captureLimit)
             if latest != vault { vault = latest }
         } catch { syncStatus = "Local vault · \(error.localizedDescription)" }
     }
@@ -91,7 +93,7 @@ public final class VaultModel: ObservableObject {
 
     public func reload() {
         do {
-            let latest = try file.read()
+            let latest = try file.read(captureLimit: captureLimit)
             if latest != vault { vault = latest }
             clearInvalidReminderOffer()
             reconcileDueEvents()
@@ -129,6 +131,7 @@ public final class VaultModel: ObservableObject {
         do {
             try file.append(capture)
             vault.captures.append(capture)
+            if let captureLimit { vault.captures = Array(vault.captures.suffix(captureLimit)) }
             Task { [weak self] in await self?.syncNow() }
             draft = ""; richDraft = nil; notice = "Saved on this device"
             // A soft offer follows persistence and does not classify or rewrite it.
@@ -142,6 +145,11 @@ public final class VaultModel: ObservableObject {
     /// never execute on the typing path; a query cannot re-embed the whole vault.
     public func results(openTasks: Bool = false) -> [Capture] {
         searchHits(openTasks: openTasks).map(\.capture)
+    }
+
+    public func original(_ id: UUID) -> Capture? {
+        do { return try file.capture(id: id) }
+        catch { self.error = error.localizedDescription; return nil }
     }
 
     public func searchHits(openTasks: Bool = false) -> [SearchHit] {

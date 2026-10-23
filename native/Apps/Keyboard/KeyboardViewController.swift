@@ -32,7 +32,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     private var savingReminder = false
     private let destination = UIButton(type: .system)
     private let save = UIButton(type: .system)
-    private let modes = UISegmentedControl(items: ["Capture", "Find", "Chat"])
+    private let modes = UISegmentedControl(items: ["Capture", "Find"])
     private let keyplane = UIStackView()
     private let formatting = UIStackView()
     private let sizeButton = UIButton(type: .system)
@@ -51,6 +51,8 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     private var height: NSLayoutConstraint?
     private var selected: Capture?
     private var sendingToHost = false
+    private var pendingSearch: DispatchWorkItem?
+    private var previousQuery = ""
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -69,6 +71,22 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
             }.store(in: &subscriptions)
         }
         refreshMode()
+        recordMemory()
+    }
+
+    // Store the actual extension footprint/headroom in the shared container for
+    // companion setup. Sampling never loads the corpus or a semantic model.
+    private func recordMemory() {
+        guard let memory = ProcessMemory.sample(), let url = try? DeviceVault.sharedURL() else { return }
+        let report = "Keyboard footprint: \(String(format: "%.1f", memory.footprintMiB)) MiB · OS headroom: \(String(format: "%.1f", memory.availableMiB)) MiB · \(Date().formatted())"
+        try? Data(report.utf8).write(to: url.deletingLastPathComponent().appendingPathComponent("keyboard-memory.txt"), options: .atomic)
+    }
+
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        pendingSearch?.cancel()
+        results.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        recordMemory()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -84,6 +102,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
 
     override func viewWillDisappear(_ animated: Bool) {
         retainDraft()
+        pendingSearch?.cancel()
         super.viewWillDisappear(animated)
     }
 
@@ -264,7 +283,18 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         if model.mode == 0 { model.richDraft = rich }
         switch model.mode {
         case 0: model.draft = editor.text
-        case 1: model.query = editor.text
+        case 1:
+            model.query = editor.text
+            if previousQuery != model.query {
+                previousQuery = model.query
+                pendingSearch?.cancel()
+                let work = DispatchWorkItem { [weak self] in
+                    guard self?.model?.mode == 1 else { return }
+                    self?.renderResults()
+                }
+                pendingSearch = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.025, execute: work)
+            }
         default: model.chatDraft = editor.text
         }
         updatePrimaryTitle()
@@ -275,7 +305,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     private func updatePrimaryTitle() {
         guard let model else { return }
         let offer = workspace.draft.text.isEmpty && model.offeredCapture != nil
-        save.setTitle(model.mode == 0 ? (offer ? "Add reminder?" : "Save note") : model.mode == 1 ? "Search" : "Send to model", for: .normal)
+        save.setTitle(model.mode == 0 ? (offer ? "Add reminder?" : "Save note") : model.mode == 1 ? "Find live" : "Send to model", for: .normal)
     }
 
     // All saves flow through coordinated persistence; Search has no write side effect.
@@ -313,7 +343,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
             renderReminderEditor(session)
             return
         }
-        if let selected = selected.flatMap({ saved in model.vault.captures.first { $0.id == saved.id } }) {
+        if let selected = selected.flatMap({ model.original($0.id) }) {
             let back = UIButton(type: .system)
             back.setTitle("Back to results", for: .normal)
             back.addAction(UIAction { [weak self] _ in self?.selected = nil; self?.refreshMode() }, for: .touchUpInside)
@@ -326,6 +356,8 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
                 guard let proxy = self.hostProxyForWriting() else { return }
                 self.sendingToHost = true
                 proxy.insertText(selected.text)
+                self.status.text = "Inserted original into app"
+                UISelectionFeedbackGenerator().selectionChanged()
                 self.sendingToHost = false
             }, for: .touchUpInside)
             results.addArrangedSubview(insert)
@@ -349,9 +381,11 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
             addResultButton(openTasks ? "Open tasks ✓ · Show all" : "Show Open tasks") { [weak self] in
                 guard let self else { return }; self.openTasks.toggle(); self.renderResults()
             }
-            for original in model.results(openTasks: openTasks) {
+            let hits = model.searchHits(openTasks: openTasks)
+            for hit in hits {
+                let original = hit.capture
                 let result = UIButton(type: .system)
-                result.setTitle(String(original.text.prefix(100)), for: .normal)
+                result.setAttributedTitle(highlighted(hit.highlightedText), for: .normal)
                 result.titleLabel?.numberOfLines = 2
                 result.contentHorizontalAlignment = .leading
                 result.tintColor = .label
@@ -368,7 +402,8 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
                 }, for: .touchUpInside)
                 results.addArrangedSubview(result)
             }
-            if model.results(openTasks: openTasks).isEmpty { addResultLabel("Nothing found yet") }
+            recordMemory()
+            if hits.isEmpty { addResultLabel(model.query.isEmpty ? "Capture your first note to find it here" : "No matches · try another remembered word") }
         } else if model.mode == 2 {
             for message in model.conversation.suffix(8) {
                 let label = UILabel(); label.numberOfLines = 0; label.font = .preferredFont(forTextStyle: .caption1)
@@ -379,6 +414,23 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
                 }
             }
         }
+    }
+
+    // FTS highlights are plain delimiters rather than HTML. The exact original
+    // remains the Insert payload; bold styling affects only this result preview.
+    private func highlighted(_ text: String) -> NSAttributedString {
+        let output = NSMutableAttributedString(string: "")
+        var matching = false
+        for part in text.components(separatedBy: "⟦") {
+            let pieces = part.components(separatedBy: "⟧")
+            for (i,piece) in pieces.enumerated() {
+                let font = matching && i == 0 ? UIFont.boldSystemFont(ofSize: 15) : UIFont.systemFont(ofSize: 15)
+                output.append(NSAttributedString(string: String(piece.prefix(180)), attributes: [.font: font, .foregroundColor: UIColor.label]))
+                matching = false
+            }
+            matching = true
+        }
+        return output
     }
 
     // Reminder controls use the same model as Mac. Wheels stay inside the
@@ -397,7 +449,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         return control
     }
     private func openOriginal(_ id: UUID) {
-        guard let capture = model?.vault.captures.first(where: { $0.id == id }) else { return }
+        guard let capture = model?.original(id) else { return }
         retainDraft(); selected = capture
         restoringEditor = true
         RichTextEditing.restore(text: capture.text, richText: capture.richText, in: editor)

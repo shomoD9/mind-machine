@@ -14,6 +14,7 @@ struct MindMachineApp: App {
 private struct CompanionView: View {
     @State private var hostDraft = ""
     @State private var showVault = false
+    @State private var keyboardMemory = "Open the keyboard to measure its process footprint and OS memory headroom."
     private let storage = Result { try DeviceVault.sharedURL() }
 
     var body: some View {
@@ -29,6 +30,11 @@ private struct CompanionView: View {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
                     PrivateSyncSetupView()
+                    Text(keyboardMemory).font(.caption).foregroundStyle(.secondary)
+                    Button("Refresh keyboard memory report") {
+                        if case .success(let url) = storage,
+                           let text = try? String(contentsOf: url.deletingLastPathComponent().appendingPathComponent("keyboard-memory.txt")) { keyboardMemory = text }
+                    }
                     Button("Open vault and settings") { showVault = true }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding()
             }
