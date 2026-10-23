@@ -54,16 +54,22 @@ jobs:
             destination: generic/platform=macOS
             app: MindMachineMac.app
     env:
-      # Paths are absolute because xcodebuild's -authenticationKeyPath requires an absolute path.
-      KEY_DIR: ${{ runner.temp }}/asc-key
-      ARCHIVE: ${{ runner.temp }}/${{ matrix.scheme }}.xcarchive
-      EXPORT_DIR: ${{ runner.temp }}/${{ matrix.scheme }}-export
-      EXPORT_OPTIONS: ${{ runner.temp }}/${{ matrix.scheme }}-ExportOptions.plist
       # One auto-incrementing number per workflow run. Both platforms use it, and so does the keyboard extension
       # because the build setting is applied to every target of the archive.
       BUILD_NUMBER: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
+
+      # The runner context is not available in job-level env, so the temporary paths are exported here for later steps.
+      # They are absolute because xcodebuild's -authenticationKeyPath requires an absolute path.
+      - name: Set paths
+        run: |
+          {
+            echo "KEY_DIR=$RUNNER_TEMP/asc-key"
+            echo "ARCHIVE=$RUNNER_TEMP/${{ matrix.scheme }}.xcarchive"
+            echo "EXPORT_DIR=$RUNNER_TEMP/${{ matrix.scheme }}-export"
+            echo "EXPORT_OPTIONS=$RUNNER_TEMP/${{ matrix.scheme }}-ExportOptions.plist"
+          } >> "$GITHUB_ENV"
 
       - name: Select Xcode
         run: sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
