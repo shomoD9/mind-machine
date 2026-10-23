@@ -94,6 +94,23 @@ jobs:
         run: |
           python3 native/Scripts/verify_bundle_configuration.py DerivedData/Build/Products/Debug-iphonesimulator/MindMachine.app com.statemachine.mindmachine
           python3 native/Scripts/verify_bundle_configuration.py DerivedData/Build/Products/Debug-iphonesimulator/MindMachine.app/PlugIns/MindMachineKeyboard.appex com.statemachine.mindmachine.keyboard
+      # Visual review only, so it never fails the job: re-sign the same Debug build ad hoc so the App Group
+      # works in the simulator, then capture the companion, vault and keyboard in light and dark appearance.
+      - name: Simulator screenshots
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          xcodebuild -project native/MindMachine.xcodeproj -scheme MindMachine \
+            -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- -quiet build
+          bash native/Scripts/simulator_screenshots.sh DerivedData/Build/Products/Debug-iphonesimulator/MindMachine.app simulator-screenshots
+      - name: Upload simulator screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-screenshots
+          path: simulator-screenshots
+          if-no-files-found: ignore
 
   mac-build:
     name: xcodebuild Mac app
