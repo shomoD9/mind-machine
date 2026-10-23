@@ -93,7 +93,10 @@ public struct WorkspaceView: View {
             Text(model.searchDescription).font(.caption).foregroundStyle(.secondary)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(model.searchHits(openTasks: openTasks), id: \.capture.id) { hit in
+                    // One SQLite search per render serves both the list and the empty-state line;
+                    // the body re-runs on every timer reload and sync-status change.
+                    let hits = model.searchHits(openTasks: openTasks)
+                    ForEach(hits, id: \.capture.id) { hit in
                         let original = hit.capture
                         Button { model.selectedCapture = original.id } label: {
                             VStack(alignment: .leading, spacing: 4) {
@@ -104,7 +107,7 @@ public struct WorkspaceView: View {
                                 .background(Color.primary.opacity(0.04)).clipShape(RoundedRectangle(cornerRadius: 8))
                         }.buttonStyle(.plain).accessibilityIdentifier("capture-result")
                     }
-                    if model.results(openTasks: openTasks).isEmpty { Text("Nothing found yet").foregroundStyle(.secondary) }
+                    if hits.isEmpty { Text("Nothing found yet").foregroundStyle(.secondary) }
                 }
             }
         }
