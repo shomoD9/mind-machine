@@ -1,0 +1,42 @@
+# Runs the core invariants and bounded sync model on pushes to the overnight
+# branch and PRs. Native CI separately owns app/UI builds and sandbox smoke tests.
+name: core-checks
+on:
+  push:
+    branches: [overnight-core]
+  pull_request:
+    paths: ['native/**', 'spec/**', '.github/workflows/core-checks.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: core-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  invariants:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app
+      - name: Public core and presentation invariants
+        run: swift test --package-path native
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Model invariants and historical counterexamples
+        run: spec/run-tlc.sh ci-safe broken-ack-early shipped-NoDuplicateCopies-causal shipped-DeleteSparesOtherCopies-causal shipped-DeleteSparesUnseenEdits shipped-NoStaleCopyBesideNewer
+  model-extended:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Full model bounds including liveness
+        run: spec/run-tlc.sh

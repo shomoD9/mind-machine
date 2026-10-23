@@ -1,5 +1,13 @@
 # Agent journal — productivity-for-neurodivergents
 
+## 2026-10-24 - GPT-6 - Codex API (overnight-core workspace)
+
+- Read AGENTS, CONTEXT, testing plan, domain/ADR/tracker guidance, tickets 10–17, prior review result, PR #2 product/software charts, model/configs and formal/statechart skills. Inspected all core projection, replication and caller paths to locate the causes and avoid UI/signing work.
+- Applied requested TDD, root-cause, artifact proof and blast-radius skills. Added four public saved-vault regressions and pushed a temporary red checkpoint; dispatched macOS CI 40023094767 to prove the actual assertion failures and capture the existing Release benchmark before implementation. Git identity was missing, so configured a repository-local Codex bot identity.
+- Read macOS CI assertion diffs: duplicates 2 versus 1, both deletes empty versus retained content, out-of-order newest/base versus base. Recorded baseline query p95 6.477 ms, append p95 16.637 ms, cold open/first query 23.688 ms. Only after these failures changed projection logic; added complete-chain staging, equivalent-head membership, copy-local tombstones and one-time projection migration without changing the encrypted revision format.
+- The fixed store passed all four regressions and all 32 package tests (one Release-only skip) in CI 40023821620. TLC fixed-converges passed in 756 seconds; the four-revision safety run exceeded the initial 30-minute job timeout. Added explicit push/extended bounds without weakening any invariant; retained full configs for extended CI. Native CI 40023821584 passed iOS but hit documented runner-sensitive search/animation budgets. Added a real 151-revision reversed-batch regression.
+- Selectively copied PR #2 model/charts (no merge), documented intended transitions before implementation, and tracked overnight work locally. No external messaging, credentials, signing logic or UI design changes.
+
 ## 2026-10-23 - Claude Sonnet 5.5 - Claude Code
 
 ### GPT-6 - Codex API (icon-sandbox worktree)
