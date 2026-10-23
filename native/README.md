@@ -53,3 +53,7 @@ The legacy JSON is retained as a migration/recovery source. SQLite is the protec
 See [checkpoint evidence](../docs/verification/native-capture-checkpoint.md) for commands, results and remaining acceptance gates.
 
 See [editing checkpoint](../docs/verification/native-editing-checkpoint.md) for ticket-02 evidence and accepted limitations. See [reminder checkpoint](../docs/verification/native-reminders-checkpoint.md) for current reminder checks.
+
+## TestFlight delivery
+
+`.github/workflows/testflight.yml` archives the iPhone app (with its keyboard) and the Mac app, signs them with an App Store Connect API key (repository secrets `ASC_API_KEY_P8`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `APPLE_TEAM_ID`) and uploads both to one App Store Connect record. Run it from the Actions tab (`testflight`, Run workflow) or with `gh workflow run testflight.yml`; it also runs on pushes to `main` that touch `native/`. The API key needs the Admin role so Xcode can use cloud-managed distribution certificates. `ITSAppUsesNonExemptEncryption` is `NO` because only Apple's cryptography is used. See `docs/DESIGN.md` ("TestFlight delivery") for the details and the latest run status.

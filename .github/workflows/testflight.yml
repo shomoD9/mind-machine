@@ -170,7 +170,7 @@ jobs:
         run: |
           find "${TMPDIR:-/tmp}" "$RUNNER_TEMP" -maxdepth 3 -name '*.xcdistributionlogs' 2>/dev/null | while read -r dir; do
             echo "== $dir"
-            grep -h -i -E 'error|rejected|ITMS-|not valid|invalid|failed|unable|missing' "$dir"/*.log 2>/dev/null | sort -u | head -n 60
+            grep -h -i -E 'error domain|ITMS-|FORBIDDEN|not valid|invalid|unable|missing' "$dir"/*.log 2>/dev/null | grep -v 'Rejected distribution method' | cut -c1-600 | sort -u | head -n 40
           done || true
 
       # The key never outlives the job, even when an earlier step failed.
