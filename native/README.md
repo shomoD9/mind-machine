@@ -36,7 +36,7 @@ Launch the installed copy and deliberately enable device notifications in its se
 
 ## iPhone setup
 
-For a real phone, set `DEVELOPMENT_TEAM` in `Config/MindMachine.xcconfig`. Bundle IDs are `com.getstatemachine.mindmachine`, `.keyboard`, `.mac`; App Group is `group.com.getstatemachine.mindmachine`, and iCloud container is `iCloud.com.getstatemachine.mindmachine`. All targets use the same configuration. Register capabilities with the same Apple team, then follow TESTING-TONIGHT. Enable the keyboard in iPhone Settings and enable Full Access for shared storage/networking. The companion documents this permission and provides a host message field, private-key setup and actual keyboard memory-report viewer.
+For a real phone, set `DEVELOPMENT_TEAM` in `Config/MindMachine.xcconfig`. Bundle IDs are `com.statemachine.mindmachine`, `.keyboard`, `.mac`; App Group is `group.com.statemachine.mindmachine`, and iCloud container is `iCloud.com.statemachine.mindmachine`. All targets use the same configuration. Register capabilities with the same Apple team, then follow TESTING-TONIGHT. Enable the keyboard in iPhone Settings and enable Full Access for shared storage/networking. The companion documents this permission and provides a host message field, private-key setup and actual keyboard memory-report viewer.
 
 The keyboard refuses to create an isolated vault when the shared container is unavailable. Signed App Group availability and full phone behavior need actual device proof. Secure/password fields and hosts that prohibit custom keyboards remain platform limitations.
 

@@ -2,6 +2,8 @@
 
 ## 2026-10-23 - Claude Sonnet 5.5 - Claude Code
 
+- Replaced the app identifier prefix with `statemachine` on request: bundle IDs `com.statemachine.mindmachine[.keyboard|.mac]`, App Group, iCloud container, xcconfig, CI verification arguments, `verify_bundle_configuration.py`, README, TESTING-TONIGHT, and the Keychain service and revision-cipher context strings in `PrivateSyncKey.swift` and `RevisionCipher.swift`. Plists and entitlements read these values from the xcconfig, so they needed no edit. Updated the stale identifier sentence in DESIGN.md. Added comments on the two crypto strings because changing them makes earlier keys and sealed revisions unreadable.
+
 - Renamed the code identity from SecondBrain to Mind Machine on request: Swift package products/targets, source and test folders, imports, Xcode project and schemes (regenerated with `Scripts/generate_project.py`), Info.plists display names, bundle identifiers and App Group, CI workflow and native README. Done so the code matches the renamed GitHub repo.
 - Kept the `SecondBrain/vault.json` storage path and the `secondbrain.reminder.` notification prefix to avoid orphaning existing vaults and pending reminders; chose no migration. Updated code-path links in research docs; left historical command logs, checkpoints and design mockups unchanged.
 - First CI run failed: a comment I inserted broke a call in `VaultModel.swift`, and restored build caches carried the old checkout path. Moved the comment, and prefixed cache keys with `mm-` so old caches no longer match.

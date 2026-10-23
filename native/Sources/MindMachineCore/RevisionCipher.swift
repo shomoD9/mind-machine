@@ -5,7 +5,8 @@ import Foundation
 import CryptoKit
 
 public enum RevisionCipher {
-    private static let context = Data("com.getstatemachine.mindmachine.revision.v1".utf8)
+    // AES-GCM authenticated context; changing it makes previously sealed revisions unreadable.
+    private static let context = Data("com.statemachine.mindmachine.revision.v1".utf8)
     public static func seal(_ revision: NoteRevision, key: SymmetricKey) throws -> Data {
         try AES.GCM.seal(JSONEncoder().encode(revision), using: key, authenticating: context).combined!
     }

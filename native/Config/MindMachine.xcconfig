@@ -1,9 +1,9 @@
 // Signing identity for all native targets, read by the generated Xcode project.
 // Founder: set only DEVELOPMENT_TEAM to the ten-character Apple Team ID.
 DEVELOPMENT_TEAM =
-MINDMACHINE_BUNDLE_ID = com.getstatemachine.mindmachine
+MINDMACHINE_BUNDLE_ID = com.statemachine.mindmachine
 MINDMACHINE_KEYBOARD_BUNDLE_ID = $(MINDMACHINE_BUNDLE_ID).keyboard
 MINDMACHINE_MAC_BUNDLE_ID = $(MINDMACHINE_BUNDLE_ID).mac
-VAULT_APP_GROUP = group.com.getstatemachine.mindmachine
-VAULT_ICLOUD_CONTAINER = iCloud.com.getstatemachine.mindmachine
-VAULT_KEYCHAIN_GROUP = $(AppIdentifierPrefix)com.getstatemachine.mindmachine
+VAULT_APP_GROUP = group.com.statemachine.mindmachine
+VAULT_ICLOUD_CONTAINER = iCloud.com.statemachine.mindmachine
+VAULT_KEYCHAIN_GROUP = $(AppIdentifierPrefix)com.statemachine.mindmachine

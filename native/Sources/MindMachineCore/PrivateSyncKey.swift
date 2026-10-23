@@ -6,7 +6,8 @@ import Security
 import CryptoKit
 
 public enum PrivateSyncKey {
-    public static let service = "com.getstatemachine.mindmachine.private-sync.v1"
+    // Keychain service name; shares the com.statemachine.mindmachine prefix with the bundle IDs.
+    public static let service = "com.statemachine.mindmachine.private-sync.v1"
     private static func query(group: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: service, kSecAttrAccount as String: "vault-key",
