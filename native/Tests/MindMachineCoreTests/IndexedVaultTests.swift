@@ -39,4 +39,16 @@ final class IndexedVaultTests: XCTestCase {
         XCTAssertEqual(try store.pendingRevisions().map(\.capture), [note])
     }
 
+    // Existing authored tasks must not disappear behind the ordinary result page.
+    func testOpenTasksFilterRunsBeforeResultLimit() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = VaultFile(url: folder.appendingPathComponent("vault.json"))
+        let task = Capture(text: "packing torch", checklist: [ChecklistItem(text: "torch")], createdAt: Date(timeIntervalSince1970: 0))
+        try store.append(task)
+        for i in 1...40 { try store.append(Capture(text: "packing thought", createdAt: Date(timeIntervalSince1970: Double(i)))) }
+        XCTAssertEqual(try store.search("", openTasks: true).map(\.capture.id), [task.id])
+        XCTAssertEqual(try store.search("pack", openTasks: true).map(\.capture.id), [task.id])
+    }
+
 }

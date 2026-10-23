@@ -158,9 +158,12 @@ public final class VaultFile: @unchecked Sendable {
     public func search(_ query: String, limit: Int = 30, openTasks: Bool = false) throws -> [SearchHit] {
         try withStore {
             let words = Self.words(String(query.prefix(256))).prefix(12)
+            // Eligibility is applied before pagination, so older unfinished lists
+            // remain discoverable behind a page of ordinary captures.
+            let taskFilter = openTasks ? " AND EXISTS (SELECT 1 FROM json_each(c.payload,'$.checklist') item WHERE json_extract(item.value,'$.complete')=0)" : ""
             if words.isEmpty {
                 var hits: [SearchHit] = []
-                try rows("SELECT payload FROM captures ORDER BY created DESC, id LIMIT ?", [String(max(1, min(limit, 100)))]) { stmt in
+                try rows("SELECT c.payload FROM captures c WHERE 1=1\(taskFilter) ORDER BY c.created DESC,c.id LIMIT ?", [String(max(1, min(limit, 100)))]) { stmt in
                     let capture = try JSONDecoder().decode(Capture.self, from: blob(stmt, 0))
                     if !openTasks || (!capture.checklist.isEmpty && !capture.allItemsComplete) { hits.append(SearchHit(capture: capture, highlightedText: capture.text)) }
                 }
@@ -195,9 +198,9 @@ public final class VaultFile: @unchecked Sendable {
                 // avoids scoring/sorting all 10k notes for each early keystroke.
                 var hits: [SearchHit] = []
                 try rows("""
-                    SELECT payload FROM captures INDEXED BY captures_created
-                    WHERE rowid IN (SELECT rowid FROM notes WHERE notes MATCH ?)
-                    ORDER BY created DESC,id LIMIT ?
+                    SELECT c.payload FROM captures c INDEXED BY captures_created
+                    WHERE c.rowid IN (SELECT rowid FROM notes WHERE notes MATCH ?)\(taskFilter)
+                    ORDER BY c.created DESC,c.id LIMIT ?
                     """, [expression,String(max(1,min(limit,100)))]) { statement in
                     let capture = try JSONDecoder().decode(Capture.self, from: blob(statement,0))
                     if !openTasks || (!capture.checklist.isEmpty && !capture.allItemsComplete) {
@@ -210,7 +213,7 @@ public final class VaultFile: @unchecked Sendable {
             // All remembered tokens must match, with prefix/one-edit alternatives.
             try rows("""
                 SELECT c.payload, highlight(notes,1,'⟦','⟧') FROM notes
-                JOIN captures c ON c.rowid=notes.rowid WHERE notes MATCH ?
+                JOIN captures c ON c.rowid=notes.rowid WHERE notes MATCH ?\(taskFilter)
                 ORDER BY rank LIMIT ?
                 """, [expression, String(max(1, min(limit, 100)))]) { stmt in
                 let capture = try JSONDecoder().decode(Capture.self, from: blob(stmt, 0))

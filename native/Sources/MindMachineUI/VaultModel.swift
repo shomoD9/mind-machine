@@ -89,6 +89,7 @@ public final class VaultModel: ObservableObject {
         mode = 0
         selectedCapture = nil
         reload()
+        Task { [weak self] in await self?.syncNow() }
     }
 
     public func reload() {
@@ -106,7 +107,13 @@ public final class VaultModel: ObservableObject {
     /// follows a successful atomic save, keeping failures distinct from Saved.
     @discardableResult
     private func change(_ mutate: (inout Vault) throws -> Void) -> Bool {
-        do { vault = try file.update(mutate); clearInvalidReminderOffer(); Task { [weak self] in await self?.syncNow() }; return true }
+        do {
+            var latest = try file.update(mutate)
+            if let captureLimit { latest.captures = Array(latest.captures.sorted { $0.createdAt > $1.createdAt }.prefix(captureLimit)) }
+            vault = latest; clearInvalidReminderOffer()
+            Task { [weak self] in await self?.syncNow() }
+            return true
+        }
         catch { self.error = "Could not save: \(error.localizedDescription)"; return false }
     }
 

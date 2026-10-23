@@ -30,6 +30,8 @@
 
 - The expanded broad-prefix test caught a remaining 17.290625ms p95 failure (p at 21.21ms, pr at 14.25ms). Reproduced query plans with real SQLite on Linux, then added explicit broad-clue recency ranking using the created index/integer FTS membership; specific clues retain BM25. Aligned source/index row IDs in a transaction and retained the unchanged <10ms CI assertion. Updated current README/DESIGN descriptions to remove obsolete JSON/unimplemented-sync claims while retaining live-device gates.
 
+- Broad-prefix budget now passes (run 39911939501 package job: overall p95 5.320125ms, p 6.164166ms); both native targets built. The separate Mac pill animation sampler missed an intermediate expand frame; requested a rerun of only that failed job without touching the other agent's code. Found and corrected a preserved-feature pagination regression: Open tasks now filters before limiting the result page, with a literal older-task regression. Kept keyboard snapshots bounded after checklist mutations and requested sync on activation.
+
 ## 2026-10-23 - GPT-6 - Codex App
 
 - Received explicit approval of the core MVP scope. Pulled first, read current scope/domain/plan guidance and prepared to record it; the human said wait before any edits, so stopped immediately. Resumed when the human requested a wider GitHub search and UForm resource assessment. Recorded the approval in MVP-CORE, DESIGN, PRD, historical launch design, build-spec header and pending execution-plan header. Deferred Chat/reminders/resurfacing while preserving their implementation and incomplete evidence; did not infer media scope or technical-breakdown approval.
