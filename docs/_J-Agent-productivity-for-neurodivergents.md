@@ -4,6 +4,7 @@
 
 - Renamed the code identity from SecondBrain to Mind Machine on request: Swift package products/targets, source and test folders, imports, Xcode project and schemes (regenerated with `Scripts/generate_project.py`), Info.plists display names, bundle identifiers and App Group, CI workflow and native README. Done so the code matches the renamed GitHub repo.
 - Kept the `SecondBrain/vault.json` storage path and the `secondbrain.reminder.` notification prefix to avoid orphaning existing vaults and pending reminders; chose no migration. Updated code-path links in research docs; left historical command logs, checkpoints and design mockups unchanged.
+- First CI run failed: a comment I inserted broke a call in `VaultModel.swift`, and restored build caches carried the old checkout path. Moved the comment, and prefixed cache keys with `mm-` so old caches no longer match.
 
 ## 2026-10-23 - GPT-6 - Codex App
 

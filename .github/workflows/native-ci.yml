@@ -36,8 +36,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build-ci
-          key: spm-${{ runner.os }}-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Tests/**') }}
-          restore-keys: spm-${{ runner.os }}-${{ env.XCODE_VERSION }}-
+          key: mm-spm-${{ runner.os }}-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Tests/**') }}
+          restore-keys: mm-spm-${{ runner.os }}-${{ env.XCODE_VERSION }}-
       - name: swift test
         run: swift test --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-ci"
 
@@ -54,8 +54,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: DerivedData
-          key: dd-ios-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/MindMachine.xcodeproj/project.pbxproj') }}
-          restore-keys: dd-ios-${{ env.XCODE_VERSION }}-
+          key: mm-dd-ios-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/MindMachine.xcodeproj/project.pbxproj') }}
+          restore-keys: mm-dd-ios-${{ env.XCODE_VERSION }}-
       - name: Build MindMachine (includes MindMachineKeyboard)
         run: |
           xcodebuild -project native/MindMachine.xcodeproj -scheme MindMachine \
@@ -76,8 +76,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: DerivedData
-          key: dd-mac-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/MindMachine.xcodeproj/project.pbxproj') }}
-          restore-keys: dd-mac-${{ env.XCODE_VERSION }}-
+          key: mm-dd-mac-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/MindMachine.xcodeproj/project.pbxproj') }}
+          restore-keys: mm-dd-mac-${{ env.XCODE_VERSION }}-
       - name: Build MindMachineMac
         run: |
           xcodebuild -project native/MindMachine.xcodeproj -scheme MindMachineMac \
