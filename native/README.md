@@ -16,6 +16,10 @@ All three native targets compile against the installed Xcode 26.2 SDKs. The targ
 
 Run `/tmp/secondbrain-xcode/Build/Products/Debug/SecondBrainMac.app`. Control–Option–Space opens/hides the panel; Escape dismisses it. Capture starts by default. Saved content lives under the application's local Application Support directory. The panel supports resizing.
 
+## Continuous integration
+
+`.github/workflows/native-ci.yml` runs on every push to `main`, every pull request and manual dispatch, only when `native/` or the workflow changes. On a GitHub-hosted `macos-26` runner with Xcode 26.2 it runs `swift test`, builds the `SecondBrain` scheme (iPhone app plus embedded keyboard) for a generic iOS Simulator, and builds `SecondBrainMac`, all with `CODE_SIGNING_ALLOWED=NO`. There is no signing, TestFlight or secrets. A newer run on the same ref cancels the older one. The workflow compiles and runs unit tests only; it does not exercise keyboard interaction or real-device behavior.
+
 ## Mac development notification setup
 
 The notification check succeeded in registering the app after signing the complete bundle and installing it in the user's Applications folder. Running the unsigned temporary build produced UNErrorDomain code 1; registering only the signed temporary bundle still failed. For local development after the build above:

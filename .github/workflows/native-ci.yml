@@ -1,0 +1,85 @@
+# Native CI: builds and tests the Swift package and the Xcode app targets on GitHub-hosted macOS runners.
+# Triggered by push to main, pull requests and manual runs (workflow_dispatch); nothing in the repo calls it.
+# Documented in native/README.md ("Continuous integration"). No signing, TestFlight or secrets are used.
+name: native-ci
+
+on:
+  push:
+    branches: [main]
+    paths: ['native/**', '.github/workflows/native-ci.yml']
+  pull_request:
+    paths: ['native/**', '.github/workflows/native-ci.yml']
+  workflow_dispatch:
+
+# A newer run on the same ref replaces the older one, because macOS minutes cost about 10x Linux minutes.
+concurrency:
+  group: native-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # native/README.md records that all targets compile on Xcode 26.2.
+  XCODE_VERSION: '26.2'
+
+jobs:
+  package-tests:
+    name: swift test (SecondBrainCore + SecondBrainUI)
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+      - name: Cache SwiftPM build
+        uses: actions/cache@v4
+        with:
+          path: .build-ci
+          key: spm-${{ runner.os }}-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Tests/**') }}
+          restore-keys: spm-${{ runner.os }}-${{ env.XCODE_VERSION }}-
+      - name: swift test
+        run: swift test --package-path native --scratch-path "$GITHUB_WORKSPACE/.build-ci"
+
+  # The SecondBrain scheme builds the iPhone app and, through its target dependency, the embedded keyboard extension.
+  ios-build:
+    name: xcodebuild iOS app + keyboard (Simulator)
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: DerivedData
+          key: dd-ios-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/SecondBrain.xcodeproj/project.pbxproj') }}
+          restore-keys: dd-ios-${{ env.XCODE_VERSION }}-
+      - name: Build SecondBrain (includes SecondBrainKeyboard)
+        run: |
+          xcodebuild -project native/SecondBrain.xcodeproj -scheme SecondBrain \
+            -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
+      - name: Confirm keyboard extension was embedded
+        run: find DerivedData -name 'SecondBrainKeyboard.appex' -maxdepth 6 | grep .
+
+  mac-build:
+    name: xcodebuild Mac app
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: DerivedData
+          key: dd-mac-${{ env.XCODE_VERSION }}-${{ hashFiles('native/Package.swift', 'native/Sources/**', 'native/Apps/**', 'native/SecondBrain.xcodeproj/project.pbxproj') }}
+          restore-keys: dd-mac-${{ env.XCODE_VERSION }}-
+      - name: Build SecondBrainMac
+        run: |
+          xcodebuild -project native/SecondBrain.xcodeproj -scheme SecondBrainMac \
+            -configuration Debug -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
