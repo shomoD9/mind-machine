@@ -80,7 +80,7 @@ final class DeviceReminders {
     }
 
     // Keyboard notification reconciliation reads only sources referenced by
-    // reminders, keeping a large Capture/Find corpus out of this deferred path.
+    // reminders, keeping a large Capture/Recall corpus out of this deferred path.
     private func snapshot() throws -> Vault {
         var vault = try file.read(captureLimit: 1)
         vault.captures = try Set(vault.reminders.map(\.captureID)).compactMap { try file.capture(id: $0) }

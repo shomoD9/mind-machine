@@ -1,6 +1,6 @@
 # Native keyboard-first MVP — build specification
 
-**Release boundary updated 23 October 2026:** the human approved [the core-memory MVP](../../docs/MVP-CORE.md): Capture → Find → reuse, iPhone keyboard, persistent movable Mac control, resident offline copies and private sync. Chat, reminders and resurfacing below are preserved later-release work; their incomplete checks do not block this narrower release. Image/voice acceptance remains explicit scope work. Existing tickets are not automatically completed or reclassified; reconcile the execution breakdown before publishing new tickets.
+**Release boundary updated 23 October 2026:** the human approved [the core-memory MVP](../../docs/MVP-CORE.md): Capture → Recall → reuse, iPhone keyboard, persistent movable Mac control, resident offline copies and private sync. Chat, reminders and resurfacing below are preserved later-release work; their incomplete checks do not block this narrower release. Image/voice acceptance remains explicit scope work. Existing tickets are not automatically completed or reclassified; reconcile the execution breakdown before publishing new tickets.
 
 **Status:** approved on 2026-10-20. Product behavior comes from the current PRD, UX, FigCraft design and the human's later clarifications. The human approved all three test boundaries, eight tickets and review baseline c319917.
 
@@ -10,7 +10,7 @@ The person has thoughts, links, memories and commitments during other activities
 
 ## Solution
 
-A secondary iPhone keyboard is the primary phone workspace. Capture opens with a private notepad above the keys. Find, original inspection, Chat and reminder controls stay there while a supported host app remains open. A Mac global hotkey opens the same core workflow in a native panel. Each device has usable local material; private replication connects their vaults. The companion app handles setup, settings, recovery and capture paths unavailable to a keyboard.
+A secondary iPhone keyboard is the primary phone workspace. Capture opens with a private notepad above the keys. Recall, original inspection, Chat and reminder controls stay there while a supported host app remains open. A Mac global hotkey opens the same core workflow in a native panel. Each device has usable local material; private replication connects their vaults. The companion app handles setup, settings, recovery and capture paths unavailable to a keyboard.
 
 ## User Stories
 
@@ -24,7 +24,7 @@ A secondary iPhone keyboard is the primary phone workspace. Capture opens with a
 8. As the person, I want to select the host text field or notepad deliberately, so that the same keyboard can serve either.
 9. As the person, I want the active typing destination visible, so that private notes do not accidentally become host messages.
 10. As the person, I want the host composer above the whole workspace, so that I can keep using it as the note grows.
-11. As the person, I want Find one toggle away with drafts preserved, so that retrieval interrupts me briefly.
+11. As the person, I want Recall one toggle away with drafts preserved, so that retrieval interrupts me briefly.
 12. As the person, I want exact phrases and approximate wording to work, so that I can refind material with incomplete recall.
 13. As the person, I want recognizable originals and their dates/sources, so that I can judge what a result means.
 14. As the person, I want an explicit Insert action, so that recovering a note does not automatically alter my host draft.

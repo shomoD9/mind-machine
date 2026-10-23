@@ -1,7 +1,7 @@
-/* Native Capture/Find/Chat presentation shared by the iPhone companion and Mac
+/* Native Capture/Recall/Chat presentation shared by the iPhone companion and Mac
  hotkey panel. The keyboard has its own UIKit editor and keyplane controller.
  The Mac floating pill (native/Apps/Mac/PillPanelView.swift) embeds it with showsHeader: false and
- draws its own Capture/Find tabs; every other caller keeps the default header. */
+ draws its own Capture/Recall tabs; every other caller keeps the default header. */
 import SwiftUI
 import MindMachineCore
 
@@ -23,7 +23,7 @@ public struct WorkspaceView: View {
             if showsHeader { HStack {
                 Picker("Workspace", selection: $model.mode) {
                     Text("Capture").tag(0)
-                    Text("Find").tag(1)
+                    Text("Recall").tag(1)
                     Text("Chat").tag(2)
                 }.pickerStyle(.segmented).accessibilityIdentifier("workspace-mode")
                 Button { showSettings.toggle() } label: { Image(systemName: "gearshape") }
@@ -41,7 +41,7 @@ public struct WorkspaceView: View {
             } else {
                 switch model.mode {
                 case 0: capture
-                case 1: find
+                case 1: recall
                 default: chat
                 }
             }
@@ -84,11 +84,11 @@ public struct WorkspaceView: View {
         }
     }
 
-    // Find reads the shared retrieval path and opens originals without changing drafts.
-    private var find: some View {
+    // Recall reads the shared retrieval path and opens originals without changing drafts.
+    private var recall: some View {
         VStack(alignment: .leading) {
-            TextField("Find something you saved", text: $model.query).textFieldStyle(.roundedBorder)
-                .accessibilityIdentifier("find-query")
+            TextField("Recall something you saved", text: $model.query).textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("recall-query")
             Toggle("Open tasks", isOn: $openTasks).toggleStyle(.switch)
             Text(model.searchDescription).font(.caption).foregroundStyle(.secondary)
             ScrollView {
@@ -113,7 +113,7 @@ public struct WorkspaceView: View {
     // Original inspection is independent of editing; returning preserves the query.
     private func originalView(_ original: Capture) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Button("Back to Find") { model.selectedCapture = nil; model.mode = 1 }
+            Button("Back to Recall") { model.selectedCapture = nil; model.mode = 1 }
             // The entire reader scrolls, so long checklists cannot strand their
             // last items or reminder controls outside the phone/panel viewport.
             ScrollView {

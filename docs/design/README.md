@@ -8,7 +8,7 @@ The human requested functional, clean industrial minimalism, entirely greyscale,
 
 ## Primary keyboard and sizing
 
-The notepad is the everyday capture surface, inside the keyboard extension above the keys. Find opens the original within the keyboard; Insert is explicit. Maya in the earlier mock was a fictional contact in the host app, never the app name. Current screens use EXAMPLE HOST APP.
+The notepad is the everyday capture surface, inside the keyboard extension above the keys. Recall opens the original within the keyboard; Insert is explicit. Maya in the earlier mock was a fictional contact in the host app, never the app name. Current screens use EXAMPLE HOST APP.
 
 [Compare pad sizes](pad-sizes.png): Minimised, Default and Expanded show the same note/caret. The collapsed note still receives typing when Note is active; minimising alone does not switch to App. These are sizing targets, not measured iPhone height limits. The Size prototype hotspot cycles through the three examples; final control presentation still needs implementation. Mac window resizing/fullscreen and inheriting another keyboard are described in the [roadmap](../ROADMAP.md).
 

@@ -129,6 +129,14 @@ for name, folder, bundle, kind in [
             'NSExtensionPrincipalClass':'$(PRODUCT_MODULE_NAME).KeyboardViewController',
             'NSExtensionAttributes':{'IsASCIICapable':True,'PrimaryLanguage':'en-US','RequestsOpenAccess':True}}
     if is_mac: info['NSHighResolutionCapable']=True
+    # App Store Connect asks about export compliance on every upload. The only cryptography here is Apple's own:
+    # CryptoKit AES-GCM for sealed sync revisions, the Security framework Keychain, CloudKit and system SQLite.
+    # No third-party or custom cipher ships, so the standard-encryption exemption applies (docs/DESIGN.md, TestFlight delivery).
+    info['ITSAppUsesNonExemptEncryption']=False
+    # The Mac App Store rejects a Mac app without a category; Productivity matches the product.
+    if is_mac: info['LSApplicationCategoryType']='public.app-category.productivity'
+    # iPad multitasking validation requires all four orientations on iPad unless the app is full-screen only.
+    if folder=='iOS': info['UISupportedInterfaceOrientations~ipad']=['UIInterfaceOrientationPortrait','UIInterfaceOrientationPortraitUpsideDown','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight']
     # Local networking is used only for a deliberately configured inference route.
     info['NSAppTransportSecurity']={'NSAllowsLocalNetworking':True}
     if not is_mac: info['NSLocalNetworkUsageDescription']='Connect to the inference server you configure for chat.'

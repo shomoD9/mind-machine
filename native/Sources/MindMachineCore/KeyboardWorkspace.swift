@@ -19,7 +19,7 @@ public struct PrivateDraft: Equatable, Sendable {
 }
 
 public struct KeyboardWorkspace: Sendable {
-    public enum Mode: Int, Hashable, Sendable { case capture, find, chat }
+    public enum Mode: Int, Hashable, Sendable { case capture, recall, chat }
     public enum Destination: Sendable { case privatePad, app }
     public enum PadSize: Int, CaseIterable, Sendable { case minimised, standard, expanded }
     public private(set) var mode: Mode = .capture

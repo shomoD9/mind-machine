@@ -22,7 +22,7 @@ import MindMachineUI
         }
         let model = VaultModel(url: url, notificationAccess: .disabled)
         print("mode=\(model.searchDescription), notes=\(count), build=\(build), corpus=synthetic")
-        // Each call crosses the same public interface used by the native Find UI.
+        // Each call crosses the same public interface used by the native Recall UI.
         for query in ["birthday", "gift for mother", "travel packing"] {
             model.query = query
             let start = ContinuousClock.now

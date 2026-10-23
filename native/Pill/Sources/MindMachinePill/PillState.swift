@@ -6,7 +6,7 @@
 /// The modes a pill panel can show. `reserved` is the placeholder slot for a third mode the founder
 /// will specify later; it is listed so the UI can draw a disabled tab, and the state machine refuses it.
 public enum PillMode: Int, CaseIterable, Sendable {
-    case capture, find
+    case capture, recall
     // PLACEHOLDER: third mode, to be specified by the founder. Keep disabled until then.
     case reserved
 
@@ -15,16 +15,16 @@ public enum PillMode: Int, CaseIterable, Sendable {
     public var title: String {
         switch self {
         case .capture: return "Capture"
-        case .find: return "Find"
+        case .recall: return "Recall"
         case .reserved: return "Soon"
         }
     }
 
-    /// Index used by the shared VaultModel.mode (0 Capture, 1 Find). The reserved slot has none.
+    /// Index used by the shared VaultModel.mode (0 Capture, 1 Recall). The reserved slot has none.
     public var vaultModeIndex: Int? {
         switch self {
         case .capture: return 0
-        case .find: return 1
+        case .recall: return 1
         case .reserved: return nil
         }
     }

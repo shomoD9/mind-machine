@@ -1,5 +1,5 @@
 /* Saved-vault acceptance tests run by SwiftPM/macOS CI. They exercise migration,
- durable reopening and Find through the same VaultFile interface as the apps. */
+ durable reopening and Recall through the same VaultFile interface as the apps. */
 import XCTest
 import MindMachineCore
 

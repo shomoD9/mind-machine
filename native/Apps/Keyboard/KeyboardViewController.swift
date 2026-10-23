@@ -1,6 +1,6 @@
 /* Primary iPhone workspace, loaded by iOS as the embedded keyboard extension.
  It routes custom keys to its private editor or the host's textDocumentProxy,
- and uses VaultModel for the same persisted capture/find operations as Mac. */
+ and uses VaultModel for the same persisted capture/recall operations as Mac. */
 import UIKit
 import Combine
 import MindMachineCore
@@ -32,7 +32,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     private var savingReminder = false
     private let destination = UIButton(type: .system)
     private let save = UIButton(type: .system)
-    private let modes = UISegmentedControl(items: ["Capture", "Find"])
+    private let modes = UISegmentedControl(items: ["Capture", "Recall"])
     private let keyplane = UIStackView()
     private let formatting = UIStackView()
     private let sizeButton = UIButton(type: .system)
@@ -268,7 +268,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         }
         restoringEditor = false
         editor.isEditable = selected == nil
-        editor.accessibilityLabel = model.mode == 0 ? "Private note" : model.mode == 1 ? "Find saved material" : "Private chat message"
+        editor.accessibilityLabel = model.mode == 0 ? "Private note" : model.mode == 1 ? "Recall saved material" : "Private chat message"
         updatePrimaryTitle()
         refreshDestination()
         renderResults()
@@ -306,7 +306,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     private func updatePrimaryTitle() {
         guard let model else { return }
         let offer = workspace.draft.text.isEmpty && model.offeredCapture != nil
-        save.setTitle(model.mode == 0 ? (offer ? "Add reminder?" : "Save note") : model.mode == 1 ? "Find live" : "Send to model", for: .normal)
+        save.setTitle(model.mode == 0 ? (offer ? "Add reminder?" : "Save note") : model.mode == 1 ? "Recall live" : "Send to model", for: .normal)
     }
 
     // All saves flow through coordinated persistence; Search has no write side effect.
@@ -404,7 +404,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
                 results.addArrangedSubview(result)
             }
             recordMemory()
-            if hits.isEmpty { addResultLabel(model.query.isEmpty ? "Capture your first note to find it here" : "No matches · try another remembered word") }
+            if hits.isEmpty { addResultLabel(model.query.isEmpty ? "Capture your first note to recall it here" : "No matches · try another remembered word") }
         } else if model.mode == 2 {
             for message in model.conversation.suffix(8) {
                 let label = UILabel(); label.numberOfLines = 0; label.font = .preferredFont(forTextStyle: .caption1)

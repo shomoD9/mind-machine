@@ -101,7 +101,7 @@ public struct Vault: Codable, Equatable, Sendable {
 
     public init() {}
 
-    /// Find returns complete originals with deterministic ordering. Empty search
+    /// Recall returns complete originals with deterministic ordering. Empty search
     /// shows recency; words match independently so incomplete recall still works.
     /// Platform adapters may supply local semantic scores; ranking stays shared.
     public func findCaptures(_ query: String, openTasks: Bool = false, semanticScores: [UUID: Double] = [:]) -> [Capture] {

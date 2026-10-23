@@ -37,7 +37,7 @@ An explicitly temporary part of a conversation that can read relevant saved mate
 _Avoid_: hidden-but-retained chat, a promise about an external provider's retention
 
 **Keyboard workspace**:
-The phone's primary Capture/Find/Chat surface, with a private notepad above the keys inside the custom keyboard. It remains available while another supported app is open; the companion app is secondary.
+The phone's primary Capture/Recall/Chat surface, with a private notepad above the keys inside the custom keyboard. It remains available while another supported app is open; the companion app is secondary.
 _Avoid_: a required trip to a standalone notes app, an overlay with unrestricted access to other apps
 
 **Pad size**:
@@ -45,7 +45,7 @@ The person-chosen amount of writing or retrieval space: Minimised, Default or Ex
 _Avoid_: changing typing destination, saving or discarding a draft
 
 **Typing destination**:
-The field receiving the keyboard’s current input: the host app’s field or the private Capture, Find or Chat input. Initial Capture selects the note; explicit selection can change the destination without changing keyboards.
+The field receiving the keyboard’s current input: the host app’s field or the private Capture, Recall or Chat input. Initial Capture selects the note; explicit selection can change the destination without changing keyboards.
 _Avoid_: changing destination merely because the notepad changes size, capturing host keystrokes as notes automatically
 
 **Checklist**:

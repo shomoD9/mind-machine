@@ -1,6 +1,6 @@
 /* Owns the floating pill: the state machine (MindMachinePill.PillState), the single non-activating
  window, the expand/collapse animation, drag-to-move with remembered position, click-away handling,
- display/Space/wake re-placement and the link between the pill's Capture/Find tabs and the shared
+ display/Space/wake re-placement and the link between the pill's Capture/Recall tabs and the shared
  VaultModel.mode. Created by MacDelegate (MindMachineMac.swift); driven by the pill handle, the
  Ctrl-Option-Space hotkey, Esc, tab shortcuts (PillPanel.swift) and the menu-bar item (PillMenuBar.swift);
  timed and inspected by PillSelfTest.swift in CI.
@@ -62,7 +62,7 @@ final class PillController: NSObject, NSWindowDelegate {
         panel.delegate = self
         panel.onEscape = { [weak self] in self?.send(.escape) }
         panel.onSelectModeShortcut = { [weak self] index in
-            self?.send(.select(index == 0 ? .capture : .find))
+            self?.send(.select(index == 0 ? .capture : .recall))
         }
         viewModel.onSelect = { [weak self] mode in self?.send(.select(mode)) }
         viewModel.onClose = { [weak self] in self?.send(.close) }
@@ -88,7 +88,7 @@ final class PillController: NSObject, NSWindowDelegate {
                 MainActor.assumeIsolated { self?.reassertWindow() }
             })
         }
-        // Tabs inside the shared view (for example "Back to Find") change VaultModel.mode directly;
+        // Tabs inside the shared view (for example "Back to Recall") change VaultModel.mode directly;
         // mirror that into the state machine. Our own writes come back as no-ops.
         model.$mode.dropFirst().removeDuplicates().sink { [weak self] index in
             guard let self, let mode = PillMode.allCases.first(where: { $0.vaultModeIndex == index }) else { return }
@@ -222,7 +222,7 @@ final class PillController: NSObject, NSWindowDelegate {
 
     // MARK: Focus
 
-    /// Puts the caret in the mode's input (note editor for Capture, query field for Find) as soon as
+    /// Puts the caret in the mode's input (note editor for Capture, query field for Recall) as soon as
     /// SwiftUI has built it, retrying briefly because the view swap lands a tick after the mode change.
     func focusEditor(for mode: PillMode, attempt: Int = 0) {
         guard state.phase == .expanded(mode) else { return }
@@ -328,7 +328,7 @@ enum PillFocus {
     static func editor(for mode: PillMode, in view: NSView) -> NSView? {
         switch mode {
         case .capture: return first(in: view) { ($0 as? NSTextView).map { $0.isEditable && $0.isFieldEditor == false } ?? false }
-        case .find: return first(in: view) { ($0 as? NSTextField).map { $0.isEditable && $0.isEnabled } ?? false }
+        case .recall: return first(in: view) { ($0 as? NSTextField).map { $0.isEditable && $0.isEnabled } ?? false }
         case .reserved: return nil
         }
     }

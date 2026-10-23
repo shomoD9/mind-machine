@@ -1,8 +1,8 @@
 # MVP launch design — 20 October 2026
 
-**23 October scope approval:** [Capture here. Recall here.](MVP-CORE.md) is the approved core MVP: Capture/Find/reuse, native keyboard/Mac floating access, offline local copies and private sync. Chat, reminders and resurfacing are deferred; image/voice acceptance remains explicit scope work. This document preserves the earlier scope and implementation history; later explicit decisions take precedence.
+**23 October scope approval:** [Capture here. Recall here.](MVP-CORE.md) is the approved core MVP: Capture/Recall/reuse, native keyboard/Mac floating access, offline local copies and private sync. Chat, reminders and resurfacing are deferred; image/voice acceptance remains explicit scope work. This document preserves the earlier scope and implementation history; later explicit decisions take precedence.
 
-Save a thought without filing it. Find it later in your own words. Continue a conversation that remembers it. Receive an accepted reminder and change it from that conversation.
+Save a thought without filing it. Recall it later in your own words. Continue a conversation that remembers it. Receive an accepted reminder and change it from that conversation.
 
 The human has authorized starting MVP design and attempting a launch today. This document makes the first experience reviewable. It does not declare an unbuilt app launched or replace the complete [PRD](PRD.md).
 
@@ -20,14 +20,14 @@ The repo had no application package at kickoff. Xcode 26.2 is installed; the loc
 
 ## The first experience
 
-The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Find, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
+The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Recall, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
 
-Three modes: **Capture · Find · Chat**. Capture opens first. Changing modes preserves the capture and search drafts. Administration stays behind one settings control.
+Three modes: **Capture · Recall · Chat**. Capture opens first. Changing modes preserves the capture and search drafts. Administration stays behind one settings control.
 
 | Mode | Main interaction | Completion evidence |
 | --- | --- | --- |
 | Capture | Write a thought or essay, paste links, deliberately format bullets or checkboxes, then save. No title or classification required. | The original is persisted before showing Saved. Processing status is separate. |
-| Find | Type approximate wording or an exact phrase. Inspect recognizable originals; use Copy or Open. Open tasks is a filter here. | Results link to actual originals. No-match is visible. Keyword-only retrieval must not be labeled semantic. |
+| Recall | Type approximate wording or an exact phrase. Inspect recognizable originals; use Copy or Open. Open tasks is a filter here. | Results link to actual originals. No-match is visible. Keyword-only retrieval must not be labeled semantic. |
 | Chat | Continue one retained conversation, grounded in saved captures and prior exchanges. Inspect cited originals. Temporary is a visible segment switch. | Real provider responses and source references; failures keep the user message retryable. No canned response presented as an AI answer. |
 | Reminder in Chat | A due reminder appears as an app event linked to its source. Ask to move it, or open Edit/Remove. | Show the actual new date, time and zone after successful scheduling; clarify ambiguous references. |
 
@@ -67,7 +67,7 @@ The chat reminder event is distinguishable from user and assistant statements. �
 
 ## Proposed build order
 
-1. Establish signing and native app targets for iPhone, keyboard extension and Mac. Make Capture/Find/Chat usable at phone and desktop sizes.
+1. Establish signing and native app targets for iPhone, keyboard extension and Mac. Make Capture/Recall/Chat usable at phone and desktop sizes.
 2. Implement durable local capture, rich text, checklists, reload recovery, deletion and export. Verify originals survive reload before adding intelligence.
 3. Implement retrieval with explicit original references. Test paraphrases separately from exact matches. Preserve a reliable keyword path if model processing is unavailable.
 4. Connect actual chat inference using an approved local endpoint or explicit cloud opt-in. Retain ordinary exchanges, exclude Temporary segments, and implement Forget against retained and derived data.
@@ -94,7 +94,7 @@ This is an implementation sequence, not permission to silently drop release requ
 ## Launch evidence
 
 - Save a mixed note and checklist, reload/reopen, and recover the exact original.
-- Find it with an exact phrase and a paraphrase; report which retrieval modes actually ran.
+- Recall it with an exact phrase and a paraphrase; report which retrieval modes actually ran.
 - Continue ordinary chat after reopening, inspect original sources, and forget an exchange so it disappears from subsequent retrieval.
 - Use Temporary with prior vault context, then verify it left no new retained messages or derived memory.
 - Schedule a near-term reminder, receive its chat event and the advertised external notification, edit it, remove it, and confirm a completed checklist has no pending alert. Test app-closed delivery if claimed.

@@ -49,7 +49,7 @@ public struct PrivateSyncSetupView: View {
     private func install(_ data: Data) throws {
         guard let group else { throw SyncFailure.unavailable }
         try PrivateSyncKey.install(data, group: group); paired = true
-        status = "Paired. Open Capture or Find to begin sync."
+        status = "Paired. Open Capture or Recall to begin sync."
     }
     private func perform(_ work: () throws -> Void) {
         do { try work() } catch { status = error.localizedDescription }

@@ -148,7 +148,7 @@ public final class VaultModel: ObservableObject {
         } catch { self.error = "Could not save: \(error.localizedDescription)" }
     }
 
-    /// Find reads only the ranked page from SQLite. Models and network requests
+    /// Recall reads only the ranked page from SQLite. Models and network requests
     /// never execute on the typing path; a query cannot re-embed the whole vault.
     public func results(openTasks: Bool = false) -> [Capture] {
         searchHits(openTasks: openTasks).map(\.capture)

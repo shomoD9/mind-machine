@@ -132,21 +132,21 @@ enum PillSelfTest {
 
             // 3. Cmd-2 and Cmd-1 switch tabs; the query field takes focus; the third slot refuses.
             _ = panel.performKeyEquivalent(with: keyEvent(code: 19, characters: "2", flags: .command))
-            check("Cmd-2 switches to Find", controller.state.phase == .expanded(.find))
+            check("Cmd-2 switches to Recall", controller.state.phase == .expanded(.recall))
             check("vault mode follows", model.mode == 1)
-            let findFocus = await wait { [self] in
-                PillFocus.editor(for: .find, in: controller.root.content).map(controller.holdsFocus) ?? false
+            let recallFocus = await wait { [self] in
+                PillFocus.editor(for: .recall, in: controller.root.content).map(controller.holdsFocus) ?? false
             }
-            check("query field has focus after Cmd-2", findFocus != nil)
-            report["findFocusMs"] = ms(findFocus)
+            check("query field has focus after Cmd-2", recallFocus != nil)
+            report["recallFocusMs"] = ms(recallFocus)
             if let editor = panel.firstResponder as? NSTextView {
                 editor.insertText("hello", replacementRange: NSRange(location: NSNotFound, length: 0))
             }
-            check("typing reaches the Find query", model.query == "hello")
+            check("typing reaches the Recall query", model.query == "hello")
             controller.send(.select(.reserved))
-            check("reserved third slot is not selectable", controller.state.phase == .expanded(.find))
+            check("reserved third slot is not selectable", controller.state.phase == .expanded(.recall))
             await sleep(0.15)
-            snapshot("pill-expanded-find.png")
+            snapshot("pill-expanded-recall.png")
             _ = panel.performKeyEquivalent(with: keyEvent(code: 18, characters: "1", flags: .command))
             check("Cmd-1 switches back to Capture", controller.state.phase == .expanded(.capture) && model.mode == 0)
             check("capture draft survived the tab switch", model.draft.contains("selftest note"))

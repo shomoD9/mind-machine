@@ -2,7 +2,7 @@
 
 The core problem is losing access to something already encountered, thought or saved when it becomes useful. The MVP should let a person save a memory and recover its original from their current activity, on either iPhone or Mac, without filing it or opening a separate notes workspace.
 
-Approved release scope on 23 October 2026: Capture → Find → reuse, the iPhone keyboard, persistent movable Mac control, resident offline copies and private cross-device sync. Chat, reminders and resurfacing move to later releases, with their existing implementation preserved. Image and voice inclusion/search acceptance remain explicit scope work. The approval settles the product boundary; it does not select an engine, approve every numeric target or declare the development build ready.
+Approved release scope on 23 October 2026: Capture → Recall → reuse, the iPhone keyboard, persistent movable Mac control, resident offline copies and private cross-device sync. Chat, reminders and resurfacing move to later releases, with their existing implementation preserved. Image and voice inclusion/search acceptance remain explicit scope work. The approval settles the product boundary; it does not select an engine, approve every numeric target or declare the development build ready.
 
 ## The product promise
 
@@ -17,9 +17,9 @@ This promise covers captured material. Capturing the person's entire browsing or
 | Situation | Job | Evidence required |
 | --- | --- | --- |
 | A thought arrives while writing a message | Save it without abandoning the message | Switch to our keyboard, capture, save, return to the preserved host draft; ordinary host typing is never saved as a note |
-| A previously saved detail becomes useful | Find the original with whatever clue I remember | Keyboard Find returns exact/typo and independently tested paraphrase matches; inspect and explicitly insert/copy the original |
-| Working in a Mac app | Keep memory access visible and within reach | A small control remains available across supported ordinary apps/Spaces; click to expand Capture/Find at its position, dismiss back to the anchor; hotkey also opens it |
-| Moving between phone and Mac | Trust that a saved memory is available on the other device | Keyboard-only save reaches Mac Find, and Mac save reaches keyboard Find, without manually opening a companion workspace |
+| A previously saved detail becomes useful | Recall the original with whatever clue I remember | Keyboard Recall returns exact/typo and independently tested paraphrase matches; inspect and explicitly insert/copy the original |
+| Working in a Mac app | Keep memory access visible and within reach | A small control remains available across supported ordinary apps/Spaces; click to expand Capture/Recall at its position, dismiss back to the anchor; hotkey also opens it |
+| Moving between phone and Mac | Trust that a saved memory is available on the other device | Keyboard-only save reaches Mac Recall, and Mac save reaches keyboard Recall, without manually opening a companion workspace |
 | Losing connectivity | Continue capturing and recalling | Previously downloaded sources and indexes remain usable; new saves persist and queue; reconnect converges without losing concurrent originals |
 | Forgetting exact wording | Recall by meaning without configuring an AI server | A local semantic path is tested against judged queries; word matches appear promptly; no Ollama URL, model name or category setup in everyday flows |
 
@@ -30,7 +30,7 @@ iPhone, inside a supported host app
 +-----------------------------------+
 | Host conversation and draft        |
 +-----------------------------------+
-| Capture | Find              Size  |
+| Capture | Recall              Size  |
 | Private note or live results      |
 | [expand / minimise, draft retained]|
 | Familiar typing keys              |
@@ -39,7 +39,7 @@ iPhone, inside a supported host app
 Mac, over the current workspace
    collapsed            expanded from its anchor
    +---+                +---------------------------+
-   | • | -- click -->   | Capture | Find        ×   |
+   | • | -- click -->   | Capture | Recall        ×   |
    +---+                | Write / paste / search... |
    movable control      | Note or original results  |
                         +---------------------------+
@@ -61,7 +61,7 @@ The previously chosen service-unreadable sync and opt-in cloud AI remain constra
 
 ## Search and image scope
 
-MiniSearch uses BM25+ for word ranking, with prefix/typo features. It can index a note's text, extracted image text and captions. It does not convert pixels into meaning. Semantic text recall requires an encoder; text-to-image recall requires an image encoder and a compatible text encoder in a shared vector space. Both can feed one Find interface, with links back to the exact saved source. [Multimodal research](research/2026-10-22-multimodal-memory-search.md).
+MiniSearch uses BM25+ for word ranking, with prefix/typo features. It can index a note's text, extracted image text and captions. It does not convert pixels into meaning. Semantic text recall requires an encoder; text-to-image recall requires an image encoder and a compatible text encoder in a shared vector space. Both can feed one Recall interface, with links back to the exact saved source. [Multimodal research](research/2026-10-22-multimodal-memory-search.md).
 
 The following are distinct promises to accept and verify:
 
@@ -73,7 +73,7 @@ The full vision includes images and voice. This refinement does not silently app
 
 ## Approved release boundary
 
-Capture → Find → reuse, native entry points, local residency and private sync are the release-critical loop. Chat, reminder automation and natural resurfacing are deferred; calendar integration and external assistant access remain later capabilities. Existing authored checklists, rich formatting and draft behavior can remain; they must not delay the core save/recall flow. Preserve unfinished feature work without treating it as complete. The execution breakdown must reflect this boundary before new tickets are published.
+Capture → Recall → reuse, native entry points, local residency and private sync are the release-critical loop. Chat, reminder automation and natural resurfacing are deferred; calendar integration and external assistant access remain later capabilities. Existing authored checklists, rich formatting and draft behavior can remain; they must not delay the core save/recall flow. Preserve unfinished feature work without treating it as complete. The execution breakdown must reflect this boundary before new tickets are published.
 
 The smallest demonstration that proves this product is useful:
 
@@ -88,7 +88,7 @@ Word matching alone, a manually refreshed companion or a cloud-only result would
 
 Use the [existing proposed latency/quality budgets](research/2026-10-22-fast-private-retrieval.md#proposed-acceptance-budgets--all-unmeasured) as starting targets: warm first-visible local matches p95 below 50 ms and semantic enrichment below 150 ms at 10k realistic captures, with cold activation and memory reported separately. For sync, the proposed active-device target is p95 within 3 seconds under a defined healthy connection; background delivery has no fixed OS deadline. These are targets, not achieved application measurements.
 
-Measure the person's whole action: open, type, see the right original, reuse. Also measure cold keyboard launch, save-to-local-find, keyboard-to-Mac, Mac-to-keyboard, keystroke stalls, extension termination and index readiness after pairing. A fast library query alone cannot establish the experience. Reuse candidates and the isolated MiniSearch Mac benchmark are evidence for pilots, without a production performance claim.
+Measure the person's whole action: open, type, see the right original, reuse. Also measure cold keyboard launch, save-to-local-recall, keyboard-to-Mac, Mac-to-keyboard, keystroke stalls, extension termination and index readiness after pairing. A fast library query alone cannot establish the experience. Reuse candidates and the isolated MiniSearch Mac benchmark are evidence for pilots, without a production performance claim.
 
 ## Reuse and next decisions
 

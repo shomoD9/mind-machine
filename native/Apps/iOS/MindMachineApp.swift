@@ -1,6 +1,6 @@
 /* iPhone companion entry point: setup, a test host composer and vault access.
  It also owns process-lifetime foreground notification presentation.
- The embedded Keyboard target is the primary phone Capture/Find/Chat surface. */
+ The embedded Keyboard target is the primary phone Capture/Recall/Chat surface. */
 import SwiftUI
 import MindMachineUI
 

@@ -1,6 +1,6 @@
 /* Mac entry point. Starts the app as a menu-bar/accessory process, registers the Ctrl-Option-Space
  global hotkey through Carbon, and hands everything visible to PillController (PillController.swift):
- the floating pill that expands into the Capture / Find panel. The menu-bar item lives in
+ the floating pill that expands into the Capture / Recall panel. The menu-bar item lives in
  PillMenuBar.swift. With "--pill-selftest <file>" the app runs PillSelfTest.swift (used by native-ci)
  against a throwaway vault and exits. Also installs the process-lifetime reminder notification presenter. */
 import AppKit

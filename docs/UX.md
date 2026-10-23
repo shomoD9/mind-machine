@@ -1,12 +1,12 @@
 # Capture, search, resurfacing, and continuing chat
 
-Save a thought when it arrives. Find material while using another app. Encounter selected material during existing browsing. Continue a chat without rebuilding its context.
+Save a thought when it arrives. Recall material while using another app. Encounter selected material during existing browsing. Continue a chat without rebuilding its context.
 
 Working UX draft, 20 October 2026, after round nine; MVP design is authorized. A whole-checklist due date also schedules its reminder; individual-item due dates are excluded. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. Resurfacing uses captured material only, with selection priorities deferred. Details labeled **proposed** remain open. The [PRD](PRD.md) records requirements; the [decision ticket](../.scratch/scattered-ambitious-pitch/issues/20-headless-second-brain.md) tracks unresolved choices. The current [editable FigCraft design](design/native-mvp.figcraft) starts with keyboard flows. The HTML preview is superseded. Designs use fictional state; the connected app has not been launched.
 
 ## Primary interaction
 
-The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Find, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
+The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Recall, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
 
 Minimised, Default and Expanded sizes preserve both drafts, their cursor positions and the active typing destination. Minimised retains a single visible note line. Minimising alone does not redirect note input into the host app; the person can explicitly select the host field or return to the notepad. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified. See [roadmap and feasibility](ROADMAP.md).
 
@@ -18,7 +18,7 @@ The host text box follows the top of the whole keyboard workspace. Resizing allo
 
 | Surface | What the person does or encounters |
 | --- | --- |
-| Secondary iPhone keyboard | Capture, Find, or Chat while a supported text field is open; insert a chosen result deliberately. |
+| Secondary iPhone keyboard | Capture, Recall, or Chat while a supported text field is open; insert a chosen result deliberately. |
 | Mac hotkey surface | Capture or search, then return to the active app. |
 | Share sheet / companion | Save links, images, voice, and other supported material that need these entry points. |
 | Continuing chat | Talk, explore, and retrieve; ordinary conversation remains in history automatically. |
@@ -26,18 +26,18 @@ The host text box follows the top of the whole keyboard workspace. Resizing allo
 | Browser new tab | Encounter material when opening a tab. |
 | Permitted WhatsApp/SMS channel | Receive a commitment cue under the chosen deadline and content rules. |
 
-Resurfacing does not occupy the keyboard. Its three work modes are Capture, Find, and Chat, with Capture opening by default.
+Resurfacing does not occupy the keyboard. Its three work modes are Capture, Recall, and Chat, with Capture opening by default.
 
 ## 1. Capture a mixed thought
 
 The capture is a lightweight rich-text document with visual Markdown-style controls, bullets, explicit checkboxes, links, and media. It supports an essay as well as a short action sentence. The keyboard is the primary writing surface, with Minimised, Default and Expanded note viewports. With Note selected, the minimised pad continues receiving note input. Tapping the host field is an explicit destination change, and tapping the pad returns to note input. The same draft/cursor survives resizing; true iPhone fullscreen needs feasibility testing.
 
-The person is replying in another app and thinks of a reflection, a task, and a useful link. They switch to the secondary keyboard, which opens Capture by default, and enter the mixed text. They save without choosing a category. The original remains together; background organization can help retrieve its parts later. The Mac hotkey also opens Capture; a single toggle reaches Find, preserving drafts in both modes.
+The person is replying in another app and thinks of a reflection, a task, and a useful link. They switch to the secondary keyboard, which opens Capture by default, and enter the mixed text. They save without choosing a category. The original remains together; background organization can help retrieve its parts later. The Mac hotkey also opens Capture; a single toggle reaches Recall, preserving drafts in both modes.
 
 ```text
 Existing app                  Secondary keyboard
 --------------------------    ---------------------------
-Host draft remains intact     Capture | Find | Chat
+Host draft remains intact     Capture | Recall | Chat
                               [private input buffer]
                               Save
                               Saved on this device
@@ -61,7 +61,7 @@ Linked interactive checklist
   [ ] Send itinerary
 ```
 
-The rich-text editor lets the person deliberately create bullets and checkbox lists. A saved action sentence can get a soft reminder offer with date/time selectors. Open tasks in Find and Chat retrieves unfinished items; this app owns reminders. A checklist has one due date for the whole list, and choosing it also schedules the reminder. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. Calendar timeboxing is a later integration direction.
+The rich-text editor lets the person deliberately create bullets and checkbox lists. A saved action sentence can get a soft reminder offer with date/time selectors. Open tasks in Recall and Chat retrieves unfinished items; this app owns reminders. A checklist has one due date for the whole list, and choosing it also schedules the reminder. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. Calendar timeboxing is a later integration direction.
 
 ```text
 Save checklist → Saved, no reminder
@@ -83,9 +83,9 @@ Save checklist → Saved, no reminder
 
 Reopening a completed list offers a new reminder. Its cancelled reminder is not restored. Reminder controls are Edit and Remove, with rescheduling also available through Chat; no separate Snooze control. Existing reminders keep their original time zone and instant.
 
-## 2. Find and reuse a prior thought
+## 2. Recall and reuse a prior thought
 
-While composing, the person switches to Find or invokes the Mac hotkey. They type “the thought about maintaining a second brain.” Results show recognizable originals, with date and source. They inspect a match and choose Insert, Copy, or Open. Their unfinished host draft remains available.
+While composing, the person switches to Recall or invokes the Mac hotkey. They type “the thought about maintaining a second brain.” Results show recognizable originals, with date and source. They inspect a match and choose Insert, Copy, or Open. Their unfinished host draft remains available.
 
 **Proposed details:** matches can come from captures or conversation history. A chat result identifies the speaker and surrounding exchange. A result from an image or voice transcription retains access to that original. Search wording can be approximate; an exact remembered phrase also works.
 
@@ -171,7 +171,7 @@ Chat is an additional keyboard mode. **Proposed compact layout:** recent turns i
 ```text
 Host draft stays intact
 +--------------------------------------+
-| Capture | Find | [Chat]               |
+| Capture | Recall | [Chat]               |
 | Continuing chat     Temporary: off    |
 | Recent user / assistant turns        |
 | [scrollable conversation area]       |
@@ -205,4 +205,4 @@ This choice introduces a browsing-habit and extension-setup cost. It does not au
 
 Q13 is settled: assess idea/bookmark eligibility automatically and keep private or uncertain material private. The person does not approve an excerpt before resurfacing. This is a product policy to test, rather than a claim that automatic sensitivity judgment is infallible.
 
-Q18 selection priorities are explicitly deferred. Q19–Q22 are answered: captured-material context only, interactive checklists, Chat as a keyboard mode, and Temporary segments. Round six settled the rich-editor/post-save-offer model, Open tasks in Find and Chat, app-owned reminders, and Temporary read access with no new retained content. Q27–Q28 set whole-checklist dates that also schedule reminders. Q29–Q31 confirm a visible default alert time, cancellation on whole-list completion, and overdue retention with repeats only by choice. Q32–Q35 add reminder events in chat with conversational rescheduling, optional WhatsApp/SMS, Edit/Remove controls, original time zones, and a new reminder offer on reopening. Detailed interviewing is paused for MVP design; see [launch design](MVP.md). Reminder channels/failure, keyboard layout, cadence, media capture, external imports, sync conflicts, and recovery remain visible branches. Pending recommendations are not acceptance criteria.
+Q18 selection priorities are explicitly deferred. Q19–Q22 are answered: captured-material context only, interactive checklists, Chat as a keyboard mode, and Temporary segments. Round six settled the rich-editor/post-save-offer model, Open tasks in Recall and Chat, app-owned reminders, and Temporary read access with no new retained content. Q27–Q28 set whole-checklist dates that also schedule reminders. Q29–Q31 confirm a visible default alert time, cancellation on whole-list completion, and overdue retention with repeats only by choice. Q32–Q35 add reminder events in chat with conversational rescheduling, optional WhatsApp/SMS, Edit/Remove controls, original time zones, and a new reminder offer on reopening. Detailed interviewing is paused for MVP design; see [launch design](MVP.md). Reminder channels/failure, keyboard layout, cadence, media capture, external imports, sync conflicts, and recovery remain visible branches. Pending recommendations are not acceptance criteria.

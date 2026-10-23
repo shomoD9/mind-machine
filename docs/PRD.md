@@ -1,14 +1,14 @@
 # Headless second brain
 
-Capture without filing. Find material where you need it. Let useful thoughts return during your existing day.
+Capture without filing. Recall material where you need it. Let useful thoughts return during your existing day.
 
-**Approved MVP scope, 23 October 2026:** Capture → Find → reuse inside the current activity, with the iPhone keyboard, persistent movable Mac control, resident offline copies and private cross-device sync. Chat, reminders and resurfacing move to later releases; their existing work and the full vision remain preserved. Image/voice capture and search acceptance remain explicit scope work. [Core MVP definition](MVP-CORE.md) is the current release boundary. Sections below retain the earlier design where not superseded.
+**Approved MVP scope, 23 October 2026:** Capture → Recall → reuse inside the current activity, with the iPhone keyboard, persistent movable Mac control, resident offline copies and private cross-device sync. Chat, reminders and resurfacing move to later releases; their existing work and the full vision remain preserved. Image/voice capture and search acceptance remain explicit scope work. [Core MVP definition](MVP-CORE.md) is the current release boundary. Sections below retain the earlier design where not superseded.
 
 **Status:** research-backed working draft, begun 2026-10-19 and updated 2026-10-20 after round nine; MVP design and launch preparation are authorized. A checklist due date applies to the whole list and also schedules its reminder. There are no individual-item due dates. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. The complete vision remains intact; today’s target is a private native pilot with cross-device sync, iPhone keyboard and Mac global hotkey. Browser fallback is rejected.
 
 ## 1. Product and problem
 
-A personal vault accepts thoughts, reflections, memories, lists, commitments, links, images, and voice. The person submits something without choosing a folder, title, or category. The system makes it searchable in the background. A secondary iPhone keyboard offers Capture, Find, and Chat; a Mac hotkey brings capture/search into the existing activity. Optional resurfacing returns material in enabled feeds, browser new tabs, and permitted messages. One continuing chat retains its history by default and can draw on the wider corpus; explicit Temporary segments stay out of retained history and derived memory. External LLM connections provide another way to use the vault.
+A personal vault accepts thoughts, reflections, memories, lists, commitments, links, images, and voice. The person submits something without choosing a folder, title, or category. The system makes it searchable in the background. A secondary iPhone keyboard offers Capture, Recall, and Chat; a Mac hotkey brings capture/search into the existing activity. Optional resurfacing returns material in enabled feeds, browser new tabs, and permitted messages. One continuing chat retains its history by default and can draw on the wider corpus; explicit Temporary segments stay out of retained history and derived memory. External LLM connections provide another way to use the vault.
 
 People already save personal information in notes, bookmarks, self-chats, screenshots, and voice messages. Filing and maintaining these collections adds work. Later, people may remember only an approximate concept, person, source, or time. They may also forget that they saved something at all.
 
@@ -43,14 +43,14 @@ Rules 1–3 and 8–22 follow the latest brief, confirmed interview answers, and
 5. Search returns recognizable originals and enough context to judge a match.
 6. Copying, inserting, sharing, and creating a reminder are explicit effects with visible outcomes.
 7. Incorrect organization must not strand a capture. Search and recent captures provide recovery paths.
-8. The keyboard serves Capture, Find, and Chat. Resurfacing belongs in the person's enabled browsing and messaging surfaces.
+8. The keyboard serves Capture, Recall, and Chat. Resurfacing belongs in the person's enabled browsing and messaging surfaces.
 9. Chat retains conversation history by default. Repeated passage-save prompts and inferred-save receipts are excluded from the current experience.
 10. A resurfacing encounter shows one item. Repeats are allowed; the person does not choose between several resurfaced ideas or bookmarks.
 11. Ideas/bookmarks may be eligible for external resurfacing; private details stay in the vault. Private deadline cues use neutral wording and open vault details.
 12. Timed messages require an accepted reminder. Browsing resurfacing does not silently acquire reminder authority.
 13. A resurfaced thought opens its original in a private reading view; a bookmark opens its saved destination. Continue in chat is available from the reading view.
 14. Scrolling past leaves the item eligible for repeats. An explicit “Stop showing this” excludes it from resurfacing while preserving the saved material.
-15. Capture is the default entry mode for the Mac hotkey and secondary keyboard; one toggle reaches Find, preserving drafts in both modes.
+15. Capture is the default entry mode for the Mac hotkey and secondary keyboard; one toggle reaches Recall, preserving drafts in both modes.
 16. “Forget this” deletes the selected chat exchange and derived memory across synced devices. It removes that material from later retrieval; copies previously shared with other services have a separate boundary.
 17. Ideas/bookmarks become eligible automatically; private or uncertain material stays private. There is no per-item excerpt-approval step.
 18. Resurfacing selection uses captured material. The current webpage/topic and general browsing history are excluded.
@@ -67,7 +67,7 @@ These are rough interaction sketches. The platform review found a callable Open 
 
 ### The primary phone interface is the keyboard
 
-The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Find, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
+The keyboard is the primary iPhone workspace. Capture opens by default with a notepad above the keys inside the extension; Recall, original inspection, Chat and reminder controls remain in that workspace. The companion app is secondary for setup, settings, recovery and entry points the keyboard cannot support.
 
 Minimised, Default and Expanded sizes preserve both drafts, their cursor positions and the active typing destination. Minimised retains a single visible note line. Minimising alone does not redirect note input into the host app; the person can explicitly select the host field or return to the notepad. Expanded requests more extension height, with exact device limits to be tested. Mac uses a resizable hotkey panel with a fullscreen option; true iPhone fullscreen remains unverified. See [experience roadmap](ROADMAP.md). The first FigCraft page is Keyboard first; companion screens follow on a secondary page.
 
@@ -92,12 +92,12 @@ Rich note: short thought or essay
 
 A checkbox list remains interactive and linked to its source. The optional post-save prompt offers one due date for the whole checklist. Choosing that due date also schedules the reminder and counts as accepting reminder creation. The control must communicate this combined effect. No separate Remind me toggle or individual-item due dates are included. A date-only choice uses a visible, configurable default time that can be changed before scheduling. Completing every checklist item cancels its pending reminder; any unfinished item keeps it scheduled. After the due reminder, unfinished lists remain overdue in Open tasks. Further timed alerts require explicit rescheduling; Q33 excludes a separate snooze control. The same document is viewed through a user-sized keyboard notepad. A companion editor is secondary; it is not a required detour for everyday capture, search, reading or chat. Exact extension-height limits need real-device testing, without promising a keyboard-to-companion launch.
 
-### Mac: one hotkey, Capture / Find / Chat
+### Mac: one hotkey, Capture / Recall / Chat
 
 ```text
 Existing app remains behind a dismissible overlay
 +----------------------------------------------------+
-|  [ Capture ]   Find                         Esc     |
+|  [ Capture ]   Recall                         Esc     |
 |                                                    |
 |  Idea about the opening paragraph...                |
 |  https://...                                       |
@@ -108,7 +108,7 @@ Existing app remains behind a dismissible overlay
                Saved locally · processing pending
 
 +----------------------------------------------------+
-|  Capture     [ Find ]                       Esc     |
+|  Capture     [ Recall ]                       Esc     |
 |  the paper about attention I saved last month       |
 |                                                    |
 |  Matching passage...              12 Sep · Safari  |
@@ -118,7 +118,7 @@ Existing app remains behind a dismissible overlay
 +----------------------------------------------------+
 ```
 
-Capture opens by default. A single toggle reaches Find while preserving drafts in both modes. Dismissal returns focus to the prior app. Exact hotkeys, result layout, and whether insertion uses accessibility permissions remain unsettled. Copy is a fallback where insertion is unsupported. The earlier adjacent-dialog design remains a candidate; the latest brief does not require its removal.
+Capture opens by default. A single toggle reaches Recall while preserving drafts in both modes. Dismissal returns focus to the prior app. Exact hotkeys, result layout, and whether insertion uses accessibility permissions remain unsettled. Copy is a fallback where insertion is unsupported. The earlier adjacent-dialog design remains a candidate; the latest brief does not require its removal.
 
 ### iPhone: secondary keyboard plus complementary capture
 
@@ -128,7 +128,7 @@ Capture opens by default. A single toggle reaches Find while preserving drafts i
 | Host text field                  |
 +----------------------------------+
 | Vault keyboard                   |
-| [Capture] [Find] [Chat]           |
+| [Capture] [Recall] [Chat]           |
 |                                  |
 | Private capture or search buffer |
 | [Save] / [Search]                 |
@@ -177,7 +177,7 @@ Normal item                 Open / use / dismiss   in the vault
                          |
              Search index + access controls
                          |
-          Find → inspect source → open/copy/insert
+          Recall → inspect source → open/copy/insert
                          |
              Approved reminders / optional resurfacing
 
@@ -197,10 +197,10 @@ This describes responsibilities, without choosing databases, models, hosting, or
 | C2 | Support text, multiple links, multiple images, and voice across suitable surfaces. | Keep an image alongside its explanatory text; retain audio alongside its transcript. Exact file types and limits must be specified. | Brief; retention detail Proposed |
 | C3 | Keep originals and attachment relationships accessible. | A result from a chunk opens the complete capture; a bad transcript does not replace the audio. | Existing; media detail Proposed |
 | C4 | Make submission durable before claiming it is saved. | After confirmation, reopening finds the record even if classification failed. Offline capture reports local and pending-sync state accurately. | Proposed; local/private-sync direction Confirmed |
-| C5 | Preserve drafts and recover failed submissions. | Switching to Find or dismissing does not silently discard an unsaved thought. Retry cannot create accidental duplicates. | Proposed |
-| O1 | Organize enough to make retrieval work without manual filing. | Find a screenshot using recognized text or a description, even if its inferred topic was wrong. | Brief |
+| C5 | Preserve drafts and recover failed submissions. | Switching to Recall or dismissing does not silently discard an unsaved thought. Retry cannot create accidental duplicates. | Proposed |
+| O1 | Organize enough to make retrieval work without manual filing. | Recall a screenshot using recognized text or a description, even if its inferred topic was wrong. | Brief |
 | O2 | Keep inferred labels, entities, relations, and chunks revisable. | Correcting “work” to “personal” changes retrieval context without rewriting the capture. Uncertain dates and categories remain uncertain. | Existing; details Proposed |
-| S1 | Search exact wording and approximate meaning. | Find a unique code exactly and an old idea using different words. Related material cannot hide an exact match. | Brief; ranking detail Proposed |
+| S1 | Search exact wording and approximate meaning. | Recall a unique code exactly and an old idea using different words. Related material cannot hide an exact match. | Brief; ranking detail Proposed |
 | S2 | Use remembered context where available. | “The article Maya sent last month” can narrow matches only if person/date/source information was captured or explicitly connected. | Proposed |
 | S3 | Make results inspectable and useful in place. | See the matched passage, date, source, and original; copy or insert deliberately. Preserve the host draft. | Brief; presentation Proposed |
 | S4 | Handle insufficient evidence honestly. | An empty result offers recent captures or a simpler query; chat says when the vault has no supporting record. | Proposed |
@@ -214,13 +214,13 @@ This describes responsibilities, without choosing databases, models, hosting, or
 | R1 | Include optional resurfacing across enabled browser feeds, new tabs, and permitted message channels. | An automatically eligible idea/bookmark returns during browsing; private or uncertain material stays private. A neutral private-deadline cue arrives only for an accepted reminder. | Confirmed Q2/Q6/Q10–Q13 |
 | R2 | Show one item per resurfacing encounter; allow repeats. | One thought or bookmark appears. Passing leaves it eligible; “Stop showing this” excludes it while preserving the original. | Confirmed Q9/Q15; cadence/selection open |
 | R3 | Open the appropriate destination on tap. | A thought opens its original in a private reading view with Continue in chat available; a bookmark opens its saved destination. | Confirmed Q14 |
-| H3 | Open Capture by default, with one toggle to Find. | Both entry surfaces open Capture; capture and query drafts survive mode changes. | Confirmed Q16 |
+| H3 | Open Capture by default, with one toggle to Recall. | Both entry surfaces open Capture; capture and query drafts survive mode changes. | Confirmed Q16 |
 | A4 | Support forgetting selected conversation material. | “Forget this” removes the exchange and derived memory across synced devices so it no longer appears in history, search, answers, or resurfacing. | Confirmed Q17; offline/recovery mechanics open |
 | A5 | Offer Temporary chat segments. | Turning Temporary on visibly excludes that segment from retained vault history and derived memory. Ordinary conversation remains saved by default. | Confirmed Q22/Q26; temporary lifecycle open |
-| H4 | Offer Chat within the secondary keyboard. | Capture, Find, and Chat are accessible without treating chat input as a host-app message. Explicitly inserting an answer is a separate action. | Mode Confirmed Q21; detailed layout/buffering Proposed |
+| H4 | Offer Chat within the secondary keyboard. | Capture, Recall, and Chat are accessible without treating chat input as a host-app message. Explicitly inserting an answer is a separate action. | Mode Confirmed Q21; detailed layout/buffering Proposed |
 | T2 | Make captured to-do lists interactive. | Tick off a checklist item and retain its link to the original capture; no timed reminder is created by capture alone. | Confirmed Q20/Q23/Q27–Q31; Confirmed Q32–Q35 lifecycle; delivery implementation open |
 | C6 | Provide a lightweight visual Markdown-style rich-text document. | Write an essay, formatted bullets, or explicit checkboxes with simple controls; save without classification. An action sentence gets an optional soft reminder offer with date/time selectors. | Confirmed Q23 refinement; exact controls/layout open |
-| T3 | Find unfinished items across captures. | Use Open tasks within Find or ask Chat; each item opens its original capture. | Confirmed Q24 |
+| T3 | Recall unfinished items across captures. | Use Open tasks within Recall or ask Chat; each item opens its original capture. | Confirmed Q24 |
 | T4 | Keep reminder ownership inside this app. | Accepted reminders are linked to captures and managed here. External calendar connections and calendar timeboxes are a later integration direction. | Confirmed Q25; calendar integration deferred |
 | R4 | Select resurfacing content from captured material only. | The integration displays an eligible item without using the current page's topic or retaining browsing history for selection. Retained chat belongs to the corpus; Temporary segments are excluded. | Confirmed Q19; selection priorities explicitly deferred Q18 |
 | D1 | Provide inspection, editing, deletion, export, and recovery outside the daily flow. | Export originals plus attachments and provenance; deletion removes active search/AI access and follows a documented backup-retention policy. | Proposed |
@@ -264,7 +264,7 @@ Chat can search captures and history in one request, show the supporting origina
 
 ### Reminder ownership and later calendar integration
 
-The app owns reminders and their schedule/completion state. Accepting the post-save offer creates a reminder here. Open tasks in Find and Chat provide cross-capture retrieval. Exact editing, delivery, completion, and failure flows remain to specify.
+The app owns reminders and their schedule/completion state. Accepting the post-save offer creates a reminder here. Open tasks in Recall and Chat provide cross-capture retrieval. Exact editing, delivery, completion, and failure flows remain to specify.
 
 The human also described future optional Apple/Google Calendar connections. Those could send chosen commitments or schedule calendar timeboxes. A timebox is a scheduled activity with a time interval; it is distinct from a reminder cue. The human explicitly asked to solve the current capture/reminder problem first. Calendar connections, automatic timeboxing, and bidirectional calendar synchronization are not current first-release commitments.
 
@@ -314,7 +314,7 @@ Decisions already answered:
 - **Q13:** automatically show eligible ideas/bookmarks; keep uncertain items private. The proposed excerpt-approval step was rejected.
 - **Q14:** thought opens the private original reading view with Continue in chat available; bookmark opens its link.
 - **Q15:** scrolling past preserves eligibility; explicit Stop showing this excludes it.
-- **Q16:** Capture opens by default; one toggle reaches Find, with preserved drafts.
+- **Q16:** Capture opens by default; one toggle reaches Recall, with preserved drafts.
 - **Q17:** forgetting removes the selected original exchange and derived memory across synced devices.
 - **Q18:** selection priorities deferred by the human; do not choose a strategy or re-ask it in this round.
 - **Q19:** selection uses captured material only, without current-page/topic context or retained browsing history.
@@ -322,7 +322,7 @@ Decisions already answered:
 - **Q21:** Chat is also a keyboard mode. The proposed companion-only chat placement was not adopted.
 - **Q22:** offer explicit Temporary chat segments, excluded from retained history and derived memory.
 - **Q23 refinement:** visual Markdown-style rich documents with simple controls, explicit bullets/checklists, essay-length writing, and a soft date/time reminder offer after saving an action-like note. Q27–Q28 subsequently set one whole-checklist due date that also schedules the reminder.
-- **Q24:** Open tasks in Find and Chat, linked to original captures.
+- **Q24:** Open tasks in Recall and Chat, linked to original captures.
 - **Q25:** this app owns reminders. Apple/Google Calendar connections and calendar timeboxing are a future direction, deferred while current problems are solved.
 - **Q26:** Temporary may read relevant saved vault memory, saving no new messages or derived memory.
 - **Q27:** choosing a checklist due date also schedules its reminder; a separate optional alert toggle was not chosen.

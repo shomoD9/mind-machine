@@ -1,4 +1,4 @@
-/* SwiftUI content of the expanded pill panel: a Capture / Find tab strip with a disabled placeholder
+/* SwiftUI content of the expanded pill panel: a Capture / Recall tab strip with a disabled placeholder
  slot for a third mode, a close button, and the shared WorkspaceView underneath (embedded without its
  own header, so its behaviour is unchanged). PillViewModel carries the selected tab from PillController
  into this view, and the tab taps back out. Created once by PillController (PillController.swift). */

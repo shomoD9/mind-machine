@@ -18,7 +18,7 @@ stateDiagram-v2
 
 At SavedAndFindable, word search can recover the original and an enabled sync queue contains the change. Semantic enrichment and networking continue independently. A save never waits for an assistant answer or for the other device. A failure preserves the draft.
 
-## Find: each query owns its results
+## Recall: each query owns its results
 
 ```mermaid
 stateDiagram-v2
@@ -36,7 +36,7 @@ stateDiagram-v2
     Original --> FindOpen: Back
 ```
 
-An obsolete query finishing cannot overwrite the current query. Results resolve to current originals; deletion/editing invalidates old results and pending indexing. Insert into a host field remains explicit. Find works offline and without Chat. The speed/quality budgets in the plan remain unmeasured targets; see the [current baseline](../verification/search-baseline-2026-10-22.md).
+An obsolete query finishing cannot overwrite the current query. Results resolve to current originals; deletion/editing invalidates old results and pending indexing. Insert into a host field remains explicit. Recall works offline and without Chat. The speed/quality budgets in the plan remain unmeasured targets; see the [current baseline](../verification/search-baseline-2026-10-22.md).
 
 ## Sync: preserve the local copy while waiting
 
@@ -55,9 +55,9 @@ stateDiagram-v2
     OnBothDevices --> EncryptedQueue: Another local change
 ```
 
-The server receives ciphertext plus required opaque routing metadata. Missing keys never cause a replacement vault to overwrite inaccessible data. Conflicts, account changes, revocation and deletion are additional security substates required by ticket 05; this overview does not replace that full protocol design. Background execution has no fixed deadline. Capture/Find remain local during network failure.
+The server receives ciphertext plus required opaque routing metadata. Missing keys never cause a replacement vault to overwrite inaccessible data. Conflicts, account changes, revocation and deletion are additional security substates required by ticket 05; this overview does not replace that full protocol design. Background execution has no fixed deadline. Capture/Recall remain local during network failure.
 
-## Mac: compact Find on the hotkey
+## Mac: compact Recall on the hotkey
 
 ```mermaid
 stateDiagram-v2
@@ -73,7 +73,7 @@ stateDiagram-v2
     CompactFallback --> OtherApp: Escape
 ```
 
-The Mac begins in Find; the phone keyboard still begins in Capture. Read only host geometry for placement, with explicit Accessibility permission if chosen. Keep the panel on-screen and useful without that permission. Capture/Chat remain available and dismissal preserves drafts.
+The Mac begins in Recall; the phone keyboard still begins in Capture. Read only host geometry for placement, with explicit Accessibility permission if chosen. Keep the panel on-screen and useful without that permission. Capture/Chat remain available and dismissal preserves drafts.
 
 ## Chat: availability and retention are explicit
 
@@ -95,4 +95,4 @@ stateDiagram-v2
     CloudChoice --> AssistantUnavailable: Keep cloud AI off
 ```
 
-A continuing ordinary conversation is attributed and retained; Temporary can read the vault without adding messages or derived memories. Forget removes the local exchange and derived material, then propagates deletion to paired devices when sync runs. External copies have a separate boundary. An unavailable assistant does not disable Capture/Find. The app owns availability/setup; users do not operate an inference server. A reminder changes only after a validated deliberate action, with the executed result shown.
+A continuing ordinary conversation is attributed and retained; Temporary can read the vault without adding messages or derived memories. Forget removes the local exchange and derived material, then propagates deletion to paired devices when sync runs. External copies have a separate boundary. An unavailable assistant does not disable Capture/Recall. The app owns availability/setup; users do not operate an inference server. A reminder changes only after a validated deliberate action, with the executed result shown.

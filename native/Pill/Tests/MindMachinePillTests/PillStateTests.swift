@@ -15,8 +15,8 @@ final class PillStateTests: XCTestCase {
     func testHotkeyTogglesAndAlwaysOpensCapture() {
         var state = PillState()
         state.send(.hotkey)
-        state.send(.select(.find))
-        XCTAssertEqual(state.phase, .expanded(.find))
+        state.send(.select(.recall))
+        XCTAssertEqual(state.phase, .expanded(.recall))
         XCTAssertTrue(state.send(.hotkey).collapsing)
         state.send(.hotkey)
         XCTAssertEqual(state.phase, .expanded(.capture))
@@ -24,7 +24,7 @@ final class PillStateTests: XCTestCase {
 
     func testEscapeCloseAndClickAwayCollapse() {
         for event in [PillEvent.escape, .close, .clickAway] {
-            var state = PillState(phase: .expanded(.find))
+            var state = PillState(phase: .expanded(.recall))
             XCTAssertTrue(state.send(event).collapsing, "\(event)")
             XCTAssertEqual(state.phase, .collapsed)
         }
@@ -36,33 +36,33 @@ final class PillStateTests: XCTestCase {
         XCTAssertTrue(state.send(.escape).isNoOp)
     }
 
-    func testSelectSwitchesBetweenCaptureAndFind() {
+    func testSelectSwitchesBetweenCaptureAndRecall() {
         var state = PillState(phase: .expanded(.capture))
-        let toFind = state.send(.select(.find))
-        XCTAssertTrue(toFind.modeChanged)
-        XCTAssertEqual(state.phase, .expanded(.find))
-        XCTAssertTrue(state.send(.select(.find)).isNoOp)
+        let toRecall = state.send(.select(.recall))
+        XCTAssertTrue(toRecall.modeChanged)
+        XCTAssertEqual(state.phase, .expanded(.recall))
+        XCTAssertTrue(state.send(.select(.recall)).isNoOp)
         state.send(.select(.capture))
         XCTAssertEqual(state.phase, .expanded(.capture))
     }
 
     func testReservedThirdModeIsNeverSelectable() {
-        var state = PillState(phase: .expanded(.find))
+        var state = PillState(phase: .expanded(.recall))
         XCTAssertFalse(PillMode.reserved.isAvailable)
         XCTAssertNil(PillMode.reserved.vaultModeIndex)
         XCTAssertTrue(state.send(.select(.reserved)).isNoOp)
-        XCTAssertEqual(state.phase, .expanded(.find))
+        XCTAssertEqual(state.phase, .expanded(.recall))
     }
 
     func testSelectWhileCollapsedIsIgnored() {
         var state = PillState()
-        XCTAssertTrue(state.send(.select(.find)).isNoOp)
+        XCTAssertTrue(state.send(.select(.recall)).isNoOp)
         XCTAssertEqual(state.phase, .collapsed)
     }
 
     func testVaultModeIndexesMatchSharedModel() {
         XCTAssertEqual(PillMode.capture.vaultModeIndex, 0)
-        XCTAssertEqual(PillMode.find.vaultModeIndex, 1)
+        XCTAssertEqual(PillMode.recall.vaultModeIndex, 1)
     }
 
     func testHidingPillHidesWindowButHotkeyStillOpensPanel() {
