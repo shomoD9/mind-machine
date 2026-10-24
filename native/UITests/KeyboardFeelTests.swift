@@ -1,5 +1,5 @@
 /* XCUITest coverage for how the production keyboard feels next to Apple's: caps lock, long-press
- alternates, delete repeat, landscape and the return key. It drives KeyboardTestHost (the same
+ alternates, sliding from shift or 123, delete repeat, the return key and landscape. It drives KeyboardTestHost (the same
  controller, KeyplaneView and RoutedTextProxy that ship) through real key gestures, like
  KeyboardAcceptanceTests. MindMachineKeyboardUITests in native-ci runs both files. The geometry
  test also saves screenshots of this keyboard and of Apple's keyboard on the same simulator, in
@@ -68,6 +68,71 @@ final class KeyboardFeelTests: XCTestCase {
         // within the key's release tolerance, so t itself is typed.
         key("t").press(forDuration: 1.0, thenDragTo: key("y"))
         expectValue(editor, "t")
+    }
+
+    // MARK: Shift and 123 slides (audit G8)
+
+    func testSlidingFromShiftTypesOneCapital() {
+        let editor = launchAndFocusNote()
+        tapKey("shift")
+        tapKey("a")
+        expectValue(editor, "a")
+        slide(from: "shift", to: "k")
+        expectValue(editor, "aK")
+        // Shift is off again after the slide.
+        tapKey("l")
+        expectValue(editor, "aKl")
+    }
+
+    func testSlidingFrom123TypesOneDigitAndReturnsToLetters() {
+        let editor = launchAndFocusNote()
+        tapKey("shift")
+        tapKey("a")
+        // The number row replaces the top letter row on touch-down; e's position is 3.
+        slide(from: "123", to: "e")
+        expectValue(editor, "a3")
+        tapKey("b")
+        expectValue(editor, "a3b")
+    }
+
+    // MARK: Return key (audit G3, G4)
+
+    func testActionReturnKeyIsGrey() {
+        launch(extra: ["--host-return-search"])
+        let editor = app.textViews["keyboard-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.tap()
+        app.buttons["typing-destination"].tap()
+        expectLabel(app.buttons["typing-destination"], "Typing into: App")
+        let returnKey = key("return")
+        let isSearch = NSPredicate { _, _ in returnKey.label.localizedCaseInsensitiveContains("search") }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: isSearch, object: nil)], timeout: 5), .completed,
+                       "Return should become Search for a search field, got \(returnKey.label)")
+        Thread.sleep(forTimeInterval: 0.5)
+        // Sample the key face beside its glyph: Apple's blue must arrive as the panel's prominent grey.
+        let frame = returnKey.frame
+        let colour = pixel(in: XCUIScreen.main.screenshot(), at: CGPoint(x: frame.minX + 9, y: frame.midY))
+        attach(XCUIScreen.main.screenshot(), name: "return-search")
+        XCTAssertLessThanOrEqual(max(colour.r, colour.g, colour.b) - min(colour.r, colour.g, colour.b), 6,
+                                 "Return key fill must be grey, sampled \(colour)")
+        XCTAssertLessThan((colour.r + colour.g + colour.b) / 3, 110, "Light appearance uses the dark prominent fill, sampled \(colour)")
+    }
+
+    func testReturnKeyIsInertWhileAnEmptyHostFieldAsksForIt() {
+        launch(extra: ["--host-text", "", "--host-return-automatically"])
+        let composer = app.textViews["host-composer"]
+        let editor = app.textViews["keyboard-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.tap()
+        app.buttons["typing-destination"].tap()
+        expectLabel(app.buttons["typing-destination"], "Typing into: App")
+        tapKey("return")
+        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertEqual(composer.value as? String ?? "", "", "Return must do nothing in an empty field that asks for it")
+        tapKey("x")
+        expectValue(composer, "X")
+        tapKey("return")
+        expectValue(composer, "X\n")
     }
 
     // MARK: Delete repeat (audit G6)
@@ -193,6 +258,30 @@ final class KeyboardFeelTests: XCTestCase {
         XCTAssertTrue(element.waitForExistence(timeout: 5), "Missing key \(name)", file: file, line: line)
         // Same explicit short hold as KeyboardAcceptanceTests: both gesture phases, below long-press.
         element.press(forDuration: 0.12)
+    }
+
+    /// Touch one key, hold briefly, slide to where another key sits and lift. Positions are read
+    /// before the gesture because the layout under the finger changes on touch-down.
+    private func slide(from source: String, to target: String) {
+        XCTAssertTrue(key(source).waitForExistence(timeout: 5))
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        let start = key(source).frame, end = key(target).frame
+        origin.withOffset(CGVector(dx: start.midX, dy: start.midY))
+            .press(forDuration: 0.3, thenDragTo: origin.withOffset(CGVector(dx: end.midX, dy: end.midY)))
+    }
+
+    /// The 0-255 colour of one screen point in a screenshot.
+    private func pixel(in screenshot: XCUIScreenshot, at point: CGPoint) -> (r: Int, g: Int, b: Int) {
+        let image = screenshot.image
+        guard let cgImage = image.cgImage else { return (0, 0, 0) }
+        var data = [UInt8](repeating: 0, count: 4)
+        let space = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(data: &data, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4, space: space,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return (0, 0, 0) }
+        let scale = image.scale
+        context.draw(cgImage, in: CGRect(x: -point.x * scale, y: -(CGFloat(cgImage.height) - point.y * scale),
+                                         width: CGFloat(cgImage.width), height: CGFloat(cgImage.height)))
+        return (Int(data[0]), Int(data[1]), Int(data[2]))
     }
 
     private func attach(_ screenshot: XCUIScreenshot, name: String) {

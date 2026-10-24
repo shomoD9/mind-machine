@@ -4,7 +4,8 @@
  the typing destination through RoutedTextProxy: the private editor, or the host's
  textDocumentProxy. VaultModel supplies the same persisted capture/recall operations as Mac.
  Panel styling comes from KeyboardPanelStyle.swift; key sounds from InputClickFeedback.swift;
- the hosted keys from KeyplaneView.swift. */
+ the hosted keys from KeyplaneView.swift; Apple-like gesture behaviour (delete acceleration,
+ held and sliding shift, inert return) from KeyplaneBehavior.swift. */
 import UIKit
 import SwiftUI
 import Combine
@@ -59,6 +60,9 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
     // KeyboardKit's keys, hosted once below the panel. Keys write only through `router`.
     private var keys: UIHostingController<AnyView>?
     private let router = RoutedTextProxy()
+    // Shared with KeyplaneView and the action handler: return-key state and key frames.
+    private let keyplane = KeyplaneState()
+    private var keyHandler: KeyplaneActionHandler?
     private var keysRouteToHost: Bool?
     private var workspace = KeyboardWorkspace()
     private var workspaceHeight: NSLayoutConstraint?
@@ -128,6 +132,7 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         modes.selectedSegmentIndex = 0
         workspace.selectMode(.capture)
         selected = nil; reminderSession = nil; hostInput = false
+        keyHandler?.resetGestureState()
         refreshMode()
     }
 
@@ -151,7 +156,16 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         state.keyboardContext.textInputProxy = router
         let feedback = InputClickFeedbackService()
         services.feedbackService = feedback
-        (services.actionHandler as? KeyboardAction.StandardActionHandler)?.feedbackService = feedback
+        // KeyplaneBehavior and KeyplaneActionHandler extend KeyboardKit's standard classes with
+        // Apple's delete acceleration, held/sliding shift and inert return (KeyplaneBehavior.swift).
+        // The handler is created last so it picks up this feedback service and behaviour.
+        let behavior = KeyplaneBehavior(keyboardContext: state.keyboardContext, repeatGestureTimer: services.repeatGestureTimer)
+        behavior.keyplane = keyplane
+        services.keyboardBehavior = behavior
+        let handler = KeyplaneActionHandler(controller: self)
+        handler.keyplane = keyplane
+        services.actionHandler = handler
+        keyHandler = handler
         // KeyboardKit's initial setup runs asynchronously after viewDidLoad and copies the host
         // field's keyboard type. Capture starts in the private note, so restore its layout after it.
         DispatchQueue.main.async { [weak self] in self?.syncKeysWithRoute(force: true) }
@@ -162,9 +176,12 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
     override func viewWillSetupKeyboardView() {
         guard keys == nil else { return }
         // KeyplaneView observes the keyboard context so case and layer changes rebuild the layout.
-        let keyboard = KeyplaneView(state: state, services: services, context: state.keyboardContext)
+        let keyboard = KeyplaneView(state: state, services: services, context: state.keyboardContext, keyplane: keyplane)
             .keyboardState(state)
         let host = UIHostingController(rootView: AnyView(keyboard))
+        // Fast typists touch the next key before lifting the last, and shift can be held while
+        // another finger types; both need every touch delivered, as on Apple's keyboard.
+        host.view.isMultipleTouchEnabled = true
         host.sizingOptions = .intrinsicContentSize
         host.safeAreaRegions = []
         host.view.backgroundColor = .clear
@@ -670,6 +687,7 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         // text notification is insufficient. Keep the extension open rather than
         // resigning the local responder, which can restore the system keyboard.
         if !editor.isFirstResponder { hostDocumentProxy = originalTextDocumentProxy }
+        refreshReturnKey()
         if editor.isFirstResponder, let privateDocument, document != privateDocument,
            !sendingToHost, !restoringEditor {
             retainDraft()
@@ -715,6 +733,7 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
     func writeToHost(_ write: (UITextDocumentProxy) -> Void) {
         guard let proxy = hostProxyForWriting() else { return }
         sendingToHost = true; write(proxy); sendingToHost = false
+        refreshReturnKey()
     }
     func privateEditorDidChange() { retainDraft() }
 
@@ -727,6 +746,15 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         let hostType = hostInput ? hostProxyForReading?.keyboardType?.keyboardType : nil
         context.keyboardType = hostType ?? .alphabetic
         setKeyboardCase(context.preferredKeyboardCase)
+        refreshReturnKey()
+    }
+
+    // Apple's return key is inert while a host field that sets enablesReturnKeyAutomatically
+    // is empty (Messages, a search field). The private note never disables it.
+    private func refreshReturnKey() {
+        let proxy = hostInput ? hostProxyForReading : nil
+        let disabled = (proxy?.enablesReturnKeyAutomatically ?? false) && !(proxy?.hasText ?? true)
+        if keyplane.returnKeyDisabled != disabled { keyplane.returnKeyDisabled = disabled }
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {

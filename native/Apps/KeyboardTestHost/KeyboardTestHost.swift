@@ -2,7 +2,8 @@
  It owns a visible host field; the production keyboard is embedded here so tests
  do not depend on Settings, Full Access grants or keyboard-daemon preferences.
  With --apple-keyboard-reference it also focuses a plain field so Apple's own keyboard
- appears on the same simulator, as the geometry reference for KeyboardFeelTests. */
+ appears on the same simulator, as the geometry reference for KeyboardFeelTests. --host-text,
+ --host-return-search and --host-return-automatically set the host field's draft and traits. */
 import UIKit
 
 @main
@@ -38,6 +39,10 @@ private final class HostController: UIViewController, TextRouteOwner {
         }
         composer.font = .systemFont(ofSize: 17)
         composer.autocorrectionType = .no
+        // Return-key traits for KeyboardFeelTests: an action return key (--host-return-search)
+        // and Apple's disabled-while-empty rule (--host-return-automatically).
+        if arguments.contains("--host-return-search") { composer.returnKeyType = .search }
+        composer.enablesReturnKeyAutomatically = arguments.contains("--host-return-automatically")
         composer.inputView = UIView(frame: .zero)
         composer.selectedRange = NSRange(location: composer.text.utf16.count, length: 0)
         composer.accessibilityIdentifier = "host-composer"
