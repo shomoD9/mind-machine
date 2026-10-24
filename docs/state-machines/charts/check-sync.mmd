@@ -1,0 +1,45 @@
+stateDiagram-v2
+  state "Slice" as App {
+    state "Sync on this device" as Sync {
+      state "Local only, no key paired" as NoKey
+      state "Up to date" as UpToDate
+      state "Saved here, waiting to upload" as Waiting
+      state "Syncing privately" as Syncing
+      state "Offline, changes wait" as Offline
+      state "iCloud signed out" as SignedOut
+      state "Paused, notes kept on device" as Paused
+      [*] --> NoKey
+      NoKey --> Waiting : you pair the sync key
+      Waiting --> Syncing : sync starts
+      Syncing --> UpToDate : the cloud confirms every note
+      Syncing --> Waiting : the upload fails
+      Syncing --> Waiting : you save a note
+      UpToDate --> Waiting : you save a note
+      Waiting --> Waiting : you save a note
+      Offline --> Offline : you save a note
+      NoKey --> NoKey : you save a note
+      SignedOut --> SignedOut : you save a note
+      Paused --> Paused : you save a note
+      Waiting --> Offline : the network drops
+      Syncing --> Offline : the network drops
+      UpToDate --> Offline : the network drops
+      Offline --> Waiting : the network returns
+      Syncing --> SignedOut : iCloud is signed out
+      Waiting --> SignedOut : iCloud is signed out
+      SignedOut --> Waiting : you sign back in to iCloud
+      Syncing --> Paused : iCloud account changes
+      Syncing --> Paused : the cloud data cannot be read
+      Paused --> Waiting : the next sync retries with the original account
+    }
+    --
+    state "Notes not yet in the cloud" as Outbox {
+      state "None waiting" as OutboxEmpty
+      state "At least one waiting" as OutboxFull
+      [*] --> OutboxEmpty
+      OutboxEmpty --> OutboxFull : you save a note
+      OutboxFull --> OutboxFull : you save a note
+      OutboxFull --> OutboxEmpty : the cloud confirms every note
+    }
+  }
+  [*] --> App
+  %% never UpToDateWithWaitingNote: Up to date & At least one waiting -- The phone never says "Up to date" while a saved note has not reached the cloud.

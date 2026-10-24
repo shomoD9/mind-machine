@@ -1,0 +1,48 @@
+stateDiagram-v2
+  state "Pill resting" as PillIdle
+  state "Pill hovered, tooltip shows" as PillHover
+  state "Pill being dragged" as PillDragging
+  state "Pill hidden" as PillHidden
+  state "Panel open on Capture" as CaptureTab
+  state "Panel open on Find" as FindTab
+  state "Panel open on Capture, pill hidden" as HiddenCaptureTab
+  state "Panel open on Find, pill hidden" as HiddenFindTab
+  [*] --> PillIdle
+  PillIdle --> PillHover : you point at the pill
+  PillHover --> PillIdle : you move the pointer away
+  PillHover --> PillDragging : you press and drag the pill
+  PillDragging --> PillIdle : you drop the pill
+  PillHover --> CaptureTab : you click the pill
+  PillIdle --> CaptureTab : you press the hotkey
+  PillHover --> CaptureTab : you press the hotkey
+  PillDragging --> CaptureTab : you press the hotkey
+  CaptureTab --> FindTab : you switch to Find on the Mac
+  FindTab --> CaptureTab : you switch to Capture on the Mac
+  CaptureTab --> CaptureTab : you click the Soon tab
+  FindTab --> FindTab : you click the Soon tab
+  CaptureTab --> PillIdle : you press Escape
+  CaptureTab --> PillIdle : you click another app
+  CaptureTab --> PillIdle : you click the close button
+  CaptureTab --> PillIdle : you press the hotkey again
+  FindTab --> PillIdle : you press Escape
+  FindTab --> PillIdle : you click another app
+  FindTab --> PillIdle : you click the close button
+  FindTab --> PillIdle : you press the hotkey again
+  PillIdle --> PillHidden : you choose Hide pill
+  PillHover --> PillHidden : you choose Hide pill
+  PillHidden --> PillIdle : you choose Show pill
+  PillHidden --> HiddenCaptureTab : you press the hotkey
+  HiddenCaptureTab --> HiddenFindTab : you switch to Find on the Mac
+  HiddenFindTab --> HiddenCaptureTab : you switch to Capture on the Mac
+  HiddenCaptureTab --> HiddenCaptureTab : you click the Soon tab
+  HiddenFindTab --> HiddenFindTab : you click the Soon tab
+  HiddenCaptureTab --> PillHidden : you press Escape
+  HiddenCaptureTab --> PillHidden : you click another app
+  HiddenCaptureTab --> PillHidden : you click the close button
+  HiddenCaptureTab --> PillHidden : you press the hotkey again
+  HiddenFindTab --> PillHidden : you press Escape
+  HiddenFindTab --> PillHidden : you click another app
+  HiddenFindTab --> PillHidden : you click the close button
+  HiddenFindTab --> PillHidden : you press the hotkey again
+  HiddenCaptureTab --> CaptureTab : you choose Show pill
+  HiddenFindTab --> FindTab : you choose Show pill

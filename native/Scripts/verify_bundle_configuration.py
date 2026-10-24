@@ -5,10 +5,16 @@ testflight.yml jobs call it against the archived products with the build number 
 """
 from pathlib import Path
 import plistlib
-import sys
+import argparse
 
-bundle = Path(sys.argv[1])
-expected = sys.argv[2]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("bundle", type=Path)
+parser.add_argument("expected")
+parser.add_argument("build_number", nargs="?")
+parser.add_argument("--entitlements", type=Path, help="Verify requested capabilities against compiled vault identifiers")
+args = parser.parse_args()
+bundle = args.bundle
+expected = args.expected
 info = bundle / "Info.plist"
 if not info.exists():
     info = bundle / "Contents" / "Info.plist"
@@ -34,6 +40,24 @@ if values["CFBundlePackageType"] == "APPL":
             icon = values[key]["CFBundlePrimaryIcon"]
             assert icon["CFBundleIconName"] == "AppIcon", (key, icon)
             assert icon["CFBundleIconFiles"], (key, "No compiled icon files")
-if len(sys.argv) > 3:
-    assert values["CFBundleVersion"] == sys.argv[3], (values["CFBundleVersion"], sys.argv[3])
+if args.build_number:
+    assert values["CFBundleVersion"] == args.build_number, (values["CFBundleVersion"], args.build_number)
+# Unsigned products have no provisioning signature. Verify that their requested
+# source capabilities expand to the same identifiers the compiled app will use.
+if args.entitlements:
+    xml = args.entitlements.read_text()
+    for key, value in {"VAULT_APP_GROUP": values["VaultAppGroup"],
+                       "VAULT_ICLOUD_CONTAINER": values["VaultCloudContainer"],
+                       "VAULT_KEYCHAIN_GROUP": values["VaultKeychainGroup"]}.items():
+        xml = xml.replace("$(" + key + ")", value)
+    assert "$(" not in xml, "Unexpanded requested entitlement"
+    requested = plistlib.loads(xml.encode())
+    assert requested["com.apple.security.application-groups"] == [values["VaultAppGroup"]]
+    assert requested["com.apple.developer.icloud-container-identifiers"] == [values["VaultCloudContainer"]]
+    assert requested["com.apple.developer.icloud-services"] == ["CloudKit"]
+    assert requested["keychain-access-groups"] == [values["VaultKeychainGroup"]]
+    if (bundle / "Contents").exists():
+        assert requested["com.apple.security.app-sandbox"] is True
+        assert requested["com.apple.security.network.client"] is True
+    print(f"MM_ENTITLEMENTS {expected}: requested capabilities match compiled identifiers PASS")
 print(f"MM_BUNDLE {expected}: resolved App Group, CloudKit and Keychain identifiers PASS")

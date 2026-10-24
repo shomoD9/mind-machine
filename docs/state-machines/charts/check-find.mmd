@@ -1,0 +1,38 @@
+stateDiagram-v2
+  state "Slice" as App {
+    state "iPhone keyboard tab" as Tab {
+      state "Capture tab" as TabCapture
+      state "Find tab, result list" as ResultList
+      state "Find tab, one original open" as OriginalOpen
+      [*] --> TabCapture
+      TabCapture --> ResultList : you switch to Find on the phone
+      ResultList --> OriginalOpen : you tap a result
+      OriginalOpen --> ResultList : you tap Back to results
+      ResultList --> TabCapture : you switch to Capture on the phone
+      OriginalOpen --> TabCapture : you switch to Capture on the phone
+      ResultList --> TabCapture : the keyboard reopens
+      OriginalOpen --> TabCapture : the keyboard reopens
+    }
+    --
+    state "iPhone typing destination" as Dest {
+      state "Typing into the private pad" as ToPad
+      state "Typing into the app" as ToApp
+      [*] --> ToPad
+      ToPad --> ToApp : you tap the app text field
+      ToPad --> ToApp : you tap Insert original into app
+      ToApp --> ToApp : you tap Insert original into app
+      ToApp --> ToPad : you tap the private pad
+      ToApp --> ToPad : the keyboard reopens
+    }
+    --
+    state "iPhone pad size" as Size {
+      state "Minimised pad" as SizeMinimised
+      state "Default pad" as SizeDefault
+      state "Expanded pad" as SizeExpanded
+      [*] --> SizeDefault
+      SizeDefault --> SizeExpanded : you tap Size
+      SizeExpanded --> SizeMinimised : you tap Size
+      SizeMinimised --> SizeDefault : you tap Size
+    }
+  }
+  [*] --> App

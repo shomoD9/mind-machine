@@ -66,8 +66,8 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         if let model {
             model.$vault.sink { [weak self] _ in DispatchQueue.main.async { self?.renderResults() } }.store(in: &subscriptions)
             model.$deviceNotificationStatus.sink { [weak self] in self?.notificationStatus.text = $0 }.store(in: &subscriptions)
-            model.$notice.combineLatest(model.$error).sink { [weak self] notice, error in
-                self?.status.text = error ?? notice ?? "Private note · saved locally when you tap Save"
+            model.$notice.combineLatest(model.$error, model.$syncStatus).sink { [weak self] notice, error, syncStatus in
+                self?.status.text = error ?? notice ?? syncStatus
             }.store(in: &subscriptions)
         }
         refreshMode()
@@ -311,7 +311,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
 
     // All saves flow through coordinated persistence; Search has no write side effect.
     @objc private func primaryAction() {
-        guard let model else { return }
+        guard permitsPrivateInput, let model else { return }
         retainDraft()
         switch model.mode {
         case 0:
@@ -563,6 +563,20 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         destination.setTitle(hostInput ? "Typing into: App" : "Typing into: Private \(model?.mode == 1 ? "search" : model?.mode == 2 ? "chat" : "note")", for: .normal)
     }
 
+    // Storage access is checked at the input boundary, including hardware
+    // typing and paste. Losing Full Access retains the existing private draft.
+    private var permitsPrivateInput: Bool {
+        guard hasFullAccess, model != nil else {
+            status.text = DeviceVault.StorageError.sharedContainerUnavailable.localizedDescription
+            return false
+        }
+        return true
+    }
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange,
+                  replacementText text: String) -> Bool {
+        permitsPrivateInput
+    }
+
     func textViewDidBeginEditing(_ textView: UITextView) {
         privateDocument = textDocumentProxy.documentIdentifier
         hostInput = false; refreshDestination()
@@ -617,7 +631,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         if hostInput {
             guard let proxy = hostProxyForWriting() else { return }
             sendingToHost = true; proxy.insertText(text); sendingToHost = false
-        } else if selected == nil {
+        } else if selected == nil, permitsPrivateInput {
             editor.insertText(text); retainDraft()
         }
     }
@@ -630,7 +644,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
             guard let proxy = hostProxyForWriting() else { return }
             sendingToHost = true; proxy.deleteBackward(); sendingToHost = false
         }
-        else if selected == nil { editor.deleteBackward(); retainDraft() }
+        else if selected == nil, permitsPrivateInput { editor.deleteBackward(); retainDraft() }
     }
     @objc private func toggleShift() { shift.toggle(); buildKeys() }
     @objc private func toggleNumbers() { numbers.toggle(); buildKeys() }

@@ -1,0 +1,24 @@
+stateDiagram-v2
+  state "Keyboard not added" as NotAdded
+  state "Added, Full Access off" as NoAccess
+  state "Ready, note pad empty" as NoteEmpty
+  state "Ready, note being written" as NoteDrafting
+  state "Ready, saved on this device" as NoteSaved
+  state "Ready, save failed and draft kept" as NoteSaveFailed
+  [*] --> NotAdded
+  NotAdded --> NoAccess : you add the keyboard in Settings
+  NoAccess --> NoteEmpty : you turn on Full Access
+  NoteEmpty --> NoteDrafting : you type in the private pad
+  NoteSaved --> NoteDrafting : you type in the private pad
+  NoteDrafting --> NoteSaved : you save a note
+  NoteDrafting --> NoteSaveFailed : the device cannot store the note
+  NoteSaveFailed --> NoteDrafting : you keep editing the draft
+  NoteEmpty --> NoAccess : you turn off Full Access
+  NoteEmpty --> NotAdded : you remove the keyboard
+  NoteDrafting --> NoAccess : you turn off Full Access
+  NoteDrafting --> NotAdded : you remove the keyboard
+  NoteSaved --> NoAccess : you turn off Full Access
+  NoteSaved --> NotAdded : you remove the keyboard
+  NoteSaveFailed --> NoAccess : you turn off Full Access
+  NoteSaveFailed --> NotAdded : you remove the keyboard
+  NoAccess --> NotAdded : you remove the keyboard

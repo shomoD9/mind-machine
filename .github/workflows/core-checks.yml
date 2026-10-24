@@ -1,0 +1,54 @@
+# Calls the fixed-order native gates without changing native-ci's UI jobs or
+# TestFlight signing. Push safety uses 3 revisions; extended mode retains 4.
+name: core-checks
+on:
+  push:
+    branches: [main, overnight-core]
+    paths: ['native/**', 'spec/**', '.github/workflows/core-checks.yml']
+  pull_request:
+    paths: ['native/**', 'spec/**', '.github/workflows/core-checks.yml']
+  schedule:
+    - cron: '30 20 * * *'
+  workflow_dispatch:
+    inputs:
+      extended_model:
+        description: 'Run full model bounds and liveness (can take over an hour)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: core-checks-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    # The overnight branch already runs on push; avoid a duplicate macOS job
+    # for its PR event while retaining PR checks for other feature branches.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.ref != 'overnight-core'
+    runs-on: macos-26
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Fixed-order gates
+        env:
+          EXTENDED: ${{ github.event_name == 'schedule' || inputs.extended_model == true }}
+        run: |
+          set -o pipefail
+          if [ "$EXTENDED" = true ]; then
+            native/Scripts/checks.sh --extended | tee core-checks.txt
+          else
+            native/Scripts/checks.sh | tee core-checks.txt
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-checks
+          path: core-checks.txt
