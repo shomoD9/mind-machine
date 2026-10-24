@@ -2,6 +2,13 @@
 
 ## 2026-10-24 - Claude Opus 5.5 - Claude Code
 
+### Claude Opus 5.5 - Claude Code (mm-kbfeel)
+
+- Task: make the iPhone keyboard look and feel like Apple's. Read AGENTS, the tracker/triage/domain guides, CONTEXT, DESIGN's keyboard sections, ticket 19 and the controller, keyplane, proxy, feedback and UI tests. Opened ticket 22.
+- Cloned KeyboardKit 9.9.1 at the pinned commit (`a7e33ac`, MIT) into /tmp and read the gesture button, standard behaviour, action handler, callouts, feedback, space drag, device configuration and button colours, so the audit describes what the shipped code does rather than what its docs claim.
+- Measured geometry from CI run 40095407732's screenshots, which by chance caught Apple's keyboard (light) and ours (dark) on the same iPhone 17 Pro. A pixel scan gave key faces, gaps and margins: ours are 4 pt taller, rows 2 pt taller and 3.3 pt closer to the screen edge; widths match. Found that XCUITest result bundles store screenshot attachments as plain PNGs, so CI screenshots of both keyboards can be measured here on Linux.
+- Checked Apple's accent sets and delete behaviour against web sources because my recollection was wrong: iOS 17+ sets are larger than I remembered. Wrote the audit (`docs/verification/keyboard-feel-2026-10-24.md`) with 15 gaps.
+
 ### GPT-6 - Codex API (mm-ck)
 
 - Read repository instructions, local tracker/triage/domain guidance, CONTEXT and ADR 0001 to preserve the private-sync contract and track this task as ticket 21. Applied cloud-environment, prose-writing and artifact-verification guidance. The environment-status tool and network-policy file are unavailable; no credential contents were inspected.
