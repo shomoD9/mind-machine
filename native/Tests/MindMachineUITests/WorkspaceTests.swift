@@ -165,4 +165,29 @@ final class WorkspaceTests: XCTestCase {
         XCTAssertEqual(try VaultFile(url: url).read().captures.count, 121, "Bounded editing must retain every other source")
     }
 
+    // The footer hides healthy sync chatter but must never hide a problem. Every status wording that
+    // VaultModel and PrivateCloudSync produce is listed; anything unlisted counts as needing attention.
+    @MainActor
+    func testSyncIndicatorShowsOnlyStatesThatNeedThePerson() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let model = VaultModel(url: directory.appendingPathComponent("vault.json"), notificationAccess: .disabled)
+        let unpaired = SyncIndicator(status: model.syncStatus)
+        XCTAssertEqual(unpaired.level, .off, "A fresh unpaired vault reads as sync off")
+        XCTAssertEqual(unpaired.label, "Sync off")
+        XCTAssertEqual(unpaired.detail, model.syncStatus, "The full wording stays available on demand")
+
+        for healthy in ["Syncing privately…", "Private sync up to date", "Private sync ready", "Saved locally · sync pending"] {
+            let indicator = SyncIndicator(status: healthy)
+            XCTAssertEqual(indicator.level, .quiet, healthy)
+            XCTAssertNil(indicator.label, "\(healthy) shows the glyph alone")
+            XCTAssertEqual(indicator.detail, healthy)
+        }
+        for problem in ["Sync waiting: The network connection was lost.", "Sync paused: Account changed",
+                        "Local vault · The keychain item could not be read", "Something new went wrong"] {
+            let indicator = SyncIndicator(status: problem)
+            XCTAssertEqual(indicator.level, .attention, problem)
+            XCTAssertEqual(indicator.label, problem, "Problems are shown in full")
+        }
+    }
 }
