@@ -276,15 +276,18 @@ final class KeyboardFeelTests: XCTestCase {
 
     /// The 0-255 colour of one screen point in a screenshot.
     private func pixel(in screenshot: XCUIScreenshot, at point: CGPoint) -> (r: Int, g: Int, b: Int) {
-        let image = screenshot.image
-        guard let cgImage = image.cgImage else { return (0, 0, 0) }
+        guard let cgImage = screenshot.image.cgImage else { return (0, 0, 0) }
+        // Pixels per point, from the image itself rather than UIImage.scale.
+        let scale = CGFloat(cgImage.width) / app.windows.firstMatch.frame.width
         var data = [UInt8](repeating: 0, count: 4)
-        let space = CGColorSpaceCreateDeviceRGB()
-        guard let context = CGContext(data: &data, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4, space: space,
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return (0, 0, 0) }
-        let scale = image.scale
-        context.draw(cgImage, in: CGRect(x: -point.x * scale, y: -(CGFloat(cgImage.height) - point.y * scale),
-                                         width: CGFloat(cgImage.width), height: CGFloat(cgImage.height)))
+        data.withUnsafeMutableBytes { bytes in
+            guard let context = CGContext(data: bytes.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
+            // Shift the image so the sampled pixel lands on the 1 x 1 context (Core Graphics y runs up).
+            context.draw(cgImage, in: CGRect(x: -point.x * scale, y: -(CGFloat(cgImage.height) - point.y * scale),
+                                             width: CGFloat(cgImage.width), height: CGFloat(cgImage.height)))
+        }
         return (Int(data[0]), Int(data[1]), Int(data[2]))
     }
 

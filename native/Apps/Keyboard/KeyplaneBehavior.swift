@@ -9,6 +9,7 @@
  - touching shift or 123, sliding onto a key and lifting types that key and returns (G8);
  - return is inert while the host field is empty and asks for that (G4). */
 import Foundation
+import Combine
 import CoreGraphics
 import KeyboardKit
 
@@ -65,8 +66,12 @@ final class KeyplaneActionHandler: KeyboardAction.StandardActionHandler {
     private var slideHandled = false
     private var typeBeforeSlide = Keyboard.KeyboardType.alphabetic
 
-    /// Called when the keyboard appears, so a gesture cut short by dismissal leaves no held shift.
+    /// Called when the keyboard appears, so a gesture cut short by dismissal leaves no held shift
+    /// and no touch-down capitals.
     func resetGestureState() {
+        if shiftDown, !typedWhileShiftDown, keyboardContext.keyboardCase != caseBeforeShift {
+            keyboardContext.keyboardCase = caseBeforeShift
+        }
         shiftDown = false; typedWhileShiftDown = false
         slideStartFrame = nil; slidePoint = nil; slideHandled = false
         keyplane?.deletePressDate = nil
@@ -171,13 +176,13 @@ final class KeyplaneActionHandler: KeyboardAction.StandardActionHandler {
         }
     }
 
-    /// When the finger lifted over a letter or symbol other than the pressed shift or layer key,
+    /// When the finger lifted over a letter, symbol or space other than the pressed shift or layer key,
     /// type it as Apple's keyboard does and go back to the case or layer from before the press.
     private func typeSlideTarget() -> Bool {
         guard let start = slideStartFrame, let point = slidePoint, let frames = keyplane?.keyFrames else { return false }
         let location = CGPoint(x: start.minX + point.x, y: start.minY + point.y)
         if start.contains(location) { return false }
-        guard let target = frames.first(where: { $0.frame.contains(location) })?.action, target.isCharacterKey else { return false }
+        guard let target = frames.first(where: { $0.frame.contains(location) })?.action, target.isSlideTarget else { return false }
         slideHandled = true
         triggerFeedback(for: .press, on: target)
         super.handle(.release, on: target, replaced: false)
@@ -211,4 +216,7 @@ private extension KeyboardAction {
         default: return false
         }
     }
+
+    /// Keys a slide from shift or 123 can end on: characters and the space bar.
+    var isSlideTarget: Bool { isCharacterKey || self == .space }
 }

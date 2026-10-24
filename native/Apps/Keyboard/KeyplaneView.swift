@@ -50,7 +50,7 @@ struct KeyplaneView: View {
                 KeyAlternates.actions(for: params.action) { params.standardActions(for: context) }
             }
             .coordinateSpace(name: Self.space)
-            .onPreferenceChange(KeyFramesKey.self) { frames in keyplane.keyFrames = frames }
+            .onPreferenceChange(KeyFramesKey.self) { [keyplane] frames in keyplane.keyFrames = frames }
             // Apple's outer key faces sit 7.33 pt from the screen edge; KeyboardKit's sit 4 pt in.
             .padding(.horizontal, AppleGeometry.applies(to: context) ? AppleGeometry.edgePadding : 0)
     }
