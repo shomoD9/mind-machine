@@ -1,0 +1,7 @@
+// Private sync schema for container iCloud.com.statemachine.mindmachine.
+// Matches PrivateCloudSync.swift; CloudKit/README.md describes manual deployment.
+DEFINE SCHEMA
+
+    RECORD TYPE MindMachineRevisionV1 (
+        sealedRevision ENCRYPTED BYTES
+    );
