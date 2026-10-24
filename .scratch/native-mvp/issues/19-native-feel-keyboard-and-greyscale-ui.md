@@ -11,10 +11,12 @@ The founder tested TestFlight build 10 on 2026-10-23. Functionality worked. Requ
 - [x] Key sound through `UIDevice.playInputClick` (follows Keyboard Clicks); haptics through KeyboardKit's generator (follows System Haptics).
 - [x] Panel and companion restyled in pure greys with dithered grain; no copy string changed.
 - [x] Identifiers on every interactive control and status label; existing identifiers unchanged.
-- [ ] native-ci green on the PR.
+- [x] native-ci green on the PR.
 - [ ] Founder: key feel on device (callouts, accents, caps lock, repeat delete, click and haptic), dark mode, memory report in the companion.
 
 ## Comments
+
+- 2026-10-24, GPT-6 / Codex API: [CI 40063894121](https://github.com/shomoD9/mind-machine/actions/runs/40063894121) passes all five jobs, including the new iPhone/Mac UI acceptance journeys from ticket 20. The founder's physical-device acceptance remains open; this ticket stays ready-for-human.
 
 - 2026-10-24, Claude Opus 5.5 / Claude Code: KeyboardKit went closed-source binary at 10.0; 9.9.1 is the last MIT source release and covers geometry, callouts, accents, shift/caps lock, repeat delete, 123/#+= layers, space drag, dark mode and iOS 26 Liquid Glass styling. Pro-only gaps: emoji keyboard, autocomplete bar, non-English layouts. Details and verification are in DESIGN ("Native-feel keyboard and greyscale UI"). CI simulator screenshots (artifact `simulator-screenshots`) show the companion, vault and keyboard in light and dark.
 - 2026-10-24, Claude Opus 5.5 / Claude Code: The Release benchmark's newest-first "pr" assertion failed twice on this PR and on `overnight-core`. A throwaway probe (branch deleted) printed 4,276 of 10,000 fixture captures sharing a timestamp with their neighbour, ordered by random ID on ties. The fixture now stamps notes one millisecond apart; storage ordering is unchanged.
