@@ -9,7 +9,7 @@ Ticket 24, PR #10. All images come from CI artifacts, not local renders. The Mac
 | Mac collapsed pill | `before-collapsed.png` | `after-collapsed.png` |
 | iPhone companion vault, light | `before-iphone-vault-light.png` | `after-iphone-vault-light.png` (also `after-iphone-vault-dark.png`) |
 
-`after-capture-empty.png` shows the empty page with its in-editor prompt. It comes from a later run because the self-test did not snapshot the empty page before this PR.
+`after-capture-empty.png` shows the empty page: the caret sits at the first letter of the faint prompt and the disabled Save is dimmed. It comes from native-ci [40128785762](https://github.com/shomoD9/mind-machine/actions/runs/40128785762) at `4315b4c`, after this PR added the snapshot. That run also passed 51/51 checks, with expand median 220.13 ms, collapse median 175.81 ms and Reduce Motion expand 10.41 ms.
 
 ## Self-test measurements on the same runner type
 
