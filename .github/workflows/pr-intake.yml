@@ -22,6 +22,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          if [ ! -f factory/intake.py ]; then
+            echo '::error::Base branch has no factory policy yet; maintainer review is required for first installation.'
+            exit 1
+          fi
           python3 factory/intake.py --pr "$PR_NUMBER" > intake.json
           python3 - <<'PY'
           import json

@@ -4,6 +4,8 @@
 
 ### GPT-6 - Codex API (mm-intake)
 
+- Final policy review exposed a real overlap: broad package rules routed README/translation resources to B. Extended the existing A-rule fixture, observed ROUTE != PASS for both package paths, narrowed explicit B matches to Swift files (unknown paths still default B), and reran the suite. Added an explicit bootstrap error without executing head policy. TestFlight diff remains exactly one checkout pin; no signing/secrets/job permissions changed.
+
 - Pushed fb92f39 and opened PR #6 with the requested title; no merge. Exercised intake against historical PRs via gh: #1 A/PASS (433 lines), #2 D/REJECT SIZE_LIMIT (9,565), #3 D/REJECT SIZE_LIMIT (2,146), #4 D/REJECT SIZE_LIMIT (2,227), #5 D/ROUTE (136). All are OWNER; budgets still apply. Full JSON is /tmp/mm-intake-past-prs.json.
 - Expanded to 29 passing regressions: full gate entrypoint proves exact-code comment/close, lane-C label-only behavior and no writes for edited producer bytes; docs/test fixtures can quote network APIs without rejection; inline/quoted uses keys cannot hide floating refs. Fixed rerun artifacts to overwrite the prior attempt while binding run_attempt, and added tracked build specs to lane C. Latest actionlint v1.7.12 passes all workflows; v1.7.7 only lacked the existing macos-26 runner label. Native CI/core-checks are queued; bootstrap intake fails because the base has no factory scripts, as documented.
 

@@ -47,7 +47,7 @@ class IntakeRules(unittest.TestCase):
         return intake.classify(pr, files, CONFIG, REPO)
 
     def test_docs_translations_and_tests_only_are_lane_a(self):
-        for path in ("docs/FACTORY.md", "README.md", "native/Tests/XTests.swift", "native/Pill/Tests/X.swift", "native/UI/en.lproj/Localizable.strings"):
+        for path in ("docs/FACTORY.md", "README.md", "native/Tests/XTests.swift", "native/Pill/Tests/X.swift", "native/UI/en.lproj/Localizable.strings", "native/Sources/MindMachineUI/en.lproj/Localizable.strings", "native/Sources/MindMachineUI/README.md"):
             with self.subTest(path=path):
                 self.assertEqual(self.classify([path])["verdict"], "PASS")
 

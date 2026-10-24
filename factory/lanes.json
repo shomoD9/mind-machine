@@ -23,8 +23,8 @@
     {
       "lane": "B",
       "paths": [
-        "native/Sources/*",
-        "native/Pill/Sources/*"
+        "native/Sources/*.swift",
+        "native/Pill/Sources/*.swift"
       ]
     },
     {
