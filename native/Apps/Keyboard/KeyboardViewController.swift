@@ -155,6 +155,8 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
     // the router makes every key, word-delete, double-space period and space-bar drag follow
     // the typing destination. Sound follows the system Keyboard Clicks setting.
     private func configureKeyboardKit() {
+        // Apple's iOS 26 key sizes, gaps and margins replace KeyboardKit's presets before any layout.
+        if state.keyboardContext.isLiquidGlassEnabled { AppleGeometry.install() }
         router.owner = self
         state.keyboardContext.textInputProxy = router
         let feedback = InputClickFeedbackService()
@@ -588,8 +590,8 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
     }
 
     // An iPhone in landscape has a compact vertical size class. The keys shrink there on their
-    // own (KeyboardKit's 40 pt landscape rows); the panel follows with shorter notes and one
-    // header row, so the whole keyboard stays near 300 pt on a 375-440 pt tall screen.
+    // own (35.33 pt landscape rows); the panel follows with shorter notes and one header row,
+    // so the whole keyboard stays under 300 pt on a 375-440 pt tall screen.
     private var compactHeight: Bool { traitCollection.verticalSizeClass == .compact }
 
     private func applyPadSize() {
@@ -617,10 +619,12 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         var resultsShown = selected != nil ? max(64, padHeight / 2) : padHeight
         scroll.isHidden = !choosingDate && selected == nil && (model?.mode == 0 || workspace.size == .minimised)
         if compact && !choosingDate {
-            // Landscape asks for exactly what is visible: 160 pt of keys (four 40 pt rows) and
-            // 104 pt of header, actions row, margins and spacing, plus the note and any results.
+            // Landscape asks for exactly what is visible: four rows of keys (35.33 pt on iOS 26,
+            // 40 pt before) and 104 pt of header, actions row, margins and spacing, plus the note
+            // and any results.
             if selected != nil { resultsShown = 44 }
-            requestedHeight = 264 + editorHeight + (scroll.isHidden ? 0 : resultsShown + 7)
+            let keysHeight = (4 * KeyboardLayout.DeviceConfiguration.standardPhoneLandscape.rowHeight).rounded(.up)
+            requestedHeight = keysHeight + 104 + editorHeight + (scroll.isHidden ? 0 : resultsShown + 7)
         }
         height?.constant = editorHeight
         resultsHeight?.constant = choosingDate ? requestedHeight - 150 : resultsShown
