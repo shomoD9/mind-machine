@@ -1,4 +1,4 @@
-# 22: Capture window: lighter layout, remove top formatting row, clearer copy
+# 24: Capture window: lighter layout, remove top formatting row, clearer copy
 
 Status: claimed
 Blocked by: none

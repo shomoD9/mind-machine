@@ -192,11 +192,16 @@ for name, folder, bundle, kind in [
 
 # UI tests are separate runners: they launch the host/app and use only accessibility
 # and input events. Shared schemes make the same journeys runnable in Xcode and CI.
-def ui_test_target(name, host, source, is_mac=False):
-    ref = add(name+'ref', 'PBXFileReference', lastKnownFileType='sourcecode.swift', path=quote('UITests/'+source), sourceTree=quote('<group>'))
-    groups.append(add(name+'group', 'PBXGroup', name=quote(name), children=array([ref]), sourceTree=quote('<group>')))
-    build_file = add(name+'file', 'PBXBuildFile', fileRef=ref)
-    sources = add(name+'sources', 'PBXSourcesBuildPhase', buildActionMask='2147483647', files=array([build_file]), runOnlyForDeploymentPostprocessing='0')
+def ui_test_target(name, host, test_sources, is_mac=False):
+    # The first file keeps the original object names, so adding files leaves existing IDs unchanged.
+    refs, build_files = [], []
+    for index, source in enumerate(test_sources):
+        key = name if index == 0 else name+source
+        ref = add(key+'ref', 'PBXFileReference', lastKnownFileType='sourcecode.swift', path=quote('UITests/'+source), sourceTree=quote('<group>'))
+        refs.append(ref)
+        build_files.append(add(key+'file', 'PBXBuildFile', fileRef=ref))
+    groups.append(add(name+'group', 'PBXGroup', name=quote(name), children=array(refs), sourceTree=quote('<group>')))
+    sources = add(name+'sources', 'PBXSourcesBuildPhase', buildActionMask='2147483647', files=array(build_files), runOnlyForDeploymentPostprocessing='0')
     product = add(name+'product', 'PBXFileReference', explicitFileType=quote('wrapper.cfbundle'), path=quote(name+'.xctest'), sourceTree='BUILT_PRODUCTS_DIR')
     products.append(product)
     configs = []
@@ -227,8 +232,8 @@ def ui_test_target(name, host, source, is_mac=False):
 '''
     (ROOT/'MindMachine.xcodeproj/xcshareddata/xcschemes'/f'{name}.xcscheme').write_text(scheme)
 
-ui_test_target('MindMachineKeyboardUITests', 'KeyboardTestHost', 'KeyboardAcceptanceTests.swift')
-ui_test_target('MindMachinePillUITests', 'MindMachineMac', 'PillAcceptanceTests.swift', is_mac=True)
+ui_test_target('MindMachineKeyboardUITests', 'KeyboardTestHost', ['KeyboardAcceptanceTests.swift', 'KeyboardFeelTests.swift'])
+ui_test_target('MindMachinePillUITests', 'MindMachineMac', ['PillAcceptanceTests.swift'], is_mac=True)
 product_group=add('products','PBXGroup',name='Products',children=array(products),sourceTree=quote('<group>'))
 main_group=add('main','PBXGroup',children=array(groups+[signing_config, product_group]),sourceTree=quote('<group>'))
 project_configs=[add('project'+c,'XCBuildConfiguration',name=quote(c),buildSettings=dictionary({'CLANG_ENABLE_MODULES':'YES','SWIFT_VERSION':'5.0'})) for c in ['Debug','Release']]
