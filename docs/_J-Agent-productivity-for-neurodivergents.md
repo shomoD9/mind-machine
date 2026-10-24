@@ -6,6 +6,7 @@
 
 - Read AGENTS, CONTEXT, TESTING-TONIGHT, domain/tracker/triage guidance, ADR 0001 and the TDD/prove-it-works/runtime skills. The requested `/tmp/mm-kbui-result.md` handoff was absent. No environment-status tool or network-policy file is available; used the configured GitHub CLI connection without inspecting credentials.
 - Claimed ticket 20 for founder-authorized UI automation. The existing native spec already approves the keyboard-workspace and saved-vault seams, and the founder explicitly requested UI journeys. Read production keyboard/proxy/keyplane and pill code plus KeyboardKit's pinned source to locate boundary adapters. Chose a dedicated host to avoid simulator keyboard selection races; its first Capture tracer is pushed before embedding the controller to obtain an assertion failure on macOS CI.
+- Watched CI 40048773898: package, shipping iOS build and sandboxed Mac self-test passed; the UI tracer failed with exactly `XCTAssertTrue failed - Production keyboard must appear in the host`. Embedded the actual controller/keyplane in the dedicated simulator target, compiled test-only storage/proxy adapters there, and added stable key identifiers without changing labels or visuals. Push the same tracer again to verify saving and host isolation before expanding coverage.
 
 ### Claude Opus 5.5 - Claude Code
 

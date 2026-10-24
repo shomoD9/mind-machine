@@ -14,6 +14,16 @@ import MindMachineUI
 
 @MainActor
 final class KeyboardViewController: KeyboardInputViewController, UITextViewDelegate, UIGestureRecognizerDelegate, TextRouteOwner {
+    #if KEYBOARD_UI_TEST_HOST
+    // Only the separate UI-test app compiles these OS-boundary adapters. All workspace,
+    // keyplane, routing validation and persistence operations below remain production code.
+    var uiTestVaultURL: URL!
+    var uiTestHostProxy: UITextDocumentProxy!
+    private let uiTestPrivateProxy = RoutedTextProxy()
+    override var originalTextDocumentProxy: UITextDocumentProxy {
+        editor.isFirstResponder ? uiTestPrivateProxy : uiTestHostProxy
+    }
+    #endif
     // iOS can retarget its proxy to the host while the local editor stays active.
     // Capture local identity after editing begins; avoid proxy access at startup.
     private var privateDocument: UUID?
@@ -71,10 +81,15 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         configureKeyboardKit()
         // Refuse isolated keyboard storage. Full Access and the common signed
         // group must both work before any private capture can be accepted.
+        #if KEYBOARD_UI_TEST_HOST
+        hostDocumentProxy = uiTestHostProxy
+        model = VaultModel(url: uiTestVaultURL, notificationAccess: .disabled)
+        #else
         do {
             guard hasFullAccess else { throw DeviceVault.StorageError.sharedContainerUnavailable }
             model = VaultModel(url: try DeviceVault.sharedURL(), notificationAccess: .keyboard)
         } catch { status.text = error.localizedDescription }
+        #endif
         buildWorkspace()
         if let model {
             model.$vault.sink { [weak self] _ in DispatchQueue.main.async { self?.renderResults() } }.store(in: &subscriptions)
@@ -90,10 +105,12 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
     // Store the actual extension footprint/headroom in the shared container for
     // companion setup. Sampling never loads the corpus or a semantic model.
     private func recordMemory() {
+        #if !KEYBOARD_UI_TEST_HOST
         guard let memory = ProcessMemory.sample(), let url = try? DeviceVault.sharedURL() else { return }
         let headroom = memory.availableMiB.map { String(format: "%.1f", $0) } ?? "unavailable"
         let report = "Keyboard footprint: \(String(format: "%.1f", memory.footprintMiB)) MiB · OS headroom: \(headroom) MiB · \(Date().formatted())"
         try? Data(report.utf8).write(to: url.deletingLastPathComponent().appendingPathComponent("keyboard-memory.txt"), options: .atomic)
+        #endif
     }
 
     override func didReceiveMemoryWarning() {

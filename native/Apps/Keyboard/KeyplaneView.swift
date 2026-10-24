@@ -3,7 +3,8 @@
  KeyboardView is created, and its own root view re-creates it on every keyboard-context change.
  This wrapper does the same by observing the context, and makes two adjustments toward Apple's
  iPhone keyboard: with no emoji keyboard, the bottom-left layer key is as wide as return, and on
- iOS 26 (Liquid Glass) the space bar carries no label. */
+ iOS 26 (Liquid Glass) the space bar carries no label. Stable key identifiers let
+ KeyboardAcceptanceTests tap the same gesture-backed keys people use. */
 import SwiftUI
 import KeyboardKit
 
@@ -21,10 +22,27 @@ struct KeyplaneView: View {
             buttonContent: { item in
                 if item.item.action == .space && context.isLiquidGlassEnabled { Color.clear } else { item.view }
             },
-            buttonView: { $0.view }, collapsedView: { $0.view },
+            buttonView: { item in
+                item.view.accessibilityIdentifier(Self.keyIdentifier(item.item.action))
+            }, collapsedView: { $0.view },
             emojiKeyboard: { $0.view }, toolbar: { _ in EmptyView() })
             // No suggestion bar: the panel sits where Apple's predictive bar would be.
             .autocompleteToolbarStyle(.init(height: 0))
+    }
+
+    // Character IDs survive automatic case changes; layer IDs describe the target
+    // layout. Return and space stay identifiable even when their labels are hidden.
+    static func keyIdentifier(_ action: KeyboardAction) -> String {
+        switch action {
+        case .character(let text): return "keyboard-key-\(text.lowercased())"
+        case .shift: return "keyboard-key-shift"
+        case .backspace: return "keyboard-key-delete"
+        case .space: return "keyboard-key-space"
+        case .primary: return "keyboard-key-return"
+        case .keyboardType(.numeric): return "keyboard-key-123"
+        case .keyboardType(.alphabetic): return "keyboard-key-abc"
+        default: return "keyboard-key-\(action.accessibilityLabel ?? "other")"
+        }
     }
 
     /// KeyboardKit's free core has no emoji keyboard, so its view drops the emoji key and gives
