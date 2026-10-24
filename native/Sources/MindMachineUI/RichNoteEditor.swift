@@ -171,6 +171,9 @@ private struct NativeNoteAdapter: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
     func makeUIView(context: Context) -> UITextView {
         let editor = UITextView()
+        // Native elements need the identifier as well as the SwiftUI wrapper so
+        // UI acceptance can focus/type into the actual editor on both platforms.
+        editor.accessibilityIdentifier = "capture-editor"
         editor.font = .preferredFont(forTextStyle: .body)
         // The rounded paper surface is drawn by SwiftUI around this view.
         editor.backgroundColor = .clear
@@ -206,6 +209,7 @@ private struct NativeNoteAdapter: NSViewRepresentable {
     func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSTextView.scrollableTextView()
         guard let editor = scroll.documentView as? NSTextView else { return scroll }
+        editor.setAccessibilityIdentifier("capture-editor")
         editor.isRichText = true
         // The rounded paper surface is drawn by SwiftUI around this view.
         scroll.drawsBackground = false

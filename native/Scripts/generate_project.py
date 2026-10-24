@@ -227,6 +227,7 @@ def ui_test_target(name, host, source, is_mac=False):
     (ROOT/'MindMachine.xcodeproj/xcshareddata/xcschemes'/f'{name}.xcscheme').write_text(scheme)
 
 ui_test_target('MindMachineKeyboardUITests', 'KeyboardTestHost', 'KeyboardAcceptanceTests.swift')
+ui_test_target('MindMachinePillUITests', 'MindMachineMac', 'PillAcceptanceTests.swift', is_mac=True)
 product_group=add('products','PBXGroup',name='Products',children=array(products),sourceTree=quote('<group>'))
 main_group=add('main','PBXGroup',children=array(groups+[signing_config, product_group]),sourceTree=quote('<group>'))
 project_configs=[add('project'+c,'XCBuildConfiguration',name=quote(c),buildSettings=dictionary({'CLANG_ENABLE_MODULES':'YES','SWIFT_VERSION':'5.0'})) for c in ['Debug','Release']]
