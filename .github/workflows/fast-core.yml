@@ -1,0 +1,40 @@
+# Linux feedback for the portable native core and zero-token watchdog.
+# Called on pushes/PRs; docs/CHECKS.md lists the Apple-only exclusions.
+name: fast-core
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fast-core-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fast-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    container: swift:6.2.1-noble
+    steps:
+      # Verified with gh api repos/actions/checkout/git/ref/tags/v4.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install SQLite headers and Python
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends libsqlite3-dev pkg-config python3
+      # A cold build is small; no cache or Linux performance claims are needed.
+      - name: Portable core tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          started=$SECONDS
+          swift --version
+          swift test --package-path native --jobs 2
+          elapsed=$((SECONDS - started))
+          echo "MM_LINUX_CORE seconds=$elapsed"
+          echo "Linux core build + tests: ${elapsed}s (Swift 6.2.1, cold build)." >> "$GITHUB_STEP_SUMMARY"
+      - name: Watchdog transitions
+        run: python3 -m unittest discover -s tools/tests -v

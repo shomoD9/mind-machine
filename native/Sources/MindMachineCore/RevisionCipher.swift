@@ -5,8 +5,11 @@
  SyncFailure, declared below, is thrown by PrivateCloudSync, PrivateSyncKey and VaultFile.bindSyncAccount,
  and shown to the person by VaultModel.syncStatus and PrivateSyncSetupView. */
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
 
+// Linux tests exercise plaintext revision projection without replacing encryption.
+// Apple callers retain the same authenticated cipher; SyncFailure stays portable.
 public enum RevisionCipher {
     // AES-GCM authenticated context; changing it makes previously sealed revisions unreadable.
     private static let context = Data("com.statemachine.mindmachine.revision.v1".utf8)
@@ -18,6 +21,7 @@ public enum RevisionCipher {
         return try JSONDecoder().decode(NoteRevision.self, from: plaintext)
     }
 }
+#endif
 
 public enum SyncFailure: LocalizedError {
     case accountChanged, missingKey, invalidKey, unavailable, remoteReset
