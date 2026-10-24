@@ -1,7 +1,8 @@
 /* XCUITest coverage for how the production keyboard feels next to Apple's: caps lock, long-press
  alternates, sliding from shift or 123, delete repeat, the return key and landscape. It drives KeyboardTestHost (the same
  controller, KeyplaneView and RoutedTextProxy that ship) through real key gestures, like
- KeyboardAcceptanceTests. MindMachineKeyboardUITests in native-ci runs both files. The geometry
+ KeyboardAcceptanceTests. MindMachineKeyboardUITests in native-ci runs both files and uses the snapshot assertions
+ declared in KeyboardAcceptanceTests. The geometry
  test also saves screenshots of this keyboard and of Apple's keyboard on the same simulator, in
  portrait and landscape, as evidence for docs/verification/keyboard-feel-2026-10-24.md. */
 import XCTest
@@ -296,17 +297,5 @@ final class KeyboardFeelTests: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
-    }
-
-    private func expectValue(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
-        let matches = NSPredicate(format: "value == %@", text)
-        XCTAssertTrue(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: matches, object: element)], timeout: 5) == .completed,
-                      "Expected \(text.debugDescription), got \(String(describing: element.value))", file: file, line: line)
-    }
-
-    private func expectLabel(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
-        let matches = NSPredicate(format: "label == %@", text)
-        XCTAssertTrue(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: matches, object: element)], timeout: 5) == .completed,
-                      "Expected \(text.debugDescription), got \(element.label)", file: file, line: line)
     }
 }

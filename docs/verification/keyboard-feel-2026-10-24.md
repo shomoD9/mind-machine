@@ -95,3 +95,9 @@ During the baseline round `KeyboardAcceptanceTests.testCaptureRecallInsertAndRel
 - Held shift with a second finger; roll-over typing with multiple touches enabled.
 - Whether Apple's accent popup includes the plain letter (ours does, first) and the order of alternates on right-hand keys.
 - Haptic strength (KeyboardKit's selection tap) and the single click sound against Apple's three.
+
+## Simulator acceptance observation repair
+
+The documentation checkpoint a98d02b’s [run 40110448639](https://github.com/shomoD9/mind-machine/actions/runs/40110448639) failed only `testCaptureRecallInsertAndRelaunch` while clearing the Recall query; all ten feel tests passed. Its xcresult runner log records the AX query starting at 16:21:31.648 with a 30-second transport deadline. At 16:21:35.864 the surrounding five-second `XCTNSPredicateExpectation` interrupted that query with `XCTFuture Code=1001`, “Interrupted by waiter.” The later diagnostic and captured screenshot/tree show an empty editor. The failure reported a canceled observation rather than a completed value comparison.
+
+The keyboard suites now compare completed [XCUIElement snapshots](https://developer.apple.com/documentation/xcuiautomation/xcuielementsnapshotproviding/snapshot%28%29) synchronously. Five seconds still bounds polling for text to settle; each AX request keeps XCTest’s normal transport deadline and cannot be canceled by an enclosing predicate waiter. Exact strings remain mandatory, nil and snapshot errors fail, and no gesture is retried. Query replacement additionally asserts the exact prefix after every delete. All 13 journeys and their visual, gesture, search and persistence assertions remain. Hosted verification is pending on the repair commit.

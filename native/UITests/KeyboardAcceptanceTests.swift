@@ -1,6 +1,7 @@
 /* XCUITest acceptance for the production keyboard embedded by KeyboardTestHost.
  MindMachineKeyboardUITests in native-ci drives controls and reads visible text;
- no test reads the vault database or substitutes Capture/Recall operations. */
+ no test reads the vault database or substitutes Capture/Recall operations. The XCTestCase
+ extension also supplies snapshot-based text assertions to KeyboardFeelTests. */
 import XCTest
 
 final class KeyboardAcceptanceTests: XCTestCase {
@@ -138,8 +139,16 @@ final class KeyboardAcceptanceTests: XCTestCase {
         let editor = app.textViews["keyboard-editor"]
         // Delete through the real keyplane at the retained caret; XCTest's
         // hardware focus is unavailable for this embedded Recall editor.
-        let count = (editor.value as? String ?? "").count
-        for _ in 0..<count { tapKey("delete") }
+        guard let query = editor.value as? String else {
+            XCTFail("Recall editor must expose its query as text")
+            return
+        }
+        // Check every deletion at the retained caret, so a missed edit fails at
+        // that key rather than appearing later as a failed search or empty query.
+        for remaining in (0..<query.count).reversed() {
+            tapKey("delete")
+            expectValue(editor, String(query.prefix(remaining)))
+        }
         expectValue(editor, "")
         typeQuery(text)
     }
@@ -182,16 +191,35 @@ final class KeyboardAcceptanceTests: XCTestCase {
         // it stays below long-press and repeat-delete thresholds.
         element.press(forDuration: 0.12)
     }
+}
 
-    private func expectValue(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
-        let matches = NSPredicate(format: "value == %@", text)
-        XCTAssertTrue(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: matches, object: element)], timeout: 5) == .completed,
-                      "Expected \(text.debugDescription), got \(String(describing: element.value))", file: file, line: line)
+// Both keyboard suites compare completed accessibility snapshots. An outer
+// XCTWaiter can cancel XCTest's own in-flight AX query before it returns a value
+// (run 40110448639), mistaking observation latency for a product mismatch.
+extension XCTestCase {
+    func expectValue(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
+        expectText(element, text, attribute: { $0.value as? String }, file: file, line: line)
     }
 
-    private func expectLabel(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
-        let matches = NSPredicate(format: "label == %@", text)
-        XCTAssertTrue(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: matches, object: element)], timeout: 5) == .completed,
-                      "Expected \(text.debugDescription), got \(element.label)", file: file, line: line)
+    func expectLabel(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
+        expectText(element, text, attribute: { $0.label }, file: file, line: line)
+    }
+
+    private func expectText(_ element: XCUIElement, _ text: String,
+                            attribute: (XCUIElementSnapshot) -> String?, file: StaticString, line: UInt) {
+        // Keep the five-second settling budget, but allow each AX request its
+        // normal XCTest transport deadline. Compare the value actually sampled;
+        // nil, a missing element and a wrong string must all fail the assertion.
+        let deadline = ProcessInfo.processInfo.systemUptime + 5
+        do {
+            var actual = attribute(try element.snapshot())
+            while actual != text && ProcessInfo.processInfo.systemUptime < deadline {
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
+                actual = attribute(try element.snapshot())
+            }
+            XCTAssertEqual(actual, text, file: file, line: line)
+        } catch {
+            XCTFail("Could not snapshot \(element.identifier): \(error)", file: file, line: line)
+        }
     }
 }
