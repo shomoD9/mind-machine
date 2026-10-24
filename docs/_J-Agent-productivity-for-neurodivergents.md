@@ -1,5 +1,10 @@
 # Agent journal — productivity-for-neurodivergents
 
+## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
+
+- Verified pushed correction 8a245a5 with the required bounded `gh pr checks 9 --watch`: all eight checks green, including all five native-ci jobs, core-checks and both fast-core runs. Direct log download returned a signed-URL retrieval error; retained its details privately and downloaded the actual keyboard-ui-results artifact instead. Its decoded xcresult summary has all 13 journeys Success, 0 Failure and 0 Skipped. This proves the empty-state correction together with the exact text, save/search/insert/relaunch, routing, gesture, geometry and colour checks.
+- Reviewed the final diff against ac55a34: only the test observation boundary, one added empty-state assertion and required documentation/tracker files changed. No tests were removed/skipped, no gesture was retried, and production behavior/copy/style and all protected paths remain untouched. Updated the audit and resolved ticket 23 with actual CI evidence. Committing this evidence checkpoint and watching its own checks before writing the final per-job result and SHA; PR #9 remains open and unmerged.
+
 ## 2026-10-24 - Claude Opus 5.5 - Claude Code
 
 ### Claude Opus 5.5 - Claude Code (mm-kbfeel)
