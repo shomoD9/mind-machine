@@ -44,7 +44,7 @@ PR #7 measurements at `fd09149` ([Linux run](https://github.com/shomoD9/mind-mac
 | Debug core build/test step | **9 s**, cold build, 23 tests | **17 s**, full Apple package |
 | Additional work | 16 watchdog tests in 0.200 s | Release budgets, durability, MiniSearch comparison, Pill (24 s) |
 
-Linux container initialization took 26 s and dependencies took 9 s. This measured lane beats the 2–3 minute feedback goal while retaining the narrower coverage listed above. Subsequent watchdog privacy coverage adds one test (17 total); no Swift code changed after this measurement.
+Linux container initialization took 26 s and dependencies took 9 s. This measured lane beats the 2–3 minute feedback goal while retaining the narrower coverage listed above. The privacy checkpoint `ba972a3` also passed: [fast-core 40085392194](https://github.com/shomoD9/mind-machine/actions/runs/40085392194) took 56 s total / 12 s core build+tests, with all 23 Swift tests and 17 watchdog tests green. No Swift code changed after the initial measurement.
 
 
 The first core-checks attempt at this commit failed the unchanged 12 ms fresh-process append budget (median 26.657 ms; samples 31.402/26.657/5.033 ms). [Attempt 2](https://github.com/shomoD9/mind-machine/actions/runs/40084153736/attempts/2) passed the same code and thresholds on a fresh runner: append median 3.982 ms, cold snapshot 9.949 ms, first Recall 4.441 ms, peak RSS 10.594 MiB. The first failure remains recorded; no gate or production storage code was changed.
