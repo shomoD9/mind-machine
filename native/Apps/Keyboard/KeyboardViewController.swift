@@ -3,7 +3,8 @@
  and reminder controls; the keys are KeyboardKit's Apple-style KeyboardView. Every key reaches
  the typing destination through RoutedTextProxy: the private editor, or the host's
  textDocumentProxy. VaultModel supplies the same persisted capture/recall operations as Mac.
- Panel styling comes from KeyboardPanelStyle.swift; key sounds from InputClickFeedback.swift. */
+ Panel styling comes from KeyboardPanelStyle.swift; key sounds from InputClickFeedback.swift;
+ the hosted keys from KeyplaneView.swift. */
 import UIKit
 import SwiftUI
 import Combine
@@ -113,6 +114,12 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         refreshMode()
     }
 
+    // viewDidLoad samples before KeyboardKit renders; this sample includes the visible keys.
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.recordMemory() }
+    }
+
     override func viewWillDisappear(_ animated: Bool) {
         retainDraft()
         pendingSearch?.cancel()
@@ -137,12 +144,8 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
     // keys are hosted once inside it instead of replacing the whole extension view.
     override func viewWillSetupKeyboardView() {
         guard keys == nil else { return }
-        let keyboard = KeyboardView(
-            state: state, services: services,
-            buttonContent: { $0.view }, buttonView: { $0.view }, collapsedView: { $0.view },
-            emojiKeyboard: { $0.view }, toolbar: { _ in EmptyView() })
-            // No suggestion bar: the panel sits where Apple's predictive bar would be.
-            .autocompleteToolbarStyle(.init(height: 0))
+        // KeyplaneView observes the keyboard context so case and layer changes rebuild the layout.
+        let keyboard = KeyplaneView(state: state, services: services, context: state.keyboardContext)
             .keyboardState(state)
         let host = UIHostingController(rootView: AnyView(keyboard))
         host.sizingOptions = .intrinsicContentSize

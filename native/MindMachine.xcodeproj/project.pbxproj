@@ -34,13 +34,15 @@ A61DC6DBDC5A61C2C02D80A0 = { isa = PBXFileReference; lastKnownFileType = sourcec
 B9CFB6662D94D14F675EE856 = { isa = PBXBuildFile; fileRef = 58BAE1DBF81477D8463F9288; };
 F374A5ABAAB42B3DBA23F080 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Apps/Keyboard/KeyboardViewController.swift"; sourceTree = "<group>"; };
 57379C98B54EFB5A1297199B = { isa = PBXBuildFile; fileRef = F374A5ABAAB42B3DBA23F080; };
+4D880256F929C167373343FC = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Apps/Keyboard/KeyplaneView.swift"; sourceTree = "<group>"; };
+A1CD4008AB7E435DEC511849 = { isa = PBXBuildFile; fileRef = 4D880256F929C167373343FC; };
 2B20F2227A7D1C670276ABE0 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Apps/Keyboard/RoutedTextProxy.swift"; sourceTree = "<group>"; };
 2D8FCBB56C62318402D6A2E0 = { isa = PBXBuildFile; fileRef = 2B20F2227A7D1C670276ABE0; };
 5CC02E05A49F9B175E11B0B7 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Apps/Shared/DeviceVault.swift"; sourceTree = "<group>"; };
 0B4EFD6B81EC7AB7DEBE273A = { isa = PBXBuildFile; fileRef = 5CC02E05A49F9B175E11B0B7; };
 3C0E08DCED5B2DA69FB35B37 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-F8EAEF7669C8A29E9CA834FC = { isa = PBXGroup; name = "MindMachineKeyboard"; children = (A61DC6DBDC5A61C2C02D80A0, 58BAE1DBF81477D8463F9288, F374A5ABAAB42B3DBA23F080, 2B20F2227A7D1C670276ABE0, 5CC02E05A49F9B175E11B0B7,); sourceTree = "<group>"; };
-3A40CB232B0BAFE310D1033C = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (671A7AA2E463B73D657D0AFA, B9CFB6662D94D14F675EE856, 57379C98B54EFB5A1297199B, 2D8FCBB56C62318402D6A2E0, 0B4EFD6B81EC7AB7DEBE273A,); runOnlyForDeploymentPostprocessing = 0; };
+F8EAEF7669C8A29E9CA834FC = { isa = PBXGroup; name = "MindMachineKeyboard"; children = (A61DC6DBDC5A61C2C02D80A0, 58BAE1DBF81477D8463F9288, F374A5ABAAB42B3DBA23F080, 4D880256F929C167373343FC, 2B20F2227A7D1C670276ABE0, 5CC02E05A49F9B175E11B0B7,); sourceTree = "<group>"; };
+3A40CB232B0BAFE310D1033C = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (671A7AA2E463B73D657D0AFA, B9CFB6662D94D14F675EE856, 57379C98B54EFB5A1297199B, A1CD4008AB7E435DEC511849, 2D8FCBB56C62318402D6A2E0, 0B4EFD6B81EC7AB7DEBE273A,); runOnlyForDeploymentPostprocessing = 0; };
 68B5403E219F0CCF4B3FBD0C = { isa = XCSwiftPackageProductDependency; package = 582681C2EAE02B3F3D399C0C; productName = "MindMachineCore"; };
 0E731D5EE8DC14BC0FD6510E = { isa = PBXBuildFile; productRef = 68B5403E219F0CCF4B3FBD0C; };
 CDC04D6AB1E830D41E05BFD2 = { isa = XCSwiftPackageProductDependency; package = 582681C2EAE02B3F3D399C0C; productName = "MindMachineUI"; };
