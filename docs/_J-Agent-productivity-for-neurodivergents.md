@@ -2,6 +2,13 @@
 
 ## 2026-10-24 - Claude Opus 5.5 - Claude Code
 
+### GPT-6 - Codex API (mm-kbui)
+
+- Read AGENTS, CONTEXT, TESTING-TONIGHT, domain/tracker/triage guidance, ADR 0001 and the TDD/prove-it-works/runtime skills. The requested `/tmp/mm-kbui-result.md` handoff was absent. No environment-status tool or network-policy file is available; used the configured GitHub CLI connection without inspecting credentials.
+- Claimed ticket 20 for founder-authorized UI automation. The existing native spec already approves the keyboard-workspace and saved-vault seams, and the founder explicitly requested UI journeys. Read production keyboard/proxy/keyplane and pill code plus KeyboardKit's pinned source to locate boundary adapters. Chose a dedicated host to avoid simulator keyboard selection races; its first Capture tracer is pushed before embedding the controller to obtain an assertion failure on macOS CI.
+
+### Claude Opus 5.5 - Claude Code
+
 - Founder feedback on TestFlight build 10: remove Next keyboard, make the keys feel like Apple's, restyle the panel and companion in greyscale with grain, no copy or behaviour change. Read AGENTS, CONTEXT, DESIGN, the tracker/triage/domain guides and the keyboard controller first. Opened ticket 19.
 - Researched keyboard libraries against primary sources (GitHub API, cloned tags into /tmp). KeyboardKit's licence changed to a closed-source Kankoda licence at 10.0 (Oct 2025) and 10.x/11.x ship binaries, so the task's "MIT core" premise no longer holds for current versions. 9.9.1 (Aug 2025) is the last MIT source release and has no dependencies. Read its controller, context, action handler, behaviour, feedback, layout and view code to find the seams before writing anything. Other imitation keyboards are iOS 8-era and unmaintained. Chose 9.9.1 with an exact pin.
 - Integrated through KeyboardKit's own `textInputProxy` seam rather than overriding its action handler, so word delete, double-space period, space drag and autocapitalisation all read and write the chosen destination. Wrote `RoutedTextProxy` over the existing host-proxy validation, and changed the controller's routing reads to `originalTextDocumentProxy` because KeyboardKit overrides `textDocumentProxy`. Hosted `KeyboardView` once below the panel and collapsed its toolbar. Used `playInputClick` for sound because it is the only API that follows the system Keyboard Clicks setting.
