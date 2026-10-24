@@ -2,6 +2,14 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### GPT-6 - Codex API (mm-mdbase)
+
+- Read the saved task/research, project/domain/tracker/triage guidance, CONTEXT, ADR and existing editor, Mac self-test, UI journeys and CI mechanisms to scope Markdown editor ticket 1. Applied cloud-runtime and prove-it-works guidance. No cloud-status tool is available; CLI remote access works. Fetched main/redesign, verified highest ticket numbers 23/24 and claimed ticket 25 without touching the redesign's layout files.
+- Extended the existing isolated Mac self-test with raw open/key distributions, proposed-budget comparisons, exact synthetic-input checks, safe TextKit 2 observation and signposts. Started the open clock before the normal hotkey handler and avoided focus repair; labelled dispatch/draw proxies and unmeasured physical/custom-processing latency. Added a Release rerun for 30 exited-process launches and documented the measurement boundaries. Preserved earlier failures across repeated correctness checks. Added a process-entry timestamp solely for cold baseline timing.
+- Located the existing official Swift 6.2.1 toolchain under `/tmp/mm-swift`; Swift syntax parsing passed for both touched Mac files, all 23 portable core tests passed (9.26 s build, 1.092 s execution), and the 17 existing watchdog tests passed. Checked nearest-rank percentile/tail/budget behavior and rejection of invalid Python measurements with a direct executable probe. Reviewed whitespace and protected-path scope; publishing the first runtime-verification checkpoint and applying the PR-writing skill.
+- Re-read `/tmp/mm-mdbase-prompt.txt` and git status after the continuation request to preserve scope and pending work. Local executor has no Swift on PATH/AppKit; runtime evidence will come from the existing hosted Mac checks. PR publishing, measurements and CI verification remain pending.
+
+
 - Verified pushed correction 8a245a5 with the required bounded `gh pr checks 9 --watch`: all eight checks green, including all five native-ci jobs, core-checks and both fast-core runs. Direct log download returned a signed-URL retrieval error; retained its details privately and downloaded the actual keyboard-ui-results artifact instead. Its decoded xcresult summary has all 13 journeys Success, 0 Failure and 0 Skipped. This proves the empty-state correction together with the exact text, save/search/insert/relaunch, routing, gesture, geometry and colour checks.
 - Reviewed the final diff against ac55a34: only the test observation boundary, one added empty-state assertion and required documentation/tracker files changed. No tests were removed/skipped, no gesture was retried, and production behavior/copy/style and all protected paths remain untouched. Updated the audit and resolved ticket 23 with actual CI evidence. Committing this evidence checkpoint and watching its own checks before writing the final per-job result and SHA; PR #9 remains open and unmerged.
 

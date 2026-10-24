@@ -3,7 +3,9 @@
  the floating pill that expands into the Capture / Recall panel. The menu-bar item lives in
  PillMenuBar.swift. With "--pill-selftest <file>" the app runs PillSelfTest.swift (used by native-ci)
  against a throwaway vault and exits. Debug --pill-ui-test <UUID> gives XCUITest a separate
- local vault and defaults suite. Also installs the process-lifetime reminder notification presenter. */
+ local vault and defaults suite. Capture baseline modifiers reuse the self-test isolation;
+ the process-entry timestamp lets its cold-open probe include app initialization.
+ Also installs the process-lifetime reminder notification presenter. */
 import AppKit
 import Carbon
 import MindMachinePill
@@ -11,8 +13,12 @@ import MindMachineUI
 
 @main
 enum MindMachineMacMain {
+    static let processEntry = ProcessInfo.processInfo.systemUptime
+
     @MainActor
     static func main() {
+        // Initialize before AppKit/model/window construction for the cold probe.
+        _ = processEntry
         let app = NSApplication.shared
         let delegate = MacDelegate()
         app.delegate = delegate
@@ -82,7 +88,8 @@ final class MacDelegate: NSObject, NSApplicationDelegate {
         if status != noErr { model.error = "Global hotkey registration failed (\(status)). Click the pill to open." }
 
         if let selfTestPath {
-            PillSelfTest.run(controller: controller, hotkeyStatus: status, outputPath: selfTestPath)
+            PillSelfTest.run(controller: controller, hotkeyStatus: status, outputPath: selfTestPath,
+                             processEntry: MindMachineMacMain.processEntry)
         }
     }
 
