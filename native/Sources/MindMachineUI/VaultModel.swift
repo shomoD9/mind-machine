@@ -106,11 +106,11 @@ public final class VaultModel: ObservableObject {
     /// Every mutation rereads the file in a coordinated write. UI confirmation
     /// follows a successful atomic save, keeping failures distinct from Saved.
     @discardableResult
-    private func change(_ mutate: (inout Vault) throws -> Void) -> Bool {
+    private func change(captureIDs: [UUID]? = nil, _ mutate: (inout Vault) throws -> Void) -> Bool {
         do {
-            var latest = try file.update(mutate)
-            if let captureLimit { latest.captures = Array(latest.captures.sorted { $0.createdAt > $1.createdAt }.prefix(captureLimit)) }
+            let latest = try file.update(captureIDs: captureIDs, captureLimit: captureLimit, mutate)
             vault = latest; clearInvalidReminderOffer()
+            if enablesSync { syncStatus = "Saved locally · sync pending" }
             Task { [weak self] in await self?.syncNow() }
             return true
         }
@@ -137,8 +137,11 @@ public final class VaultModel: ObservableObject {
         let capture = Capture(text: draft, richText: richDraft, checklist: items)
         do {
             try file.append(capture)
+            // Save acknowledgement is local. Clear a previous Up to date value
+            // synchronously, before the asynchronous exchange can start.
+            if enablesSync { syncStatus = "Saved locally · sync pending" }
             vault.captures.append(capture)
-            if let captureLimit { vault.captures = Array(vault.captures.suffix(captureLimit)) }
+            if let captureLimit { vault.captures = Array(vault.captures.sorted { $0.createdAt > $1.createdAt }.prefix(captureLimit)) }
             Task { [weak self] in await self?.syncNow() }
             draft = ""; richDraft = nil; error = nil; notice = "Saved on this device"
             // A soft offer follows persistence and does not classify or rewrite it.
@@ -166,7 +169,7 @@ public final class VaultModel: ObservableObject {
 
     public func setItem(captureID: UUID, itemID: UUID, complete: Bool) {
         var wasComplete = false
-        guard change({ saved in
+        guard change(captureIDs: [captureID], { saved in
             wasComplete = saved.captures.first(where: { $0.id == captureID })?.allItemsComplete == true
             try saved.setItem(captureID: captureID, itemID: itemID, complete: complete)
         }) else { return }

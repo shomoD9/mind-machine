@@ -26,7 +26,10 @@ public actor PrivateCloudSync: CKSyncEngineDelegate {
     // events stop callbacks too; no sign-out path erases or rehomes the local vault.
     public func synchronize() async throws {
         guard !active else { return }
-        if let stopped { throw stopped }
+        // A stopped engine cannot persist a later cursor. Reconstruct it on
+        // the next foreground request, retaining the durable outbox and cursor.
+        // The account check below still rejects a different Apple ID every time.
+        if stopped != nil { engine = nil; stopped = nil }
         active = true; defer { active = false }
         do {
             guard try await container.accountStatus() == .available else { throw SyncFailure.unavailable }
@@ -60,7 +63,7 @@ public actor PrivateCloudSync: CKSyncEngineDelegate {
     }
 
     public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
-        guard stopped == nil else { return }
+        guard stopped == nil, engine === syncEngine else { return }
         do {
             switch event {
             case .stateUpdate(let update):
@@ -111,13 +114,13 @@ public actor PrivateCloudSync: CKSyncEngineDelegate {
             }
         } catch {
             // Never persist a later fetch token after decryption/merge failure.
-            // Relaunch retries from the last committed cursor and keeps originals.
+            // The next request retries from the last committed cursor and keeps originals.
             stopped = error; status = "Sync paused: \(error.localizedDescription)"
         }
     }
 
     public func nextRecordZoneChangeBatch(_ context: CKSyncEngine.SendChangesContext, syncEngine: CKSyncEngine) async -> CKSyncEngine.RecordZoneChangeBatch? {
-        guard stopped == nil else { return nil }
+        guard stopped == nil, engine === syncEngine else { return nil }
         do {
             let revisions = try store.pendingRevisions()
             let records = try Dictionary(uniqueKeysWithValues: revisions.prefix(100).map { revision -> (CKRecord.ID, CKRecord) in

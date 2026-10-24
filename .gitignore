@@ -3,3 +3,8 @@
 
 # Browser verification snapshots and screenshots are local test output.
 .playwright-mcp/
+
+# Local deterministic gate build products (never vault data).
+.build-checks/
+native/.build/
+native/Pill/.build/

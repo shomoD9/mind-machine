@@ -1,0 +1,156 @@
+stateDiagram-v2
+  state "Mind Machine as one person uses it" as App {
+    state "Mac pill and panel" as Mac {
+      state "Pill resting" as PillIdle
+      state "Pill hovered, tooltip shows" as PillHover
+      state "Pill being dragged" as PillDragging
+      state "Pill hidden" as PillHidden
+      state "Panel open on Capture" as CaptureTab
+      state "Panel open on Find" as FindTab
+      state "Panel open on Capture, pill hidden" as HiddenCaptureTab
+      state "Panel open on Find, pill hidden" as HiddenFindTab
+      [*] --> PillIdle
+      PillIdle --> PillHover : you point at the pill
+      PillHover --> PillIdle : you move the pointer away
+      PillHover --> PillDragging : you press and drag the pill
+      PillDragging --> PillIdle : you drop the pill
+      PillHover --> CaptureTab : you click the pill
+      PillIdle --> CaptureTab : you press the hotkey
+      PillHover --> CaptureTab : you press the hotkey
+      PillDragging --> CaptureTab : you press the hotkey
+      CaptureTab --> FindTab : you switch to Find on the Mac
+      FindTab --> CaptureTab : you switch to Capture on the Mac
+      CaptureTab --> CaptureTab : you click the Soon tab
+      FindTab --> FindTab : you click the Soon tab
+      CaptureTab --> PillIdle : you press Escape
+      CaptureTab --> PillIdle : you click another app
+      CaptureTab --> PillIdle : you click the close button
+      CaptureTab --> PillIdle : you press the hotkey again
+      FindTab --> PillIdle : you press Escape
+      FindTab --> PillIdle : you click another app
+      FindTab --> PillIdle : you click the close button
+      FindTab --> PillIdle : you press the hotkey again
+      PillIdle --> PillHidden : you choose Hide pill
+      PillHover --> PillHidden : you choose Hide pill
+      PillHidden --> PillIdle : you choose Show pill
+      PillHidden --> HiddenCaptureTab : you press the hotkey
+      HiddenCaptureTab --> HiddenFindTab : you switch to Find on the Mac
+      HiddenFindTab --> HiddenCaptureTab : you switch to Capture on the Mac
+      HiddenCaptureTab --> HiddenCaptureTab : you click the Soon tab
+      HiddenFindTab --> HiddenFindTab : you click the Soon tab
+      HiddenCaptureTab --> PillHidden : you press Escape
+      HiddenCaptureTab --> PillHidden : you click another app
+      HiddenCaptureTab --> PillHidden : you click the close button
+      HiddenCaptureTab --> PillHidden : you press the hotkey again
+      HiddenFindTab --> PillHidden : you press Escape
+      HiddenFindTab --> PillHidden : you click another app
+      HiddenFindTab --> PillHidden : you click the close button
+      HiddenFindTab --> PillHidden : you press the hotkey again
+      HiddenCaptureTab --> CaptureTab : you choose Show pill
+      HiddenFindTab --> FindTab : you choose Show pill
+    }
+    --
+    state "iPhone keyboard access and note" as Access {
+      state "Keyboard not added" as NotAdded
+      state "Added, Full Access off" as NoAccess
+      state "Ready, note pad empty" as NoteEmpty
+      state "Ready, note being written" as NoteDrafting
+      state "Ready, saved on this device" as NoteSaved
+      state "Ready, save failed and draft kept" as NoteSaveFailed
+      [*] --> NotAdded
+      NotAdded --> NoAccess : you add the keyboard in Settings
+      NoAccess --> NoteEmpty : you turn on Full Access
+      NoteEmpty --> NoteDrafting : you type in the private pad
+      NoteSaved --> NoteDrafting : you type in the private pad
+      NoteDrafting --> NoteSaved : you save a note
+      NoteDrafting --> NoteSaveFailed : the device cannot store the note
+      NoteSaveFailed --> NoteDrafting : you keep editing the draft
+      NoteEmpty --> NoAccess : you turn off Full Access
+      NoteEmpty --> NotAdded : you remove the keyboard
+      NoteDrafting --> NoAccess : you turn off Full Access
+      NoteDrafting --> NotAdded : you remove the keyboard
+      NoteSaved --> NoAccess : you turn off Full Access
+      NoteSaved --> NotAdded : you remove the keyboard
+      NoteSaveFailed --> NoAccess : you turn off Full Access
+      NoteSaveFailed --> NotAdded : you remove the keyboard
+      NoAccess --> NotAdded : you remove the keyboard
+    }
+    --
+    state "iPhone keyboard tab" as Tab {
+      state "Capture tab" as TabCapture
+      state "Find tab, result list" as ResultList
+      state "Find tab, one original open" as OriginalOpen
+      [*] --> TabCapture
+      TabCapture --> ResultList : you switch to Find on the phone
+      ResultList --> OriginalOpen : you tap a result
+      OriginalOpen --> ResultList : you tap Back to results
+      ResultList --> TabCapture : you switch to Capture on the phone
+      OriginalOpen --> TabCapture : you switch to Capture on the phone
+      ResultList --> TabCapture : the keyboard reopens
+      OriginalOpen --> TabCapture : the keyboard reopens
+    }
+    --
+    state "iPhone pad size" as Size {
+      state "Minimised pad" as SizeMinimised
+      state "Default pad" as SizeDefault
+      state "Expanded pad" as SizeExpanded
+      [*] --> SizeDefault
+      SizeDefault --> SizeExpanded : you tap Size
+      SizeExpanded --> SizeMinimised : you tap Size
+      SizeMinimised --> SizeDefault : you tap Size
+    }
+    --
+    state "iPhone typing destination" as Dest {
+      state "Typing into the private pad" as ToPad
+      state "Typing into the app" as ToApp
+      [*] --> ToPad
+      ToPad --> ToApp : you tap the app text field
+      ToPad --> ToApp : you tap Insert original into app
+      ToApp --> ToApp : you tap Insert original into app
+      ToApp --> ToPad : you tap the private pad
+      ToApp --> ToPad : the keyboard reopens
+    }
+    --
+    state "Sync on this device" as Sync {
+      state "Local only, no key paired" as NoKey
+      state "Up to date" as UpToDate
+      state "Saved here, waiting to upload" as Waiting
+      state "Syncing privately" as Syncing
+      state "Offline, changes wait" as Offline
+      state "iCloud signed out" as SignedOut
+      state "Paused, notes kept on device" as Paused
+      [*] --> NoKey
+      NoKey --> Waiting : you pair the sync key
+      Waiting --> Syncing : sync starts
+      Syncing --> UpToDate : the cloud confirms every note
+      Syncing --> Waiting : the upload fails
+      Syncing --> Waiting : you save a note
+      UpToDate --> Waiting : you save a note
+      Waiting --> Waiting : you save a note
+      Offline --> Offline : you save a note
+      NoKey --> NoKey : you save a note
+      SignedOut --> SignedOut : you save a note
+      Paused --> Paused : you save a note
+      Waiting --> Offline : the network drops
+      Syncing --> Offline : the network drops
+      UpToDate --> Offline : the network drops
+      Offline --> Waiting : the network returns
+      Syncing --> SignedOut : iCloud is signed out
+      Waiting --> SignedOut : iCloud is signed out
+      SignedOut --> Waiting : you sign back in to iCloud
+      Syncing --> Paused : iCloud account changes
+      Syncing --> Paused : the cloud data cannot be read
+      Paused --> Waiting : the next sync retries with the original account
+    }
+    --
+    state "Notes not yet in the cloud" as Outbox {
+      state "None waiting" as OutboxEmpty
+      state "At least one waiting" as OutboxFull
+      [*] --> OutboxEmpty
+      OutboxEmpty --> OutboxFull : you save a note
+      OutboxFull --> OutboxFull : you save a note
+      OutboxFull --> OutboxEmpty : the cloud confirms every note
+    }
+  }
+  [*] --> App
+  %% never UpToDateWithWaitingNote: Up to date & At least one waiting -- The phone never says "Up to date" while a saved note has not reached the cloud.

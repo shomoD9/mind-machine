@@ -94,8 +94,8 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         if let model {
             model.$vault.sink { [weak self] _ in DispatchQueue.main.async { self?.renderResults() } }.store(in: &subscriptions)
             model.$deviceNotificationStatus.sink { [weak self] in self?.notificationStatus.text = $0 }.store(in: &subscriptions)
-            model.$notice.combineLatest(model.$error).sink { [weak self] notice, error in
-                self?.status.text = error ?? notice ?? "Private note · saved locally when you tap Save"
+            model.$notice.combineLatest(model.$error, model.$syncStatus).sink { [weak self] notice, error, syncStatus in
+                self?.status.text = error ?? notice ?? syncStatus
             }.store(in: &subscriptions)
         }
         refreshMode()
@@ -366,7 +366,7 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
 
     // All saves flow through coordinated persistence; Search has no write side effect.
     private func primaryAction() {
-        guard let model else { return }
+        guard permitsPrivateInput, let model else { return }
         retainDraft()
         switch model.mode {
         case 0:
@@ -623,6 +623,26 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         syncKeysWithRoute()
     }
 
+    // Storage access is checked at the input boundary, including hardware
+    // typing and paste. Losing Full Access retains the existing private draft.
+    private var permitsPrivateInput: Bool {
+        // The simulator host supplies isolated storage instead of extension permissions.
+        #if KEYBOARD_UI_TEST_HOST
+        let storageAvailable = model != nil
+        #else
+        let storageAvailable = hasFullAccess && model != nil
+        #endif
+        guard storageAvailable else {
+            status.text = DeviceVault.StorageError.sharedContainerUnavailable.localizedDescription
+            return false
+        }
+        return true
+    }
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange,
+                  replacementText text: String) -> Bool {
+        permitsPrivateInput
+    }
+
     func textViewDidBeginEditing(_ textView: UITextView) {
         privateDocument = originalTextDocumentProxy.documentIdentifier
         hostInput = false; refreshDestination()
@@ -682,7 +702,10 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
 
     // MARK: TextRouteOwner — called by RoutedTextProxy for every key
 
-    var privateEditorForTyping: UITextView? { !hostInput && selected == nil ? editor : nil }
+    var privateEditorForTyping: UITextView? {
+        guard !hostInput, selected == nil, permitsPrivateInput else { return nil }
+        return editor
+    }
     var routesToHost: Bool { hostInput }
     // Reading never shows the tap-the-field message; only a write does.
     var hostProxyForReading: UITextDocumentProxy? {
