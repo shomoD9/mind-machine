@@ -211,6 +211,17 @@ class WatchdogTests(unittest.TestCase):
         self.assertEqual(invalid.returncode, 2)
         self.assertNotIn("secret", invalid.stderr)
 
+    def test_corrupt_state_cannot_leak_private_values_in_previous_event(self):
+        config_path = self.root / "config.json"
+        config_path.write_text(json.dumps(self.config))
+        self.state.write_text(json.dumps({"name": self.config["name"],
+                                          "state": "private-state-secret", "relaunches": 0}))
+        result = subprocess.run([sys.executable, str(SCRIPT), str(config_path),
+                                 "--state", str(self.state)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        self.assertNotIn("secret", result.stderr)
+
     def test_overlapping_cli_observer_does_not_write_or_emit(self):
         import fcntl
         config_path = self.root / "config.json"

@@ -17,6 +17,7 @@ import time
 
 
 TERMINAL = {"EXITED_OK", "BLOCKED"}
+STATES = TERMINAL | {"STARTING", "RUNNING", "STALLED", "DIED"}
 
 
 def last_status(path):
@@ -103,6 +104,8 @@ def poll(config, state_path, *, now=None, alive=process_alive, launch=relaunch):
         previous = {}
     if previous and previous["name"] != config["name"]:
         raise ValueError("state belongs to another job")
+    if previous and (previous["state"] not in STATES or previous["relaunches"] not in (0, 1)):
+        raise ValueError("invalid persisted state")
     state = dict(previous) or {"name": config["name"], "started_at": now, "relaunches": 0}
     old = previous.get("state")
 

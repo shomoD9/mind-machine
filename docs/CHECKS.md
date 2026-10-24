@@ -32,6 +32,19 @@ Linux exclusions (all retained in macOS CI):
 
 Measured on 2026-10-24: the official Swift 6.2.1 Ubuntu 24.04 toolchain installed on this Debian x86_64 box passed the 23 tests with a cold build in **8.377 s** (test execution **0.946 s**). The original full package fails with `no such module 'CloudKit'`; Pill fails with `no such module 'CoreGraphics'`. These are compile attempts, not inferred compatibility claims.
 
-For a measured Mac comparison, [main native-ci run 40082774512](https://github.com/shomoD9/mind-machine/actions/runs/40082774512) at `8fa4c3d` completed its package job in **151 s**; its Debug `swift test` step took **25 s**, and Pill took **19 s**. That job also includes Release benchmarks, process durability and the MiniSearch comparison, so it does more work. The overall run failed the existing Mac sandbox smoke test; the package job passed. Local time excludes toolchain installation; hosted fast-core time includes image/dependency setup. The PR's hosted measurements are recorded below after CI completes.
+For a measured Mac comparison, [main native-ci run 40082774512](https://github.com/shomoD9/mind-machine/actions/runs/40082774512) at `8fa4c3d` completed its package job in **151 s**; its Debug `swift test` step took **25 s**, and Pill took **19 s**. That job also includes Release benchmarks, process durability and the MiniSearch comparison, so it does more work. Local time excludes toolchain installation; hosted fast-core time includes image/dependency setup.
 
 `native-ci` and `core-checks` remain the authority for the full Apple package, resource budgets, TLC and native apps. The fast lane adds earlier portable failures without removing any gate.
+
+PR #7 measurements at `fd09149` ([Linux run](https://github.com/shomoD9/mind-machine/actions/runs/40084153643), [Mac run](https://github.com/shomoD9/mind-machine/actions/runs/40084153615)):
+
+| Measured scope | Linux fast-core | Mac package job |
+| --- | --- | --- |
+| Entire job, excluding queue | **51 s** | **120 s** |
+| Debug core build/test step | **9 s**, cold build, 23 tests | **17 s**, full Apple package |
+| Additional work | 16 watchdog tests in 0.200 s | Release budgets, durability, MiniSearch comparison, Pill (24 s) |
+
+Linux container initialization took 26 s and dependencies took 9 s. This measured lane beats the 2–3 minute feedback goal while retaining the narrower coverage listed above. Subsequent watchdog privacy coverage adds one test (17 total); no Swift code changed after this measurement.
+
+
+The first core-checks attempt at this commit failed the unchanged 12 ms fresh-process append budget (median 26.657 ms; samples 31.402/26.657/5.033 ms). [Attempt 2](https://github.com/shomoD9/mind-machine/actions/runs/40084153736/attempts/2) passed the same code and thresholds on a fresh runner: append median 3.982 ms, cold snapshot 9.949 ms, first Recall 4.441 ms, peak RSS 10.594 MiB. The first failure remains recorded; no gate or production storage code was changed.

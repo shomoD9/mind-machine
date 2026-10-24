@@ -6,6 +6,7 @@
 stateDiagram-v2
     [*] --> STARTING
     STARTING --> RUNNING: process alive
+    STARTING --> STALLED: process alive but silent
     STARTING --> DIED: startup grace expires
     RUNNING --> STALLED: log and session silent for N minutes
     STALLED --> RUNNING: either file moves
@@ -19,6 +20,7 @@ stateDiagram-v2
     STALLED --> BLOCKED: final STATUS BLOCKED
     DIED --> STARTING: one configured relaunch
     DIED --> RUNNING: process returns
+    DIED --> STALLED: process returns but silent
     DIED --> EXITED_OK: final STATUS DONE
     DIED --> BLOCKED: final STATUS BLOCKED
 ```
@@ -53,6 +55,6 @@ The final nonblank result line must be exactly `STATUS: DONE` or `STATUS: BLOCKE
 
 State is atomically persisted as JSON. Only a state change prints one JSON event, containing name, previous/current state, time and relaunch count. Repeated polls are silent. Logs, sessions, command arguments, result reasons and exception details are never printed. Keep secrets out of the job name. Invalid config/state produces a fixed stderr error and exit code 2. An advisory lock prevents overlapping CLI observers from spending the relaunch budget twice.
 
-`relaunch` is optional trusted argv, with no shell expansion. Only DIED can trigger it; a live STALLED job needs inspection before another writer is started. The wrapper must start the replacement job, update the PID file, and use the configured log/session/result paths. Its output is discarded. One attempt is recorded before launch, including a failed launch, and survives observer restarts. Do not clear state to retry the same job. The watcher never kills jobs or wakes an agent itself; the caller can wake one only when it receives an event.
+`relaunch` is optional trusted argv, with no shell expansion. Only DIED can trigger it; a live STALLED job needs inspection before another writer is started. The wrapper must start the replacement job, atomically update the PID file, and use the configured log/session/result paths. Its output is discarded. One attempt is recorded before launch, including a failed launch, and survives observer restarts. Do not clear state to retry the same job. The watcher never kills jobs or wakes an agent itself; the caller can wake one only when it receives an event.
 
 Verify: `python3 -m unittest discover -s tools/tests -v`.
