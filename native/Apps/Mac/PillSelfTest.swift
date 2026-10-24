@@ -1,7 +1,7 @@
 /* CI self-test for the floating pill. Launched with "--pill-selftest <result.json>" (see MindMachineMac.swift),
  it drives the real window through expand, tab switching, typing, Esc, click-away, hotkey toggling,
  hide/show, dragging with persisted position, Reduce Motion and repeated cycles, records pass/fail checks and
- timings, writes PNG snapshots next to the result file, and exits with status 1 if any check failed.
+ timings, writes PNG snapshots (including the empty Capture page with its prompt) next to the result file, and exits with status 1 if any check failed.
  The native-ci workflow (mac-build job) runs it on a GitHub macOS runner and uploads the output.
  Frame sampling observes actual window resize notifications so actor scheduling cannot
  skip interpolation frames. Nothing here runs in normal use. */
@@ -138,6 +138,8 @@ enum PillSelfTest {
             }
             check("note editor has focus after expanding", captureFocus != nil)
             report["captureFocusMs"] = ms(captureFocus)
+            // The empty page shows the in-editor prompt; this snapshot is the only record of it.
+            snapshot("pill-expanded-capture-empty.png")
             if let editor = panel.firstResponder as? NSTextView {
                 editor.insertText("selftest note", replacementRange: NSRange(location: NSNotFound, length: 0))
             }
