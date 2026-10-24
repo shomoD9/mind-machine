@@ -4,18 +4,22 @@
  timings, writes PNG snapshots next to the result file, and exits with status 1 if any check failed.
  The native-ci workflow (mac-build job) runs it on a GitHub macOS runner and uploads the output.
  Frame sampling observes actual window resize notifications so actor scheduling cannot
- skip interpolation frames. Nothing here runs in normal use. */
+ skip interpolation frames. The capture baseline records open/input and per-key
+ dispatch/draw distributions without changing the editor; --capture-baseline-only
+ and --capture-baseline-cold support the Release rerun script. Nothing here runs in normal use. */
 import AppKit
 import MindMachinePill
 import MindMachineUI
+import os.signpost
 
 @MainActor
 enum PillSelfTest {
     static let suiteName = "dev.mindmachine.pill-selftest"
 
-    static func run(controller: PillController, hotkeyStatus: OSStatus, outputPath: String) {
+    static func run(controller: PillController, hotkeyStatus: OSStatus, outputPath: String, processEntry: Double) {
         Task { @MainActor in
-            let runner = Runner(controller: controller, hotkeyStatus: hotkeyStatus, outputPath: outputPath)
+            let runner = Runner(controller: controller, hotkeyStatus: hotkeyStatus, outputPath: outputPath,
+                                processEntry: processEntry)
             await runner.execute()
         }
     }
@@ -30,18 +34,26 @@ enum PillSelfTest {
         let controller: PillController
         let hotkeyStatus: OSStatus
         let outputPath: String
+        let processEntry: Double
+        let timingLog = OSLog(subsystem: "dev.mindmachine.capture-baseline", category: .pointsOfInterest)
         var report: [String: Any] = [:]
         var checks: [String: Bool] = [:]
 
-        init(controller: PillController, hotkeyStatus: OSStatus, outputPath: String) {
+        init(controller: PillController, hotkeyStatus: OSStatus, outputPath: String, processEntry: Double) {
             self.controller = controller
             self.hotkeyStatus = hotkeyStatus
             self.outputPath = outputPath
+            self.processEntry = processEntry
         }
 
         private var panel: PillPanel { controller.panel }
 
-        func check(_ name: String, _ ok: Bool) { checks[name] = ok; print("[selftest] \(ok ? "PASS" : "FAIL") \(name)") }
+        // Repeated baseline checks must retain an early failure even if later
+        // opens succeed; a dictionary assignment alone would lose that evidence.
+        func check(_ name: String, _ ok: Bool) {
+            checks[name] = (checks[name] ?? true) && ok
+            print("[selftest] \(ok ? "PASS" : "FAIL") \(name)")
+        }
 
         func sleep(_ seconds: Double) async { try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000)) }
 
@@ -99,6 +111,13 @@ enum PillSelfTest {
 
         func execute() async {
             let model = controller.model
+            // Standalone probes share the production window and throwaway model.
+            // Cold mode has no settling sleep before opening the capture surface.
+            let coldOnly = CommandLine.arguments.contains("--capture-baseline-cold")
+            if coldOnly || CommandLine.arguments.contains("--capture-baseline-only") {
+                report["captureBaseline"] = await captureBaseline(coldOnly: coldOnly)
+                finish()
+            }
             await sleep(0.6)
 
             // 1. Window recipe: what makes it appear everywhere without stealing focus.
@@ -271,6 +290,10 @@ enum PillSelfTest {
             check("Reduce Motion collapses instantly", (instantClose ?? 9) < 0.05 && panel.frame.size == PillGeometry.pillSize)
             controller.reduceMotionOverride = nil
 
+            // Keep the existing CI launch/artifact path. Animation is enabled for
+            // comparable opens even when the VM's system Reduce Motion is on.
+            report["captureBaseline"] = await captureBaseline(coldOnly: false)
+
             // 9. Idle cost with the pill showing.
             await sleep(0.5)
             let cpuStart = cpuSeconds(), wallStart = CACurrentMediaTime()
@@ -280,12 +303,225 @@ enum PillSelfTest {
             report["residentMB"] = (residentMB() * 10).rounded() / 10
             check("idle CPU under 2 percent", idleCPU < 2)
 
+            finish()
+        }
+
+        /// Nearest-rank percentiles retain tails, including every >100 ms stall.
+        /// Samples stay in the JSON so comparisons can be recomputed externally.
+        func distribution(_ samples: [Double], p95: Double? = nil, p99: Double? = nil) -> [String: Any] {
+            let sorted = samples.sorted()
+            guard !sorted.isEmpty else { return ["count": 0, "samplesMs": samples] }
+            func percentile(_ fraction: Double) -> Double {
+                sorted[max(0, Int(ceil(Double(sorted.count) * fraction)) - 1)]
+            }
+            var result: [String: Any] = ["count": sorted.count, "samplesMs": samples,
+                "p50Ms": percentile(0.50), "p95Ms": percentile(0.95), "p99Ms": percentile(0.99),
+                "maxMs": sorted.last!, "stallsOver100Ms": samples.filter { $0 > 100 }.count]
+            if let p95 { result["p95BudgetMs"] = p95; result["withinP95Budget"] = percentile(0.95) <= p95 }
+            if let p99 { result["p99BudgetMs"] = p99; result["withinP99Budget"] = percentile(0.99) <= p99 }
+            return result
+        }
+
+        /// Wait for the first text line to be inside the animating window, with
+        /// some presented opacity and the actual editor already first responder.
+        /// Merely seeing a target alpha or a focusable view would measure too early.
+        func readyEditor() -> NSTextView? {
+            guard panel.isVisible, panel.isKeyWindow,
+                  let editor = PillFocus.editor(for: .capture, in: controller.root.content) as? NSTextView,
+                  controller.holdsFocus(editor), editor.isEditable,
+                  !editor.isHiddenOrHasHiddenAncestor else { return nil }
+            let content = controller.root.content
+            let opacity = content.layer?.presentation()?.opacity ?? Float(content.alphaValue)
+            let origin = editor.textContainerOrigin
+            let firstLine = editor.convert(NSPoint(x: origin.x + 2, y: origin.y + 2), to: controller.root)
+            guard opacity > 0, controller.root.bounds.contains(firstLine) else { return nil }
+            return editor
+        }
+
+        /// Every open is timed from before the normal hotkey handler to a first
+        /// key accepted by both the native view and its existing model binding.
+        /// Never click the editor or repair focus on this observation path.
+        func baselineOpen() async -> (milliseconds: Double, readyUptime: Double, textKit2: Bool)? {
+            var settled = false
+            controller.onSettled = { transition, _ in if transition.expanding { settled = true } }
+            let signpost = OSSignpostID(log: timingLog)
+            os_signpost(.begin, log: timingLog, name: "Capture open to input", signpostID: signpost)
+            let start = ProcessInfo.processInfo.systemUptime
+            controller.send(.hotkey)
+            var editor: NSTextView?
+            while ProcessInfo.processInfo.systemUptime - start < 2 {
+                editor = readyEditor()
+                if editor != nil { break }
+                await sleep(0.001)
+            }
+            guard let editor else {
+                os_signpost(.end, log: timingLog, name: "Capture open to input", signpostID: signpost)
+                check("baseline open becomes visible and focused within 2 seconds", false)
+                controller.onSettled = nil
+                return nil
+            }
+            let expected = editor.string + "x"
+            // Read only the modern manager: reading layoutManager can itself
+            // irreversibly switch a modern view to the legacy layout engine.
+            let modernBefore = editor.textLayoutManager != nil
+            panel.sendEvent(keyEvent(code: 7, characters: "x"))
+            editor.displayIfNeeded()
+            let readyUptime = ProcessInfo.processInfo.systemUptime
+            let elapsed = (readyUptime - start) * 1_000
+            let modernAfter = editor.textLayoutManager != nil
+            os_signpost(.end, log: timingLog, name: "Capture open to input", signpostID: signpost)
+            let accepted = editor.string == expected && controller.model.draft == expected
+            if !accepted { check("baseline immediate post-open key reaches view and model", false) }
+            // Finish the current animation outside the measured interval before
+            // another transition, avoiding superseded completion callbacks.
+            let completed = await wait { settled }
+            check("baseline open animation completes", completed != nil)
+            controller.onSettled = nil
+            return accepted ? (elapsed, readyUptime, modernBefore && modernAfter) : nil
+        }
+
+        func baselineClose() async {
+            let completed = await settle { controller.send(.escape) }
+            check("baseline close animation completes", completed != nil)
+            controller.onSettled = nil
+        }
+
+        /// Fixtures go through the same binding restoration as reopened drafts;
+        /// only setup places the caret. The timed keys use the window event path.
+        func seedBaseline(_ text: String, editor: NSTextView) async -> Bool {
+            controller.model.richDraft = nil
+            controller.model.draft = text
+            guard await wait(until: { editor.string == text }) != nil else {
+                check("baseline fixture reaches the existing editor", false)
+                return false
+            }
+            editor.setSelectedRange(NSRange(location: (text as NSString).length, length: 0))
+            editor.scrollRangeToVisible(editor.selectedRange())
+            editor.displayIfNeeded()
+            return true
+        }
+
+        /// The CI baseline intentionally observes proposed budget misses rather
+        /// than changing the editor or failing CI for an uncalibrated VM budget.
+        /// Missing input, samples, focus or TextKit 2 remain correctness failures.
+        func captureBaseline(coldOnly: Bool) async -> [String: Any] {
+            let previousMotion = controller.reduceMotionOverride
+            controller.reduceMotionOverride = false
+            defer { controller.reduceMotionOverride = previousMotion }
+            var baseline: [String: Any] = [
+                "schemaVersion": 1,
+                "os": ProcessInfo.processInfo.operatingSystemVersionString,
+                "processorCount": ProcessInfo.processInfo.processorCount,
+                "physicalMemoryBytes": ProcessInfo.processInfo.physicalMemory,
+                "systemReduceMotion": NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
+                "measurementReduceMotion": false,
+                "openBoundary": "Before controller hotkey handler to visible first-line area, focus, first synthetic key in view/model, and displayIfNeeded completion; animation may still be running.",
+                "typingBoundary": "Before window.sendEvent to return (dispatch), then displayIfNeeded completion (draw proxy). Excludes OS input queue and compositor/display scanout.",
+                "visibleLatency": "Unmeasured. Draw completion is only a proxy; use signposts plus Instruments/video on physical hardware.",
+                "customProcessing": ["status": "unmeasured: dispatch includes AppKit and app work", "p95BudgetMs": 2, "p99BudgetMs": 4],
+                "budgetsAreProposed": true
+            ]
+            #if DEBUG
+            baseline["configuration"] = "Debug"
+            #else
+            baseline["configuration"] = "Release"
+            #endif
+            var opens: [Double] = []
+            var modern = true
+            let count = coldOnly ? 1 : 100
+            for _ in 0..<count {
+                controller.model.draft = ""
+                controller.model.richDraft = nil
+                // Drain setup before starting the clock. Cold mode deliberately
+                // includes all construction since main entry, including this turn.
+                await sleep(0.001)
+                if let opened = await baselineOpen() {
+                    opens.append(opened.milliseconds)
+                    modern = modern && opened.textKit2
+                    if coldOnly {
+                        baseline["readyUptimeSeconds"] = opened.readyUptime
+                        baseline["processEntryUptimeSeconds"] = processEntry
+                        baseline["processEntryToInputMs"] = (opened.readyUptime - processEntry) * 1_000
+                    }
+                }
+                if !coldOnly {
+                    await baselineClose()
+                }
+            }
+            // This interval always starts at the handler. Only the manual
+            // launcher's process-start interval is compared with the 500 ms gate.
+            baseline["open"] = distribution(opens, p95: 100)
+            check("baseline all expected opens accept immediate input", opens.count == count)
+            if !coldOnly {
+                // Open once for typing; its key is setup, outside the 1,000-key distributions.
+                if let opened = await baselineOpen(), let editor = panel.firstResponder as? NSTextView {
+                    modern = modern && opened.textKit2
+                    var documents: [String: Any] = [:]
+                    for (name, bytes, paragraph) in [("1KiB", 1_024, false), ("10KiB", 10_240, false),
+                                                      ("100KiB", 102_400, false), ("100KiB-one-paragraph", 102_400, true)] {
+                        let unit = paragraph ? "baseline text " : "baseline text\n"
+                        let source = String(String(repeating: unit, count: bytes / unit.count + 1).prefix(bytes))
+                        guard await seedBaseline(source, editor: editor) else { continue }
+                        var dispatch: [Double] = [], draw: [Double] = []
+                        for _ in 0..<1_000 {
+                            let event = keyEvent(code: 7, characters: "x")
+                            let signpost = OSSignpostID(log: timingLog)
+                            os_signpost(.begin, log: timingLog, name: "Capture key to draw", signpostID: signpost)
+                            let start = ProcessInfo.processInfo.systemUptime
+                            panel.sendEvent(event)
+                            dispatch.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                            editor.displayIfNeeded()
+                            draw.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                            os_signpost(.end, log: timingLog, name: "Capture key to draw", signpostID: signpost)
+                            modern = modern && editor.textLayoutManager != nil
+                            // Give SwiftUI and AppKit a run-loop turn between keys;
+                            // pacing is outside the measured interval.
+                            await sleep(0.001)
+                        }
+                        let expected = source + String(repeating: "x", count: 1_000)
+                        check("baseline \(name) retains every key in view and model", editor.string == expected && controller.model.draft == expected)
+                        documents[name] = ["initialUTF8Bytes": bytes, "dispatch": distribution(dispatch),
+                                           "dispatchToDrawProxy": distribution(draw, p95: 33, p99: 50)]
+                    }
+                    baseline["typing"] = documents
+                    check("baseline all four typing fixtures measured", documents.count == 4)
+                    // No global pasteboard mutation: insertText exercises a single
+                    // large text insertion, explicitly labelled as a paste proxy.
+                    if await seedBaseline("", editor: editor) {
+                        let pasted = String(repeating: "baseline paste\n", count: 74_899)
+                        let source = String(pasted.prefix(1_048_576))
+                        let start = ProcessInfo.processInfo.systemUptime
+                        editor.insertText(source, replacementRange: NSRange(location: NSNotFound, length: 0))
+                        editor.displayIfNeeded()
+                        baseline["oneMiBInsertToDrawProxyMs"] = (ProcessInfo.processInfo.systemUptime - start) * 1_000
+                        check("baseline 1MiB insertion retains exact source", editor.string == source && controller.model.draft == source && source.utf8.count == 1_048_576)
+                        modern = modern && editor.textLayoutManager != nil
+                    }
+                    await baselineClose()
+                    controller.model.draft = ""
+                    controller.model.richDraft = nil
+                } else {
+                    check("baseline typing editor is focused", false)
+                }
+            }
+            baseline["textKit2Throughout"] = modern && opens.count == count
+            check("baseline TextKit 2 remains active before and after input", modern && opens.count == count)
+            return baseline
+        }
+
+        /// Write the measured artifact before exiting; failed observations retain their samples.
+        func finish() -> Never {
             report["checks"] = checks
             let failed = checks.filter { !$0.value }.map(\.key).sorted()
             report["failed"] = failed
-            if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]) {
-                try? data.write(to: URL(fileURLWithPath: outputPath))
+            do {
+                let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
+                try data.write(to: URL(fileURLWithPath: outputPath), options: .atomic)
                 print(String(decoding: data, as: UTF8.self))
+            } catch {
+                print("[selftest] FAIL could not write measurement report")
+                fflush(stdout)
+                exit(1)
             }
             print("[selftest] \(checks.count - failed.count)/\(checks.count) checks passed")
             fflush(stdout)
