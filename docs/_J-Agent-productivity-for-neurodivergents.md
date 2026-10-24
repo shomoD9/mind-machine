@@ -4,6 +4,8 @@
 
 ### GPT-6 - Codex API (mm-intake)
 
+- Extended adversarial review to content-rule paths: docs/../native/Sources/New.swift with URLSession initially returned B, and the new regression failed with 'B' != 'D'. Normalized the content-rule path before excluding docs/tests, fixing the first inconsistent path boundary. All 30 tests now pass. Explicitly cancelled only the obsolete branch native-ci run to release queued runner capacity; release/main runs were untouched.
+
 - Final policy review exposed a real overlap: broad package rules routed README/translation resources to B. Extended the existing A-rule fixture, observed ROUTE != PASS for both package paths, narrowed explicit B matches to Swift files (unknown paths still default B), and reran the suite. Added an explicit bootstrap error without executing head policy. TestFlight diff remains exactly one checkout pin; no signing/secrets/job permissions changed.
 
 - Pushed fb92f39 and opened PR #6 with the requested title; no merge. Exercised intake against historical PRs via gh: #1 A/PASS (433 lines), #2 D/REJECT SIZE_LIMIT (9,565), #3 D/REJECT SIZE_LIMIT (2,146), #4 D/REJECT SIZE_LIMIT (2,227), #5 D/ROUTE (136). All are OWNER; budgets still apply. Full JSON is /tmp/mm-intake-past-prs.json.

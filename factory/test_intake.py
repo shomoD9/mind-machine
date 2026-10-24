@@ -98,6 +98,11 @@ class IntakeRules(unittest.TestCase):
         files[0].pop("patch")
         self.assertEqual(result(pr, files)["lane"], "A")
 
+    def test_traversal_cannot_disguise_shipping_network_change_as_docs(self):
+        pr, files = fixture(["docs/../native/Sources/New.swift"])
+        files[0]["patch"] = "@@ -1 +1 @@\n+URLSession.shared"
+        self.assertEqual(result(pr, files)["lane"], "D")
+
     def test_missing_swift_patch_cannot_hide_network_change(self):
         pr, files = fixture(["native/Sources/Shared.swift"])
         del files[0]["patch"]

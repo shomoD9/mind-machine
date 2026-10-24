@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Classifies PR metadata and paths without reading or executing PR code. Called
+# Classifies PR metadata and paths without checking out or executing PR code. Called
 # by pr-intake.yml from the base commit, by gate.py for schema constants, and CLI.
 import argparse
 import fnmatch
@@ -11,7 +11,6 @@ import posixpath
 import re
 import subprocess
 
-LANES = "ABCD"
 CODES = {"LANE_D_OUTSIDER", "SIZE_LIMIT", "ISSUE_REQUIRED", "INVALID_PATH", "FILES_INCOMPLETE"}
 TRUSTED = {"OWNER", "MEMBER", "COLLABORATOR"}
 SHA = r"[0-9a-f]{40}"
@@ -65,7 +64,7 @@ def classify(pr, files, config, repository):
     # this catches shared-code changes outside the keyboard directory. Missing
     # patches for Swift/plist changes fail into D rather than hiding an edit.
     for file in files:
-        path = file["filename"]
+        path = posixpath.normpath(file["filename"])
         # Documentation and test fixtures can quote these APIs without granting
         # shipping code a capability. Their path rules still apply above.
         if not path.endswith((".swift", ".plist")) or any(
