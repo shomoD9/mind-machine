@@ -1,0 +1,87 @@
+{
+  "max_changed_lines": 1000,
+  "max_files": 100,
+  "trusted_bots": [
+    "github-actions[bot]"
+  ],
+  "default_lane": "B",
+  "rules": [
+    {
+      "lane": "A",
+      "paths": [
+        "*.md",
+        "docs/*",
+        "native/Tests/*",
+        "native/UITests/*",
+        "native/Pill/Tests/*",
+        "*.lproj/*",
+        "*.xcstrings",
+        "*.strings",
+        "*.stringsdict"
+      ]
+    },
+    {
+      "lane": "B",
+      "paths": [
+        "native/Sources/*.swift",
+        "native/Pill/Sources/*.swift"
+      ]
+    },
+    {
+      "lane": "C",
+      "paths": [
+        "spec/*",
+        "native/Sources/MindMachineCore/Vault.swift",
+        "native/Sources/MindMachineCore/VaultFile.swift",
+        "native/Sources/MindMachineCore/NoteRevision.swift",
+        "native/Sources/MindMachineCore/PrivateCloudSync.swift",
+        "native/Sources/MindMachineCore/PrivateSyncKey.swift",
+        "native/Sources/MindMachineCore/RevisionCipher.swift",
+        "native/Sources/MindMachineCore/KeyboardWorkspace.swift",
+        "native/Sources/MindMachineUI/VaultModel.swift",
+        "native/Apps/Shared/DeviceVault.swift",
+        "native/Pill/Sources/MindMachinePill/PillState.swift",
+        "native/Pill/Sources/MindMachinePill/PillPreferences.swift",
+        ".scratch/native-mvp/spec.md",
+        ".scratch/native-mvp/spec-draft.md",
+        ".scratch/factory-intake/spec.md"
+      ]
+    },
+    {
+      "lane": "D",
+      "paths": [
+        ".github/*",
+        "factory/*",
+        ".agents/*",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "skills-lock.json",
+        "*.entitlements",
+        "Info.plist",
+        "*/Info.plist",
+        "Package.resolved",
+        "*/Package.resolved",
+        "Package.swift",
+        "*/Package.swift",
+        "*.sh",
+        "native/Scripts/*",
+        "native/Config/*",
+        "native/MindMachine.xcodeproj/*",
+        "native/Apps/Keyboard/*",
+        "native/Sources/CSQLite/*"
+      ]
+    }
+  ],
+  "sensitive_diff_patterns": [
+    "RequestsOpenAccess|hasFullAccess|Full[ _-]?Access",
+    "URLSession|URLRequest|NSURLConnection|NWConnection|NWListener|CFStream|CFNetwork",
+    "import\\s+(Network|WebKit)|NSAppTransportSecurity|NSAllows.*Networking|NSLocalNetworkUsageDescription",
+    "\\b(socket|connect|getaddrinfo)\\s*\\("
+  ],
+  "non_shipping_paths": [
+    "docs/*",
+    "native/Tests/*",
+    "native/UITests/*",
+    "native/Pill/Tests/*"
+  ]
+}
