@@ -48,3 +48,14 @@ Linux container initialization took 26 s and dependencies took 9 s. This measure
 
 
 The first core-checks attempt at this commit failed the unchanged 12 ms fresh-process append budget (median 26.657 ms; samples 31.402/26.657/5.033 ms). [Attempt 2](https://github.com/shomoD9/mind-machine/actions/runs/40084153736/attempts/2) passed the same code and thresholds on a fresh runner: append median 3.982 ms, cold snapshot 9.949 ms, first Recall 4.441 ms, peak RSS 10.594 MiB. The first failure remains recorded; no gate or production storage code was changed.
+
+
+## Verification at 5c51db2 and simulator diagnosis
+
+At `5c51db2`, [fast-core 40085569576](https://github.com/shomoD9/mind-machine/actions/runs/40085569576) passed in **62 s** including container/dependencies, with **8 s** for core build/tests. The same-head Mac package job took **107 s**, including **16 s** for Debug `swift test`. A resumed local Linux run passed all 23 tests in **1.759 s** with a warm build (0.827 s execution); all 17 watchdog tests passed in 0.214 s.
+
+[core-checks 40085569686](https://github.com/shomoD9/mind-machine/actions/runs/40085569686) first failed the unchanged append budget: samples 21.406/53.966/9.758 ms, median 21.406 ms against 12 ms. Attempt 2 on the same commit passed: append median **2.966 ms**, cold snapshot **7.913 ms**, first Recall **3.579 ms**, peak RSS **10.547 MiB**. Storage code and thresholds were unchanged.
+
+The first [native-ci 40085569546](https://github.com/shomoD9/mind-machine/actions/runs/40085569546) attempt passed both app builds, Mac UI and package tests. Only `testCaptureRecallInsertAndRelaunch` failed at the empty-query assertion in `replaceQuery`; the other two keyboard journeys passed. Its retained `keyboard-ui-results` bundle shows the accessibility query starting at 10:29:36 UTC, then `XCTWaiterResultInterrupted` / `Interrupted by waiter` at 10:29:40, when the five-second predicate deadline expired. The later hierarchy shows an empty Recall editor. This is evidence of an observation timeout; it does not establish a dropped delete or a vault regression.
+
+To check the PR's two Swift changes, a temporary harness selected the manifest's Apple branch and compared SwiftPM `dump-package` JSON with main: products, targets, dependencies, platforms and settings matched. Resolving the CryptoKit guard and removing added comments made `RevisionCipher.swift` byte-identical to main, including `SyncFailure`. No app/UI, test driver, timing limit, signing or existing workflow was changed for this diagnosis. [Attempt 2](https://github.com/shomoD9/mind-machine/actions/runs/40085569546/attempts/2) repeated only that failed job on the same commit: all three keyboard journeys passed, zero failures in **301.589 s**. All five native-ci jobs are green. The unchanged-code repeat and interrupted AX query support classifying this failure as a simulator observation flake; they do not guarantee future runs cannot time out.
