@@ -290,10 +290,6 @@ enum PillSelfTest {
             check("Reduce Motion collapses instantly", (instantClose ?? 9) < 0.05 && panel.frame.size == PillGeometry.pillSize)
             controller.reduceMotionOverride = nil
 
-            // Keep the existing CI launch/artifact path. Animation is enabled for
-            // comparable opens even when the VM's system Reduce Motion is on.
-            report["captureBaseline"] = await captureBaseline(coldOnly: false)
-
             // 9. Idle cost with the pill showing.
             await sleep(0.5)
             let cpuStart = cpuSeconds(), wallStart = CACurrentMediaTime()
@@ -303,6 +299,9 @@ enum PillSelfTest {
             report["residentMB"] = (residentMB() * 10).rounded() / 10
             check("idle CPU under 2 percent", idleCPU < 2)
 
+            // Run after the idle check so typing/layout/spelling work cannot
+            // contaminate that pre-existing smoke-test observation.
+            report["captureBaseline"] = await captureBaseline(coldOnly: false)
             finish()
         }
 
@@ -459,6 +458,8 @@ enum PillSelfTest {
                     var documents: [String: Any] = [:]
                     for (name, bytes, paragraph) in [("1KiB", 1_024, false), ("10KiB", 10_240, false),
                                                       ("100KiB", 102_400, false), ("100KiB-one-paragraph", 102_400, true)] {
+                        print("[baseline] Starting 1,000 keys in \(name)")
+                        fflush(stdout)
                         let unit = paragraph ? "baseline text " : "baseline text\n"
                         let source = String(String(repeating: unit, count: bytes / unit.count + 1).prefix(bytes))
                         guard await seedBaseline(source, editor: editor) else { continue }
@@ -482,6 +483,8 @@ enum PillSelfTest {
                         check("baseline \(name) retains every key in view and model", editor.string == expected && controller.model.draft == expected)
                         documents[name] = ["initialUTF8Bytes": bytes, "dispatch": distribution(dispatch),
                                            "dispatchToDrawProxy": distribution(draw, p95: 33, p99: 50)]
+                        print("[baseline] Completed \(name)")
+                        fflush(stdout)
                     }
                     baseline["typing"] = documents
                     check("baseline all four typing fixtures measured", documents.count == 4)
