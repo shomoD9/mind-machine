@@ -101,5 +101,6 @@ private struct CompanionView: View {
 private struct VaultScreen: View {
     @StateObject private var model: VaultModel
     init(url: URL) { _model = StateObject(wrappedValue: VaultModel(url: url)) }
-    var body: some View { WorkspaceView(model: model).greyscaleCanvas() }
+    // WorkspaceView leaves its outer margins to the host; the companion keeps its 16 pt screen margin.
+    var body: some View { WorkspaceView(model: model).padding(16).greyscaleCanvas() }
 }
