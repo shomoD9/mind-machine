@@ -425,9 +425,15 @@ enum PillSelfTest {
             #else
             baseline["configuration"] = "Release"
             #endif
+            // The existing sandbox smoke test has a 120-second process limit.
+            // Keep its workload small; the standalone Release mode retains the
+            // research's full 100-open/1,000-key counts without that CI deadline.
+            let fullSample = CommandLine.arguments.contains("--capture-baseline-only")
+            let keyCount = fullSample ? 1_000 : 100
+            baseline["sampleProfile"] = coldOnly ? "single-cold-open" : fullSample ? "research-counts" : "ci-sample"
             var opens: [Double] = []
             var modern = true
-            let count = coldOnly ? 1 : 100
+            let count = coldOnly ? 1 : fullSample ? 100 : 20
             for _ in 0..<count {
                 controller.model.draft = ""
                 controller.model.richDraft = nil
@@ -452,19 +458,19 @@ enum PillSelfTest {
             baseline["open"] = distribution(opens, p95: 100)
             check("baseline all expected opens accept immediate input", opens.count == count)
             if !coldOnly {
-                // Open once for typing; its key is setup, outside the 1,000-key distributions.
+                // Open once for typing; its key is setup, outside the key distributions.
                 if let opened = await baselineOpen(), let editor = panel.firstResponder as? NSTextView {
                     modern = modern && opened.textKit2
                     var documents: [String: Any] = [:]
                     for (name, bytes, paragraph) in [("1KiB", 1_024, false), ("10KiB", 10_240, false),
                                                       ("100KiB", 102_400, false), ("100KiB-one-paragraph", 102_400, true)] {
-                        print("[baseline] Starting 1,000 keys in \(name)")
+                        print("[baseline] Starting \(keyCount) keys in \(name)")
                         fflush(stdout)
                         let unit = paragraph ? "baseline text " : "baseline text\n"
                         let source = String(String(repeating: unit, count: bytes / unit.count + 1).prefix(bytes))
                         guard await seedBaseline(source, editor: editor) else { continue }
                         var dispatch: [Double] = [], draw: [Double] = []
-                        for _ in 0..<1_000 {
+                        for _ in 0..<keyCount {
                             let event = keyEvent(code: 7, characters: "x")
                             let signpost = OSSignpostID(log: timingLog)
                             os_signpost(.begin, log: timingLog, name: "Capture key to draw", signpostID: signpost)
@@ -479,7 +485,7 @@ enum PillSelfTest {
                             // pacing is outside the measured interval.
                             await sleep(0.001)
                         }
-                        let expected = source + String(repeating: "x", count: 1_000)
+                        let expected = source + String(repeating: "x", count: keyCount)
                         check("baseline \(name) retains every key in view and model", editor.string == expected && controller.model.draft == expected)
                         documents[name] = ["initialUTF8Bytes": bytes, "dispatch": distribution(dispatch),
                                            "dispatchToDrawProxy": distribution(draw, p95: 33, p99: 50)]

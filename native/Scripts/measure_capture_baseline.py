@@ -36,7 +36,10 @@ def probe(binary, destination, cold):
                  "--capture-baseline-cold" if cold else "--capture-baseline-only"]
     with destination.with_suffix(".log").open("w") as log:
         launched = time.monotonic()
-        subprocess.run(arguments, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=180)
+        # Full Release research counts are deliberately outside CI's 120-second
+        # smoke-test deadline. Keep cold-child failures bounded separately.
+        subprocess.run(arguments, stdout=log, stderr=subprocess.STDOUT, check=True,
+                       timeout=30 if cold else 1800)
     report = json.loads(destination.read_text())
     if report["failed"] or not report["captureBaseline"]["textKit2Throughout"]:
         raise ValueError("Capture input or TextKit 2 correctness check failed; inspect child report")

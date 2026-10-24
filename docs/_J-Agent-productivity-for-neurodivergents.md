@@ -4,6 +4,9 @@
 
 ### GPT-6 - Codex API (mm-mdbase)
 
+- Re-read the saved prompt and clean git state after the reconnect continuation. Applied diagnosing-bugs/root-cause skills and retrieved actual failed logs plus the retained self-test artifact. The original command `gh run view 40131868749 --log-failed` shows “self-test did not finish” at the unchanged 120-second deadline during 10 KiB typing; no report-writing error occurred. All other native jobs passed. The direct failure evidence makes extra serialization hypotheses unnecessary.
+- Kept CI bounded at 20 opens/100 keys per fixture while preserving the full 100/1,000 standalone Release counts and every input/TextKit/budget observation. Extended only the manual full-run timeout, documented both profiles and retained the existing workflow deadline. Core-checks independently failed the unchanged save p95 (18.27475 >12 ms); requested an unchanged-SHA failed-job rerun to distinguish the documented runner variance, without modifying storage or thresholds.
+
 - Opened PR #11 at `03dc78b` and started hosted verification. Self-review moved the new workload after the existing idle-CPU observation to preserve that check’s conditions; added flushed fixture progress for bounded CI diagnosis. Editor/layout and protected paths remain untouched.
 
 - Read the saved task/research, project/domain/tracker/triage guidance, CONTEXT, ADR and existing editor, Mac self-test, UI journeys and CI mechanisms to scope Markdown editor ticket 1. Applied cloud-runtime and prove-it-works guidance. No cloud-status tool is available; CLI remote access works. Fetched main/redesign, verified highest ticket numbers 23/24 and claimed ticket 25 without touching the redesign's layout files.

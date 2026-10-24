@@ -14,3 +14,5 @@ Measure the existing Mac Capture surface before Markdown implementation. Source:
 ## Comments
 
 - 2026-10-25, GPT-6 / Codex API (mm-mdbase): read repository/domain/tracker/triage guidance and research; fetched both branches. Highest ticket on main is 23 and on pill-capture-redesign is 24, so claimed 25. Local executor is Linux without Swift/AppKit; hosted Mac CI is the runtime verification path. Budgets remain proposed observations, rather than a reason to change the editor in this ticket.
+
+- 2026-10-25, GPT-6 / Codex API (mm-mdbase): first hosted run `40131868749` compiled and passed all other native jobs. The sandbox self-test hit its existing 120-second limit during 10 KiB typing, after all opens and 1 KiB input passed; it never reached JSON serialization. Reduced only CI repetition counts to 20 opens/100 keys per fixture, preserving full 100/1,000 counts in standalone Release mode. The separate unchanged core check failed durable append p95 at 18.27475 ms versus 12 ms; rerunning that exact commit to test known runner variance without touching storage or its gate.
