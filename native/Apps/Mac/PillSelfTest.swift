@@ -3,7 +3,8 @@
  hide/show, dragging with persisted position, Reduce Motion and repeated cycles, records pass/fail checks and
  timings, writes PNG snapshots next to the result file, and exits with status 1 if any check failed.
  The native-ci workflow (mac-build job) runs it on a GitHub macOS runner and uploads the output.
- Nothing here runs in normal use. */
+ Frame sampling observes actual window resize notifications so actor scheduling cannot
+ skip interpolation frames. Nothing here runs in normal use. */
 import AppKit
 import MindMachinePill
 import MindMachineUI
@@ -56,6 +57,21 @@ enum PillSelfTest {
                 }
                 action()
             }
+        }
+
+        /// Register before starting the transition and observe each actual AppKit
+        /// resize synchronously. A sleeping actor task can miss frames while the
+        /// main run loop animates; notifications record the window changes directly.
+        func sampleFrames(_ action: () -> Void) async -> (duration: Double?, widths: [CGFloat]) {
+            var widths = [panel.frame.width]
+            let observer = NotificationCenter.default.addObserver(forName: NSWindow.didResizeNotification,
+                                                                  object: panel, queue: .main) { [self] _ in
+                MainActor.assumeIsolated { widths.append(panel.frame.width) }
+            }
+            defer { NotificationCenter.default.removeObserver(observer) }
+            let duration = await settle(action)
+            widths.append(panel.frame.width)
+            return (duration, widths)
         }
 
         /// Seconds until `condition` holds, polling every 4 ms, or nil after one second.
@@ -209,27 +225,22 @@ enum PillSelfTest {
             handle.mouseLocation = { NSEvent.mouseLocation }
 
             // 6b. The window must pass through intermediate sizes, otherwise nothing is actually animating.
-            var widths: [CGFloat] = []
-            let sampler = Task { @MainActor [self] in
-                while !Task.isCancelled { widths.append(panel.frame.width); await sleep(0.004) }
-            }
-            let sampledExpand = await settle { controller.send(.clickPill) }
-            sampler.cancel()
+            let expansionFrames = await sampleFrames { controller.send(.clickPill) }
+            let sampledExpand = expansionFrames.duration
             let between = PillGeometry.pillSize.width + 20 ..< PillGeometry.panelSize.width - 20
-            let intermediate = Set(widths.filter { between.contains($0) }).count
+            let intermediate = Set(expansionFrames.widths.filter { between.contains($0) }).count
+            report["expandWidths"] = expansionFrames.widths.map(Double.init)
             report["expandIntermediateWidths"] = intermediate
             report["expandSampledMs"] = ms(sampledExpand)
             check("expand passes through intermediate frames", intermediate >= 3)
             check("expand animation lasts about its configured duration", (sampledExpand ?? 0) >= PillMotion.expand * 0.8)
-            widths = []
-            let sampler2 = Task { @MainActor [self] in
-                while !Task.isCancelled { widths.append(panel.frame.width); await sleep(0.004) }
-            }
-            let sampledCollapse = await settle { controller.send(.escape) }
-            sampler2.cancel()
-            report["collapseIntermediateWidths"] = Set(widths.filter { between.contains($0) }).count
+            let collapseFrames = await sampleFrames { controller.send(.escape) }
+            let sampledCollapse = collapseFrames.duration
+            let collapseIntermediate = Set(collapseFrames.widths.filter { between.contains($0) }).count
+            report["collapseWidths"] = collapseFrames.widths.map(Double.init)
+            report["collapseIntermediateWidths"] = collapseIntermediate
             report["collapseSampledMs"] = ms(sampledCollapse)
-            check("collapse passes through intermediate frames", Set(widths.filter { between.contains($0) }).count >= 3)
+            check("collapse passes through intermediate frames", collapseIntermediate >= 3)
             check("collapse animation lasts about its configured duration", (sampledCollapse ?? 0) >= PillMotion.collapse * 0.8)
             await sleep(0.1)
 

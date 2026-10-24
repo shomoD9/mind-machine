@@ -10,6 +10,16 @@ Mind Machine's Mac floating pill adapts window, geometry and drag code from the 
 
 The OpenWhispr, Handy and VoiceInk (GPL-3.0) projects were read as references for behaviour only; no code from them is included.
 
+## iPhone keyboard keys
+
+The keyboard extension's letter, number and symbol keys come from KeyboardKit, linked as a Swift package by the `MindMachineKeyboard` target only. It is used unmodified.
+
+| Project | Version | Commit | Licence | Used in | What is used |
+| --- | --- | --- | --- | --- | --- |
+| [KeyboardKit](https://github.com/KeyboardKit/KeyboardKit) | 9.9.1 (exact pin in `native/Scripts/generate_project.py`) | `a7e33ac2e6f47e16288ce09ec8d765cd329f918c` | MIT | `native/Apps/Keyboard/KeyboardViewController.swift`, `RoutedTextProxy.swift`, `InputClickFeedback.swift` | `KeyboardView` keys, layouts, callouts, gestures, shift and caps-lock behaviour, repeat delete, haptic engine and styles |
+
+9.9.1 is the last MIT-licensed, source-distributed KeyboardKit release. Versions 10.0 and later are a closed-source binary under the Kankoda Sweden AB licence and must not replace this pin without a licensing decision.
+
 ## Wisp
 
 ```
@@ -268,4 +278,30 @@ Copyright 2022 Hugging Face SAS. Licensed under the Apache License, Version 2.0.
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+```
+
+## KeyboardKit
+
+```
+MIT License
+
+Copyright (c) 2016-2025 Daniel Saidi
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate the three native Xcode targets without an external generator.
-Run from any directory. Xcode consumes the project and shared schemes; source
-files stay in Apps and the local Swift package supplies shared core/UI modules.
+"""Generate native app, keyboard and UI-acceptance targets without an external generator.
+Run from any directory. Xcode consumes the project and shared schemes; app files
+stay in Apps, UI journeys in UITests, and the local package supplies core/UI modules.
 """
 from pathlib import Path
 import hashlib
@@ -50,6 +50,10 @@ signing_config = add("signingConfig", "PBXFileReference", lastKnownFileType="tex
 package = add('package', 'XCLocalSwiftPackageReference', relativePath=quote('.'))
 # Pure pill logic (state machine, geometry, persistence) lives in its own package so CI can test it; only the Mac target links it.
 pill_package = add('pillPackage', 'XCLocalSwiftPackageReference', relativePath=quote('Pill'))
+# The keyboard's letter keyplane is KeyboardKit 9.9.1, the last MIT-licensed, pure-source release (10.0 and later
+# ship a closed-source binary). An exact pin keeps it there; only the keyboard target links it. See THIRD_PARTY_NOTICES.md.
+keyboardkit_package = add('keyboardKitPackage', 'XCRemoteSwiftPackageReference', repositoryURL=quote('https://github.com/KeyboardKit/KeyboardKit'),
+                          requirement=dictionary({'kind': 'exactVersion', 'version': quote('9.9.1')}))
 products = []
 targets = []
 groups = []
@@ -57,9 +61,14 @@ for name, folder, bundle, kind in [
     ('MindMachine', 'iOS', '$(MINDMACHINE_BUNDLE_ID)', 'application'),
     ('MindMachineKeyboard', 'Keyboard', '$(MINDMACHINE_KEYBOARD_BUNDLE_ID)', 'app-extension'),
     ('MindMachineMac', 'Mac', '$(MINDMACHINE_BUNDLE_ID)', 'application'),
+    ('KeyboardTestHost', 'KeyboardTestHost', 'com.statemachine.mindmachine.uitesthost', 'application'),
 ]:
     is_mac = folder == 'Mac'
+    is_test_host = folder == 'KeyboardTestHost'
     files = sorted((ROOT/'Apps'/folder).glob('*.swift'))
+    if is_test_host:
+        # Compile the exact extension sources; the host supplies only OS-boundary adapters.
+        files += sorted((ROOT/'Apps'/'Keyboard').glob('*.swift'))
     if not is_mac:
         files += sorted((ROOT/'Apps'/'Shared').glob('*.swift'))
     sources = []
@@ -91,6 +100,10 @@ for name, folder, bundle, kind in [
         dependency = add(name+'MindMachinePill', 'XCSwiftPackageProductDependency', package=pill_package, productName=quote('MindMachinePill'))
         dependencies.append(dependency)
         links.append(add(name+'MindMachinePilllink', 'PBXBuildFile', productRef=dependency))
+    if kind == 'app-extension' or is_test_host:
+        dependency = add(name+'KeyboardKit', 'XCSwiftPackageProductDependency', package=keyboardkit_package, productName=quote('KeyboardKit'))
+        dependencies.append(dependency)
+        links.append(add(name+'KeyboardKitlink', 'PBXBuildFile', productRef=dependency))
     framework_phase = add(name+'frameworks', 'PBXFrameworksBuildPhase', buildActionMask='2147483647', files=array(links), runOnlyForDeploymentPostprocessing='0')
     ext = 'appex' if kind == 'app-extension' else 'app'
     product = add(name+'product', 'PBXFileReference', explicitFileType=quote('wrapper.app-extension' if kind == 'app-extension' else 'wrapper.application'), includeInIndex='0', path=quote(name+'.'+ext), sourceTree='BUILT_PRODUCTS_DIR')
@@ -112,6 +125,14 @@ for name, folder, bundle, kind in [
             'LD_RUNPATH_SEARCH_PATHS':quote('$(inherited) @executable_path/Frameworks'+(' @executable_path/../../Frameworks' if kind == 'app-extension' else '')),
         }
         if kind != 'app-extension': settings['ASSETCATALOG_COMPILER_APPICON_NAME']=quote('AppIcon')
+        # Xcode's standard Debug flag; the companion's CI screenshot launch arguments compile only under it.
+        if config == 'Debug': settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS']=quote('DEBUG')
+        if is_test_host:
+            settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = quote('DEBUG KEYBOARD_UI_TEST_HOST')
+            settings['CODE_SIGN_ENTITLEMENTS'] = quote('')
+            settings['SKIP_INSTALL'] = 'YES'
+            settings['SUPPORTED_PLATFORMS'] = quote('iphonesimulator')
+            settings['SDKROOT'] = 'iphonesimulator'
         if is_mac: settings['MACOSX_DEPLOYMENT_TARGET']='14.0'
         else: settings.update(IPHONEOS_DEPLOYMENT_TARGET='17.0', TARGETED_DEVICE_FAMILY=quote('1,2'))
         if kind == 'app-extension': settings.update(APPLICATION_EXTENSION_API_ONLY='YES', SKIP_INSTALL='YES')
@@ -135,7 +156,7 @@ for name, folder, bundle, kind in [
     info['VaultCloudContainer']='$(VAULT_ICLOUD_CONTAINER)'
     info['VaultKeychainGroup']='$(VAULT_KEYCHAIN_GROUP)'
     if folder=='iOS': info['UIBackgroundModes']=['remote-notification']
-    if folder=='iOS': info.update(UILaunchScreen={}, UISupportedInterfaceOrientations=['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'])
+    if folder=='iOS' or is_test_host: info.update(UILaunchScreen={}, UISupportedInterfaceOrientations=['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'])
     if kind=='app-extension':
         info['NSExtension']={'NSExtensionPointIdentifier':'com.apple.keyboard-service',
             'NSExtensionPrincipalClass':'$(PRODUCT_MODULE_NAME).KeyboardViewController',
@@ -159,18 +180,60 @@ for name, folder, bundle, kind in [
         'com.apple.developer.icloud-services':['CloudKit'],
         'keychain-access-groups':['$(VAULT_KEYCHAIN_GROUP)']})
     if kind != 'app-extension': entitlements['aps-environment' if not is_mac else 'com.apple.developer.aps-environment']='development'
+    if is_test_host: entitlements = {}  # The host never requests distribution capabilities.
     (ROOT/'Apps'/folder/'Vault.entitlements').write_bytes(narrated_plist(entitlements, folder + ' signing capabilities for shared storage, keys and private CloudKit.'))
     # Shared schemes let xcodebuild reproduce both independent applications.
     if kind != 'app-extension':
         scheme=f'''<?xml version="1.0" encoding="UTF-8"?>
+<!-- App launch scheme generated by Scripts/generate_project.py; used by Xcode and native-ci. -->
 <Scheme LastUpgradeVersion="2620" version="1.3"><BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident(name+'target')}" BuildableName="{name}.app" BlueprintName="{name}" ReferencedContainer="container:MindMachine.xcodeproj"/></BuildActionEntry></BuildActionEntries></BuildAction><LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES"><BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident(name+'target')}" BuildableName="{name}.app" BlueprintName="{name}" ReferencedContainer="container:MindMachine.xcodeproj"/></BuildableProductRunnable></LaunchAction></Scheme>
 '''
         (ROOT/'MindMachine.xcodeproj/xcshareddata/xcschemes'/f'{name}.xcscheme').write_text(scheme)
+
+# UI tests are separate runners: they launch the host/app and use only accessibility
+# and input events. Shared schemes make the same journeys runnable in Xcode and CI.
+def ui_test_target(name, host, source, is_mac=False):
+    ref = add(name+'ref', 'PBXFileReference', lastKnownFileType='sourcecode.swift', path=quote('UITests/'+source), sourceTree=quote('<group>'))
+    groups.append(add(name+'group', 'PBXGroup', name=quote(name), children=array([ref]), sourceTree=quote('<group>')))
+    build_file = add(name+'file', 'PBXBuildFile', fileRef=ref)
+    sources = add(name+'sources', 'PBXSourcesBuildPhase', buildActionMask='2147483647', files=array([build_file]), runOnlyForDeploymentPostprocessing='0')
+    product = add(name+'product', 'PBXFileReference', explicitFileType=quote('wrapper.cfbundle'), path=quote(name+'.xctest'), sourceTree='BUILT_PRODUCTS_DIR')
+    products.append(product)
+    configs = []
+    for config in ['Debug', 'Release']:
+        settings = {
+            'PRODUCT_NAME': quote(name), 'PRODUCT_BUNDLE_IDENTIFIER': quote('com.statemachine.'+name),
+            'SWIFT_VERSION': '5.0', 'GENERATE_INFOPLIST_FILE': 'YES', 'CODE_SIGN_STYLE': 'Automatic',
+            'SDKROOT': 'macosx' if is_mac else 'iphoneos', 'TEST_TARGET_NAME': quote(host),
+            'SUPPORTED_PLATFORMS': quote('macosx' if is_mac else 'iphoneos iphonesimulator'),
+            'LD_RUNPATH_SEARCH_PATHS': quote('$(inherited) @executable_path/Frameworks @loader_path/Frameworks'),
+        }
+        if is_mac: settings['MACOSX_DEPLOYMENT_TARGET'] = '14.0'
+        else: settings.update(IPHONEOS_DEPLOYMENT_TARGET='17.0', TARGETED_DEVICE_FAMILY=quote('1,2'))
+        configs.append(add(name+config, 'XCBuildConfiguration', name=quote(config), buildSettings=dictionary(settings)))
+    config_list = add(name+'configs', 'XCConfigurationList', buildConfigurations=array(configs), defaultConfigurationIsVisible='0', defaultConfigurationName='Release')
+    proxy = add(name+'proxy', 'PBXContainerItemProxy', containerPortal=ident('project'), proxyType='1', remoteGlobalIDString=ident(host+'target'), remoteInfo=quote(host))
+    dependency = add(name+'dependency', 'PBXTargetDependency', target=ident(host+'target'), targetProxy=proxy)
+    target = add(name+'target', 'PBXNativeTarget', buildConfigurationList=config_list, buildPhases=array([sources]), buildRules='()', dependencies=array([dependency]), name=quote(name), productName=quote(name), productReference=product, productType=quote('com.apple.product-type.bundle.ui-testing'))
+    targets.append(target)
+    def reference(target_name, extension):
+        return f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident(target_name+"target")}" BuildableName="{target_name}.{extension}" BlueprintName="{target_name}" ReferencedContainer="container:MindMachine.xcodeproj"/>'
+    scheme = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!-- UI acceptance generated by Scripts/generate_project.py; run by native-ci. -->
+<Scheme LastUpgradeVersion="2620" version="1.3">
+<BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="NO" buildForArchiving="NO" buildForAnalyzing="YES">{reference(host, 'app')}</BuildActionEntry></BuildActionEntries></BuildAction>
+<TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES"><Testables><TestableReference skipped="NO" parallelizable="NO">{reference(name, 'xctest')}</TestableReference></Testables></TestAction>
+</Scheme>
+'''
+    (ROOT/'MindMachine.xcodeproj/xcshareddata/xcschemes'/f'{name}.xcscheme').write_text(scheme)
+
+ui_test_target('MindMachineKeyboardUITests', 'KeyboardTestHost', 'KeyboardAcceptanceTests.swift')
+ui_test_target('MindMachinePillUITests', 'MindMachineMac', 'PillAcceptanceTests.swift', is_mac=True)
 product_group=add('products','PBXGroup',name='Products',children=array(products),sourceTree=quote('<group>'))
 main_group=add('main','PBXGroup',children=array(groups+[signing_config, product_group]),sourceTree=quote('<group>'))
 project_configs=[add('project'+c,'XCBuildConfiguration',name=quote(c),buildSettings=dictionary({'CLANG_ENABLE_MODULES':'YES','SWIFT_VERSION':'5.0'})) for c in ['Debug','Release']]
 config_list=add('projectconfigs','XCConfigurationList',buildConfigurations=array(project_configs),defaultConfigurationIsVisible='0',defaultConfigurationName='Release')
-project=add('project','PBXProject',attributes=dictionary({'LastUpgradeCheck':'2620'}),buildConfigurationList=config_list,compatibilityVersion=quote('Xcode 14.0'),developmentRegion='en',hasScannedForEncodings='0',knownRegions=array(['en','Base']),mainGroup=main_group,packageReferences=array([package, pill_package]),productRefGroup=product_group,projectDirPath=quote(''),projectRoot=quote(''),targets=array(targets))
+project=add('project','PBXProject',attributes=dictionary({'LastUpgradeCheck':'2620'}),buildConfigurationList=config_list,compatibilityVersion=quote('Xcode 14.0'),developmentRegion='en',hasScannedForEncodings='0',knownRegions=array(['en','Base']),mainGroup=main_group,packageReferences=array([package, pill_package, keyboardkit_package]),productRefGroup=product_group,projectDirPath=quote(''),projectRoot=quote(''),targets=array(targets))
 # The generated project is committed; regenerating reproduces target membership.
 body='\n'.join(f'{key} = '+dictionary(fields)+';' for key,fields in OBJECTS.items())
-(ROOT/'MindMachine.xcodeproj/project.pbxproj').write_text('// !$*UTF8*$!\n/* Generated by Scripts/generate_project.py; Xcode builds the three native apps. */\n{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {\n'+body+'\n}; rootObject = '+project+'; }\n')
+(ROOT/'MindMachine.xcodeproj/project.pbxproj').write_text('// !$*UTF8*$!\n/* Generated by Scripts/generate_project.py; Xcode builds native apps and UI-test targets. */\n{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {\n'+body+'\n}; rootObject = '+project+'; }\n')

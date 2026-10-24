@@ -2,7 +2,8 @@
  global hotkey through Carbon, and hands everything visible to PillController (PillController.swift):
  the floating pill that expands into the Capture / Recall panel. The menu-bar item lives in
  PillMenuBar.swift. With "--pill-selftest <file>" the app runs PillSelfTest.swift (used by native-ci)
- against a throwaway vault and exits. Also installs the process-lifetime reminder notification presenter. */
+ against a throwaway vault and exits. Debug --pill-ui-test <UUID> gives XCUITest a separate
+ local vault and defaults suite. Also installs the process-lifetime reminder notification presenter. */
 import AppKit
 import Carbon
 import MindMachinePill
@@ -35,8 +36,17 @@ final class MacDelegate: NSObject, NSApplicationDelegate {
 
         // The self-test must never touch the person's real vault.
         let selfTestPath = Self.argument(after: "--pill-selftest")
+        // XCUITest needs the running UI rather than the self-test's automatic
+        // event sequence/exit. This launch path cannot be enabled in Release.
+        var uiTestID: UUID?
+        #if DEBUG
+        uiTestID = Self.argument(after: "--pill-ui-test").flatMap(UUID.init(uuidString:))
+        #endif
         if selfTestPath != nil {
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("mm-selftest-\(UUID().uuidString)/vault.json")
+            model = VaultModel(url: url, notificationAccess: .disabled)
+        } else if let uiTestID {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("mm-ui-\(uiTestID.uuidString)/vault.json")
             model = VaultModel(url: url, notificationAccess: .disabled)
         } else {
             model = VaultModel()
@@ -48,6 +58,8 @@ final class MacDelegate: NSObject, NSApplicationDelegate {
         if selfTestPath != nil {
             UserDefaults.standard.removePersistentDomain(forName: PillSelfTest.suiteName)
             defaults = UserDefaults(suiteName: PillSelfTest.suiteName) ?? .standard
+        } else if let uiTestID {
+            defaults = UserDefaults(suiteName: "dev.mindmachine.pill-ui-\(uiTestID.uuidString)") ?? .standard
         } else {
             defaults = .standard
         }

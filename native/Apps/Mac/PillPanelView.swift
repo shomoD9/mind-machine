@@ -1,7 +1,8 @@
 /* SwiftUI content of the expanded pill panel: a Capture / Recall tab strip with a disabled placeholder
  slot for a third mode, a close button, and the shared WorkspaceView underneath (embedded without its
  own header, so its behaviour is unchanged). PillViewModel carries the selected tab from PillController
- into this view, and the tab taps back out. Created once by PillController (PillController.swift). */
+ into this view, and the tab taps back out. Created once by PillController (PillController.swift);
+ PillAcceptanceTests uses the tab and close identifiers for the real UI journey. */
 import SwiftUI
 import MindMachinePill
 import MindMachineUI
@@ -41,6 +42,7 @@ struct PillPanelView: View {
             }
             .buttonStyle(.plain).foregroundStyle(.secondary)
             .help("Close (Esc)").accessibilityLabel("Close")
+            .accessibilityIdentifier("pill-close")
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
     }
@@ -60,6 +62,7 @@ struct PillPanelView: View {
                 .animation(pill.reduceMotion ? nil : .easeOut(duration: PillMotion.modeSwitch), value: selected)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("pill-mode-\(mode.rawValue)")
             .accessibilityAddTraits(selected ? .isSelected : [])
         } else {
             // PLACEHOLDER: third mode, to be specified by the founder. Disabled until then.

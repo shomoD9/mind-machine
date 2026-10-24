@@ -1,25 +1,43 @@
-/* Primary iPhone workspace, loaded by iOS as the embedded keyboard extension.
- It routes custom keys to its private editor or the host's textDocumentProxy,
- and uses VaultModel for the same persisted capture/recall operations as Mac. */
+/* Primary iPhone workspace, loaded by iOS as the embedded keyboard extension (Info.plist
+ NSExtensionPrincipalClass). The panel above the keys holds the private editor, Recall results
+ and reminder controls; the keys are KeyboardKit's Apple-style KeyboardView. Every key reaches
+ the typing destination through RoutedTextProxy: the private editor, or the host's
+ textDocumentProxy. VaultModel supplies the same persisted capture/recall operations as Mac.
+ Panel styling comes from KeyboardPanelStyle.swift; key sounds from InputClickFeedback.swift;
+ the hosted keys from KeyplaneView.swift. */
 import UIKit
+import SwiftUI
 import Combine
+import KeyboardKit
 import MindMachineCore
 import MindMachineUI
 
 @MainActor
-final class KeyboardViewController: UIInputViewController, UITextViewDelegate, UIGestureRecognizerDelegate {
+final class KeyboardViewController: KeyboardInputViewController, UITextViewDelegate, UIGestureRecognizerDelegate, TextRouteOwner {
+    #if KEYBOARD_UI_TEST_HOST
+    // Only the separate UI-test app compiles these OS-boundary adapters. All workspace,
+    // keyplane, routing validation and persistence operations below remain production code.
+    var uiTestVaultURL: URL!
+    var uiTestHostProxy: UITextDocumentProxy!
+    private let uiTestPrivateProxy = RoutedTextProxy()
+    override var originalTextDocumentProxy: UITextDocumentProxy {
+        editor.isFirstResponder ? uiTestPrivateProxy : uiTestHostProxy
+    }
+    #endif
     // iOS can retarget its proxy to the host while the local editor stays active.
     // Capture local identity after editing begins; avoid proxy access at startup.
     private var privateDocument: UUID?
     private var hostDocumentProxy: UITextDocumentProxy?
 
+    private let root = UIStackView()
     private let stack = UIStackView()
+    private let grain = GrainView()
     private let editor = RoutingTextView()
     private let privateTap = UITapGestureRecognizer()
     private let results = UIStackView()
     private let scroll = UIScrollView()
-    private let status = UILabel()
-    private let notificationStatus = UILabel()
+    private let status = PanelStyle.label(id: "keyboard-status")
+    private let notificationStatus = PanelStyle.label(id: "keyboard-notification-status")
     private var openTasks = false
     // The accepted editing target and zone are frozen while choosing a date.
     private struct ReminderSession {
@@ -30,12 +48,18 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     }
     private var reminderSession: ReminderSession?
     private var savingReminder = false
-    private let destination = UIButton(type: .system)
-    private let save = UIButton(type: .system)
+    private lazy var destination = PanelStyle.button("Typing into: Private note", id: "typing-destination", kind: .chip,
+                                                     font: .systemFont(ofSize: 13, weight: .medium)) { [weak self] in self?.toggleDestination() }
+    private lazy var save = PanelStyle.button("Save note", id: "keyboard-save", kind: .prominent) { [weak self] in self?.primaryAction() }
     private let modes = UISegmentedControl(items: ["Capture", "Recall"])
-    private let keyplane = UIStackView()
+    private let toolRow = UIStackView()
     private let formatting = UIStackView()
-    private let sizeButton = UIButton(type: .system)
+    private lazy var sizeButton = PanelStyle.button("Size: Default", id: "pad-size", kind: .quiet,
+                                                    font: .systemFont(ofSize: 13, weight: .medium)) { [weak self] in self?.changeSize() }
+    // KeyboardKit's keys, hosted once below the panel. Keys write only through `router`.
+    private var keys: UIHostingController<AnyView>?
+    private let router = RoutedTextProxy()
+    private var keysRouteToHost: Bool?
     private var workspace = KeyboardWorkspace()
     private var workspaceHeight: NSLayoutConstraint?
     private var resultsHeight: NSLayoutConstraint?
@@ -46,8 +70,6 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         get { workspace.destination == .app }
         set { workspace.selectDestination(newValue ? .app : .privatePad) }
     }
-    private var shift = false
-    private var numbers = false
     private var height: NSLayoutConstraint?
     private var selected: Capture?
     private var sendingToHost = false
@@ -56,12 +78,18 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        configureKeyboardKit()
         // Refuse isolated keyboard storage. Full Access and the common signed
         // group must both work before any private capture can be accepted.
+        #if KEYBOARD_UI_TEST_HOST
+        hostDocumentProxy = uiTestHostProxy
+        model = VaultModel(url: uiTestVaultURL, notificationAccess: .disabled)
+        #else
         do {
             guard hasFullAccess else { throw DeviceVault.StorageError.sharedContainerUnavailable }
             model = VaultModel(url: try DeviceVault.sharedURL(), notificationAccess: .keyboard)
         } catch { status.text = error.localizedDescription }
+        #endif
         buildWorkspace()
         if let model {
             model.$vault.sink { [weak self] _ in DispatchQueue.main.async { self?.renderResults() } }.store(in: &subscriptions)
@@ -77,10 +105,12 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     // Store the actual extension footprint/headroom in the shared container for
     // companion setup. Sampling never loads the corpus or a semantic model.
     private func recordMemory() {
+        #if !KEYBOARD_UI_TEST_HOST
         guard let memory = ProcessMemory.sample(), let url = try? DeviceVault.sharedURL() else { return }
         let headroom = memory.availableMiB.map { String(format: "%.1f", $0) } ?? "unavailable"
         let report = "Keyboard footprint: \(String(format: "%.1f", memory.footprintMiB)) MiB · OS headroom: \(headroom) MiB · \(Date().formatted())"
         try? Data(report.utf8).write(to: url.deletingLastPathComponent().appendingPathComponent("keyboard-memory.txt"), options: .atomic)
+        #endif
     }
 
     override func didReceiveMemoryWarning() {
@@ -101,48 +131,99 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         refreshMode()
     }
 
+    // viewDidLoad samples before KeyboardKit renders; this sample includes the visible keys.
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.recordMemory() }
+    }
+
     override func viewWillDisappear(_ animated: Bool) {
         retainDraft()
         pendingSearch?.cancel()
         super.viewWillDisappear(animated)
     }
 
+    // KeyboardKit reads and writes the active document through `textInputProxy`; pointing it at
+    // the router makes every key, word-delete, double-space period and space-bar drag follow
+    // the typing destination. Sound follows the system Keyboard Clicks setting.
+    private func configureKeyboardKit() {
+        router.owner = self
+        state.keyboardContext.textInputProxy = router
+        let feedback = InputClickFeedbackService()
+        services.feedbackService = feedback
+        (services.actionHandler as? KeyboardAction.StandardActionHandler)?.feedbackService = feedback
+        // KeyboardKit's initial setup runs asynchronously after viewDidLoad and copies the host
+        // field's keyboard type. Capture starts in the private note, so restore its layout after it.
+        DispatchQueue.main.async { [weak self] in self?.syncKeysWithRoute(force: true) }
+    }
+
+    // KeyboardKit calls this on every appearance. The panel owns the view hierarchy, so the
+    // keys are hosted once inside it instead of replacing the whole extension view.
+    override func viewWillSetupKeyboardView() {
+        guard keys == nil else { return }
+        // KeyplaneView observes the keyboard context so case and layer changes rebuild the layout.
+        let keyboard = KeyplaneView(state: state, services: services, context: state.keyboardContext)
+            .keyboardState(state)
+        let host = UIHostingController(rootView: AnyView(keyboard))
+        host.sizingOptions = .intrinsicContentSize
+        host.safeAreaRegions = []
+        host.view.backgroundColor = .clear
+        host.view.accessibilityIdentifier = "keyboard-keys"
+        host.view.setContentHuggingPriority(.required, for: .vertical)
+        host.view.setContentCompressionResistancePriority(.required, for: .vertical)
+        addChild(host)
+        root.addArrangedSubview(host.view)
+        host.didMove(toParent: self)
+        keys = host
+        applyPadSize()
+    }
+
     private func buildWorkspace() {
-        view.backgroundColor = .systemBackground
-        view.tintColor = .label
+        // A flat neutral backdrop with grain sits behind the panel and between the keys.
+        view.backgroundColor = Greyscale.backdrop.uiColor
+        view.tintColor = Greyscale.ink.uiColor
+        grain.frame = view.bounds
+        grain.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(grain)
         // Request enough extension space for the private pad plus keyplane.
         // The system/host still owns the final available height.
         inputView?.allowsSelfSizing = true
-        workspaceHeight = view.heightAnchor.constraint(equalToConstant: 470)
+        workspaceHeight = view.heightAnchor.constraint(equalToConstant: 520)
         workspaceHeight?.priority = .defaultHigh
         workspaceHeight?.isActive = true
-        stack.axis = .vertical; stack.spacing = 4; stack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(stack)
+        // The root stack holds the padded panel, then the full-width keys (added by viewWillSetupKeyboardView).
+        root.axis = .vertical; root.spacing = 0; root.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(root)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
-            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 6),
-            stack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -4)
+            root.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            root.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            root.topAnchor.constraint(equalTo: view.topAnchor),
+            root.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
+        stack.axis = .vertical; stack.spacing = 7
+        stack.isLayoutMarginsRelativeArrangement = true
+        stack.directionalLayoutMargins = .init(top: 8, leading: 8, bottom: 4, trailing: 8)
+        root.addArrangedSubview(stack)
         modes.selectedSegmentIndex = 0
         modes.addTarget(self, action: #selector(changeMode), for: .valueChanged)
         modes.accessibilityIdentifier = "keyboard-mode"
+        PanelStyle.styleSegments(modes)
         let header = UIStackView(arrangedSubviews: [modes, sizeButton])
-        header.spacing = 6
+        header.spacing = 8; header.alignment = .center
         modes.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        modes.heightAnchor.constraint(equalToConstant: 32).isActive = true
         sizeButton.setContentHuggingPriority(.required, for: .horizontal)
-        sizeButton.addTarget(self, action: #selector(changeSize), for: .touchUpInside)
-        sizeButton.accessibilityIdentifier = "pad-size"
+        sizeButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         stack.addArrangedSubview(header)
-        destination.setTitle("Typing into: Private note", for: .normal)
-        destination.addTarget(self, action: #selector(toggleDestination), for: .touchUpInside)
-        destination.accessibilityIdentifier = "typing-destination"
-        stack.addArrangedSubview(destination)
+        // Destination on the left, formatting on the right: one quiet row above the note.
+        destination.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        destination.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        toolRow.spacing = 6; toolRow.alignment = .center
+        toolRow.addArrangedSubview(destination)
         // The text view is a real local editor. Suppress a second system keyplane;
-        // this extension supplies its own buttons and retains selection locally.
+        // this extension supplies its own keys and retains selection locally.
         editor.font = .preferredFont(forTextStyle: .body)
-        editor.backgroundColor = .secondarySystemBackground
-        editor.layer.cornerRadius = 6
+        PanelStyle.styleEditor(editor)
         // Rich formatting stays inside the private note. Search and chat remain
         // plain inputs, and authored checkboxes retain their visible source glyph.
         editor.allowsEditingTextAttributes = true
@@ -151,17 +232,21 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         // customization; disable them here while retaining selection/copy/paste.
         editor.spellCheckingType = .no
         editor.autocorrectionType = .no
-        formatting.distribution = .fillEqually
+        formatting.spacing = 2
+        formatting.setContentHuggingPriority(.required, for: .horizontal)
         for format in NoteFormat.allCases {
-            let control = UIButton(type: .system)
-            control.setTitle(format.rawValue, for: .normal)
+            // Titles stay as authored ("Bold", "Italic", "•", "☐"); the font previews the effect.
+            let font: UIFont = format == .bold ? .systemFont(ofSize: 14, weight: .bold)
+                : format == .italic ? .italicSystemFont(ofSize: 14) : .systemFont(ofSize: 16, weight: .regular)
+            let control = PanelStyle.button(format.rawValue, id: "keyboard-format-\(format == .checkbox ? "checkbox" : format == .bullet ? "bullet" : format.rawValue.lowercased())",
+                                            kind: .chip, font: font) { [weak self] in self?.formatNote(format) }
             control.accessibilityLabel = format == .checkbox ? "Checkbox" : format == .bullet ? "Bullet" : format.rawValue
-            control.addAction(UIAction { [weak self] _ in self?.formatNote(format) }, for: .touchUpInside)
             formatting.addArrangedSubview(control)
         }
-        stack.addArrangedSubview(formatting)
+        toolRow.addArrangedSubview(formatting)
+        stack.addArrangedSubview(toolRow)
         // Local first-responder status can survive a host tap. Explicit input
-        // routing also covers hardware keys, which otherwise bypass our buttons.
+        // routing also covers hardware keys, which otherwise bypass the keyplane.
         privateTap.addTarget(self, action: #selector(selectPrivatePad))
         privateTap.cancelsTouchesInView = false
         privateTap.delegate = self
@@ -182,6 +267,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         height = editor.heightAnchor.constraint(equalToConstant: 110)
         height?.isActive = true
         scroll.addSubview(results)
+        scroll.accessibilityIdentifier = "keyboard-results"
         results.axis = .vertical; results.spacing = 6; results.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             results.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
@@ -193,56 +279,23 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         resultsHeight = scroll.heightAnchor.constraint(equalToConstant: 110)
         resultsHeight?.isActive = true
         stack.addArrangedSubview(scroll)
-        let actions = UIStackView(); actions.distribution = .fillEqually
-        save.addTarget(self, action: #selector(primaryAction), for: .touchUpInside)
-        save.accessibilityIdentifier = "keyboard-save"
-        actions.addArrangedSubview(save)
-        let globe = button("Next keyboard", action: #selector(nextKeyboard))
-        actions.addArrangedSubview(globe)
+        // Status on the left, the primary action on the right. The system globe key
+        // (or KeyboardKit's own globe on Home-button iPhones) switches keyboards.
+        let actions = UIStackView(arrangedSubviews: [status, save])
+        actions.spacing = 10; actions.alignment = .center
+        status.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        save.setContentHuggingPriority(.required, for: .horizontal)
+        save.setContentCompressionResistancePriority(.required, for: .horizontal)
         stack.addArrangedSubview(actions)
-        keyplane.axis = .vertical; keyplane.spacing = 5
-        stack.addArrangedSubview(keyplane)
-        buildKeys()
-        status.numberOfLines = 2; status.font = .preferredFont(forTextStyle: .caption2)
-        status.textColor = .secondaryLabel
-        stack.addArrangedSubview(status)
-        notificationStatus.font = .preferredFont(forTextStyle: .caption2)
-        notificationStatus.numberOfLines = 2; notificationStatus.textColor = .secondaryLabel
         notificationStatus.isHidden = true
         stack.addArrangedSubview(notificationStatus)
-    }
-
-    private func button(_ title: String, action: Selector) -> UIButton {
-        let control = UIButton(type: .system)
-        control.setTitle(title, for: .normal)
-        control.tintColor = .label
-        control.addTarget(self, action: action, for: .touchUpInside)
-        return control
-    }
-
-    private func buildKeys() {
-        keyplane.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        let rows = numbers ? [Array("1234567890"), Array("-/:;()$&@\""), Array(".,?!'#+=*")] :
-            [Array("qwertyuiop"), Array("asdfghjkl"), Array("zxcvbnm")]
-        for row in rows {
-            let line = UIStackView(); line.spacing = 4; line.distribution = .fillEqually
-            for character in row {
-                let title = shift ? String(character).uppercased() : String(character)
-                let key = button(title, action: #selector(typeKey(_:)))
-                key.backgroundColor = .secondarySystemBackground; key.layer.cornerRadius = 5
-                key.heightAnchor.constraint(equalToConstant: 38).isActive = true
-                line.addArrangedSubview(key)
-            }
-            keyplane.addArrangedSubview(line)
-        }
-        let bottom = UIStackView(); bottom.spacing = 6; bottom.distribution = .fillEqually
-        bottom.addArrangedSubview(button(shift ? "⇧ On" : "⇧", action: #selector(toggleShift)))
-        bottom.addArrangedSubview(button(numbers ? "ABC" : "123", action: #selector(toggleNumbers)))
-        bottom.addArrangedSubview(button("space", action: #selector(space)))
-        bottom.addArrangedSubview(button("⌫", action: #selector(backspace)))
-        bottom.addArrangedSubview(button("return", action: #selector(newline)))
-        bottom.heightAnchor.constraint(equalToConstant: 40).isActive = true
-        keyplane.addArrangedSubview(bottom)
+        // Any height the host grants beyond the requested size, or takes away, lands here
+        // rather than stretching or squeezing the note, results or keys.
+        let slack = UIView()
+        slack.setContentHuggingPriority(UILayoutPriority(1), for: .vertical)
+        slack.setContentCompressionResistancePriority(UILayoutPriority(1), for: .vertical)
+        stack.addArrangedSubview(slack)
     }
 
     // Save the outgoing private field before selecting another workspace mode.
@@ -271,6 +324,8 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         editor.accessibilityLabel = model.mode == 0 ? "Private note" : model.mode == 1 ? "Recall saved material" : "Private chat message"
         updatePrimaryTitle()
         refreshDestination()
+        // A new mode or a cleared note starts a sentence; let autocapitalisation decide shift.
+        setKeyboardCase(state.keyboardContext.preferredKeyboardCase)
         renderResults()
         applyPadSize()
     }
@@ -306,11 +361,11 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     private func updatePrimaryTitle() {
         guard let model else { return }
         let offer = workspace.draft.text.isEmpty && model.offeredCapture != nil
-        save.setTitle(model.mode == 0 ? (offer ? "Add reminder?" : "Save note") : model.mode == 1 ? "Recall live" : "Send to model", for: .normal)
+        PanelStyle.setTitle(model.mode == 0 ? (offer ? "Add reminder?" : "Save note") : model.mode == 1 ? "Recall live" : "Send to model", on: save)
     }
 
     // All saves flow through coordinated persistence; Search has no write side effect.
-    @objc private func primaryAction() {
+    private func primaryAction() {
         guard permitsPrivateInput, let model else { return }
         retainDraft()
         switch model.mode {
@@ -345,13 +400,10 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
             return
         }
         if let selected = selected.flatMap({ model.original($0.id) }) {
-            let back = UIButton(type: .system)
-            back.setTitle("Back to results", for: .normal)
-            back.addAction(UIAction { [weak self] _ in self?.selected = nil; self?.refreshMode() }, for: .touchUpInside)
-            results.addArrangedSubview(back)
-            let insert = UIButton(type: .system)
-            insert.setTitle("Insert original into app", for: .normal)
-            insert.addAction(UIAction { [weak self] _ in
+            let back = PanelStyle.button("Back to results", id: "keyboard-back-to-results") { [weak self] in
+                self?.selected = nil; self?.refreshMode()
+            }
+            let insert = PanelStyle.button("Insert original into app", id: "keyboard-insert-original", kind: .prominent) { [weak self] in
                 guard let self else { return }
                 self.hostInput = true; self.refreshDestination()
                 guard let proxy = self.hostProxyForWriting() else { return }
@@ -360,38 +412,35 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
                 self.status.text = "Inserted original into app"
                 UISelectionFeedbackGenerator().selectionChanged()
                 self.sendingToHost = false
-            }, for: .touchUpInside)
-            results.addArrangedSubview(insert)
+            }
+            // Back and Insert share one row; the remaining controls stack beneath.
+            let originalActions = UIStackView(arrangedSubviews: [back, UIView(), insert])
+            originalActions.spacing = 8; originalActions.alignment = .center
+            results.addArrangedSubview(originalActions)
             // Completion mutates linked checklist state, never the original text.
             for item in selected.checklist {
-                addResultButton("\(item.complete ? "☑" : "☐") \(item.text)") { [weak self] in
+                addResultButton("\(item.complete ? "☑" : "☐") \(item.text)", id: "keyboard-checklist-item") { [weak self] in
                     self?.model?.setItem(captureID: selected.id, itemID: item.id, complete: !item.complete)
                 }
             }
-            if model.vault.isOverdue(captureID: selected.id, now: Date()) { addResultLabel("Overdue") }
+            if model.vault.isOverdue(captureID: selected.id, now: Date()) { addResultLabel("Overdue", id: "keyboard-overdue") }
             if let reminder = model.vault.reminders.first(where: { $0.captureID == selected.id && $0.status != .cancelled }) {
-                addResultLabel(reminderDateLabel(reminder))
+                addResultLabel(reminderDateLabel(reminder), id: "keyboard-reminder-date")
                 if !selected.allItemsComplete {
-                    addResultButton("Edit reminder") { [weak self] in self?.beginReminder(captureID: selected.id, reminder: reminder) }
+                    addResultButton("Edit reminder", id: "keyboard-edit-reminder", kind: .quiet) { [weak self] in self?.beginReminder(captureID: selected.id, reminder: reminder) }
                 }
-                addResultButton("Remove reminder") { [weak self] in self?.model?.removeReminder(id: reminder.id) }
+                addResultButton("Remove reminder", id: "keyboard-remove-reminder", kind: .quiet) { [weak self] in self?.model?.removeReminder(id: reminder.id) }
             } else if !selected.allItemsComplete {
-                addResultButton("Set reminder") { [weak self] in self?.beginReminder(captureID: selected.id) }
-            } else { addResultLabel("Complete · no pending reminder") }
+                addResultButton("Set reminder", id: "keyboard-set-reminder", kind: .quiet) { [weak self] in self?.beginReminder(captureID: selected.id) }
+            } else { addResultLabel("Complete · no pending reminder", id: "keyboard-reminder-complete") }
         } else if model.mode == 1 {
-            addResultButton(openTasks ? "Open tasks ✓ · Show all" : "Show Open tasks") { [weak self] in
+            addResultButton(openTasks ? "Open tasks ✓ · Show all" : "Show Open tasks", id: "keyboard-open-tasks", kind: .quiet) { [weak self] in
                 guard let self else { return }; self.openTasks.toggle(); self.renderResults()
             }
             let hits = model.searchHits(openTasks: openTasks)
             for hit in hits {
                 let original = hit.capture
-                let result = UIButton(type: .system)
-                result.setAttributedTitle(highlighted(hit.highlightedText), for: .normal)
-                result.titleLabel?.numberOfLines = 2
-                result.contentHorizontalAlignment = .leading
-                result.tintColor = .label
-                result.accessibilityIdentifier = "keyboard-result"
-                result.addAction(UIAction { [weak self] _ in
+                let result = PanelStyle.button("", id: "keyboard-result", kind: .row) { [weak self] in
                     self?.selected = original
                     if let self {
                         self.restoringEditor = true
@@ -400,18 +449,19 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
                         self.editor.isEditable = false
                         self.renderResults(); self.applyPadSize()
                     }
-                }, for: .touchUpInside)
+                }
+                PanelStyle.setAttributedTitle(highlighted(hit.highlightedText), on: result)
                 results.addArrangedSubview(result)
             }
             recordMemory()
-            if hits.isEmpty { addResultLabel(model.query.isEmpty ? "Capture your first note to recall it here" : "No matches · try another remembered word") }
+            if hits.isEmpty { addResultLabel(model.query.isEmpty ? "Capture your first note to recall it here" : "No matches · try another remembered word", id: "keyboard-results-empty") }
         } else if model.mode == 2 {
             for message in model.conversation.suffix(8) {
-                let label = UILabel(); label.numberOfLines = 0; label.font = .preferredFont(forTextStyle: .caption1)
+                let label = PanelStyle.label(id: "keyboard-chat-message", font: .preferredFont(forTextStyle: .caption1), tone: Greyscale.ink, lines: 0)
                 label.text = "\(message.role.rawValue.capitalized): \(message.text)"
                 results.addArrangedSubview(label)
                 if message.role == .reminder, let id = message.sourceCaptureIDs.first {
-                    addResultButton("Open reminder source") { [weak self] in self?.openOriginal(id) }
+                    addResultButton("Open reminder source", id: "keyboard-open-reminder-source", kind: .quiet) { [weak self] in self?.openOriginal(id) }
                 }
             }
         }
@@ -425,8 +475,9 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         for part in text.components(separatedBy: "⟦") {
             let pieces = part.components(separatedBy: "⟧")
             for (i,piece) in pieces.enumerated() {
-                let font = matching && i == 0 ? UIFont.boldSystemFont(ofSize: 15) : UIFont.systemFont(ofSize: 15)
-                output.append(NSAttributedString(string: String(piece.prefix(180)), attributes: [.font: font, .foregroundColor: UIColor.label]))
+                let font = matching && i == 0 ? UIFont.systemFont(ofSize: 15, weight: .semibold) : UIFont.systemFont(ofSize: 15)
+                let tone = matching && i == 0 ? Greyscale.ink : Greyscale.inkSecondary
+                output.append(NSAttributedString(string: String(piece.prefix(180)), attributes: [.font: font, .foregroundColor: tone.uiColor]))
                 matching = false
             }
             matching = true
@@ -436,17 +487,21 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
 
     // Reminder controls use the same model as Mac. Wheels stay inside the
     // extension; they temporarily replace keys instead of opening a host overlay.
-    private func addResultLabel(_ text: String) {
-        let label = UILabel(); label.text = text; label.numberOfLines = 0
-        label.font = .preferredFont(forTextStyle: .caption1)
+    private func addResultLabel(_ text: String, id: String) {
+        let label = PanelStyle.label(id: id, font: .preferredFont(forTextStyle: .caption1), lines: 0)
+        label.text = text
         results.addArrangedSubview(label)
     }
     @discardableResult
-    private func addResultButton(_ title: String, action: @escaping () -> Void) -> UIButton {
-        let control = UIButton(type: .system); control.setTitle(title, for: .normal)
-        control.titleLabel?.numberOfLines = 0; control.contentHorizontalAlignment = .leading
-        control.addAction(UIAction { _ in action() }, for: .touchUpInside)
-        results.addArrangedSubview(control)
+    private func addResultButton(_ title: String, id: String, kind: PanelStyle.Kind = .row, action: @escaping () -> Void) -> UIButton {
+        let control = PanelStyle.button(title, id: id, kind: kind, action: action)
+        control.titleLabel?.numberOfLines = 0
+        // Quiet controls keep their natural width; rows span the panel.
+        if kind == .row { results.addArrangedSubview(control) }
+        else {
+            let line = UIStackView(arrangedSubviews: [control, UIView()])
+            results.addArrangedSubview(line)
+        }
         return control
     }
     private func openOriginal(_ id: UUID) {
@@ -465,8 +520,8 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         renderResults(); applyPadSize()
     }
     private func renderReminderEditor(_ session: ReminderSession) {
-        addResultLabel(session.reminderID == nil ? "Choose a reminder" : "Edit reminder")
-        addResultLabel("Whole capture/checklist · \(session.zone.identifier)")
+        addResultLabel(session.reminderID == nil ? "Choose a reminder" : "Edit reminder", id: "keyboard-reminder-title")
+        addResultLabel("Whole capture/checklist · \(session.zone.identifier)", id: "keyboard-reminder-zone")
         let picker = UIDatePicker()
         picker.datePickerMode = .dateAndTime; picker.preferredDatePickerStyle = .wheels
         picker.timeZone = session.zone; picker.minimumDate = Date(); picker.date = max(session.date, Date())
@@ -475,9 +530,11 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
             guard let picker else { return }; self?.reminderSession?.date = picker.date
         }, for: .valueChanged)
         picker.isEnabled = !savingReminder
+        picker.tintColor = Greyscale.ink.uiColor
+        picker.accessibilityIdentifier = "keyboard-reminder-picker"
         results.addArrangedSubview(picker)
-        addResultButton(savingReminder ? "Saving…" : "Confirm date and reminder") { [weak self] in self?.confirmReminder() }.isEnabled = !savingReminder
-        addResultButton("Cancel · keep original") { [weak self] in
+        addResultButton(savingReminder ? "Saving…" : "Confirm date and reminder", id: "keyboard-confirm-reminder", kind: .prominent) { [weak self] in self?.confirmReminder() }.isEnabled = !savingReminder
+        addResultButton("Cancel · keep original", id: "keyboard-cancel-reminder", kind: .quiet) { [weak self] in
             guard let self, !self.savingReminder else { return }
             self.reminderSession = nil; self.refreshMode()
         }.isEnabled = !savingReminder
@@ -499,7 +556,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
 
     // Resize adjusts constraints around the same live editor. It neither replaces
     // a draft nor resigns its responder, so collapsed notes keep receiving keys.
-    @objc private func changeSize() {
+    private func changeSize() {
         retainDraft()
         let next = (workspace.size.rawValue + 1) % KeyboardWorkspace.PadSize.allCases.count
         workspace.resize(KeyboardWorkspace.PadSize(rawValue: next) ?? .standard)
@@ -511,18 +568,20 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         let padHeight: CGFloat
         let requestedHeight: CGFloat
         switch workspace.size {
-        case .minimised: padHeight = 32; requestedHeight = 350
-        case .standard: padHeight = 110; requestedHeight = 470
-        case .expanded: padHeight = 240; requestedHeight = 620
+        // Requested heights include KeyboardKit's four rows (about 216-224 pt in portrait).
+        case .minimised: padHeight = 32; requestedHeight = 400
+        case .standard: padHeight = 110; requestedHeight = 520
+        case .expanded: padHeight = 240; requestedHeight = 670
         }
         let name = workspace.size == .minimised ? "Min" : workspace.size == .expanded ? "Expanded" : "Default"
-        sizeButton.setTitle("Size: \(name)", for: .normal)
+        PanelStyle.setTitle("Size: \(name)", on: sizeButton)
         let choosingDate = reminderSession != nil
         modes.isEnabled = !savingReminder; sizeButton.isEnabled = !savingReminder
-        editor.isHidden = choosingDate; keyplane.isHidden = choosingDate
+        editor.isHidden = choosingDate; keys?.view.isHidden = choosingDate
         save.isHidden = choosingDate; destination.isHidden = choosingDate
         notificationStatus.isHidden = !(choosingDate || selected != nil)
         formatting.isHidden = choosingDate || workspace.size == .minimised || model?.mode != 0 || selected != nil
+        toolRow.isHidden = destination.isHidden && formatting.isHidden
         height?.constant = selected != nil ? max(32, padHeight / 2) : model?.mode == 0 ? padHeight : 36
         resultsHeight?.constant = choosingDate ? requestedHeight - 150 : selected != nil ? max(64, padHeight / 2) : padHeight
         scroll.isHidden = !choosingDate && selected == nil && (model?.mode == 0 || workspace.size == .minimised)
@@ -539,7 +598,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
 
     // Host taps do not reliably emit a selection callback at an unchanged caret.
     // Keep an explicit destination control; actual cross-host tap proof is pending.
-    @objc private func toggleDestination() {
+    private func toggleDestination() {
         hostInput.toggle()
         if !hostInput, selected == nil { editor.becomeFirstResponder() }
         refreshDestination()
@@ -560,13 +619,20 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         // Hiding geometry and selection UI survives native redraws; tint alone
         // does not define whether an insertion caret exists. Draft/caret stays stored.
         editor.isPrivateDestination = !hostInput
-        destination.setTitle(hostInput ? "Typing into: App" : "Typing into: Private \(model?.mode == 1 ? "search" : model?.mode == 2 ? "chat" : "note")", for: .normal)
+        PanelStyle.setTitle(hostInput ? "Typing into: App" : "Typing into: Private \(model?.mode == 1 ? "search" : model?.mode == 2 ? "chat" : "note")", on: destination)
+        syncKeysWithRoute()
     }
 
     // Storage access is checked at the input boundary, including hardware
     // typing and paste. Losing Full Access retains the existing private draft.
     private var permitsPrivateInput: Bool {
-        guard hasFullAccess, model != nil else {
+        // The simulator host supplies isolated storage instead of extension permissions.
+        #if KEYBOARD_UI_TEST_HOST
+        let storageAvailable = model != nil
+        #else
+        let storageAvailable = hasFullAccess && model != nil
+        #endif
+        guard storageAvailable else {
             status.text = DeviceVault.StorageError.sharedContainerUnavailable.localizedDescription
             return false
         }
@@ -578,7 +644,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     }
 
     func textViewDidBeginEditing(_ textView: UITextView) {
-        privateDocument = textDocumentProxy.documentIdentifier
+        privateDocument = originalTextDocumentProxy.documentIdentifier
         hostInput = false; refreshDestination()
     }
     func textViewDidEndEditing(_ textView: UITextView) {
@@ -598,16 +664,16 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     // Host text notifications are observed without reading or retaining content.
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
-        let document = textDocumentProxy.documentIdentifier
+        let document = originalTextDocumentProxy.documentIdentifier
         // Only a proxy transition away from the active private document returns
         // keys to the host. Local activation emits this callback too, so a bare
         // text notification is insufficient. Keep the extension open rather than
         // resigning the local responder, which can restore the system keyboard.
-        if !editor.isFirstResponder { hostDocumentProxy = textDocumentProxy }
+        if !editor.isFirstResponder { hostDocumentProxy = originalTextDocumentProxy }
         if editor.isFirstResponder, let privateDocument, document != privateDocument,
            !sendingToHost, !restoringEditor {
             retainDraft()
-            hostDocumentProxy = textDocumentProxy
+            hostDocumentProxy = originalTextDocumentProxy
             hostInput = true
             refreshDestination()
         }
@@ -617,7 +683,7 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
     // the current host if focus changed; otherwise use the last identified host.
     // A missing/invalid host fails visibly instead of mutating the note or recursing.
     private func hostProxyForWriting() -> UITextDocumentProxy? {
-        let current = textDocumentProxy
+        let current = originalTextDocumentProxy
         if current.documentIdentifier != privateDocument { hostDocumentProxy = current }
         guard let hostDocumentProxy, hostDocumentProxy.documentIdentifier != privateDocument else {
             status.text = "Tap the app's message field before typing into App."
@@ -626,29 +692,47 @@ final class KeyboardViewController: UIInputViewController, UITextViewDelegate, U
         return hostDocumentProxy
     }
 
-    // The selected destination receives this key; host input is never retained as a note.
-    private func insert(_ text: String) {
-        if hostInput {
-            guard let proxy = hostProxyForWriting() else { return }
-            sendingToHost = true; proxy.insertText(text); sendingToHost = false
-        } else if selected == nil, permitsPrivateInput {
-            editor.insertText(text); retainDraft()
-        }
+    // The selected destination receives this input; host input is never retained as a note.
+    // Hardware keys arrive here from RoutingTextView; on-screen keys reach the router directly.
+    private func insert(_ text: String) { router.insertText(text) }
+    private func backspace() { router.deleteBackward() }
+
+    // KeyboardKit reads `textDocumentProxy` for its own context; the controller's routing
+    // decisions use the system proxy (`originalTextDocumentProxy`) exactly as before.
+
+    // MARK: TextRouteOwner — called by RoutedTextProxy for every key
+
+    var privateEditorForTyping: UITextView? {
+        guard !hostInput, selected == nil, permitsPrivateInput else { return nil }
+        return editor
+    }
+    var routesToHost: Bool { hostInput }
+    // Reading never shows the tap-the-field message; only a write does.
+    var hostProxyForReading: UITextDocumentProxy? {
+        let current = originalTextDocumentProxy
+        return current.documentIdentifier != privateDocument ? current : hostDocumentProxy
+    }
+    func writeToHost(_ write: (UITextDocumentProxy) -> Void) {
+        guard let proxy = hostProxyForWriting() else { return }
+        sendingToHost = true; write(proxy); sendingToHost = false
+    }
+    func privateEditorDidChange() { retainDraft() }
+
+    // The private note always uses the letter layout; the host's field chooses its own
+    // (email, URL, number pad) as Apple's keyboard would. Case follows autocapitalisation.
+    private func syncKeysWithRoute(force: Bool = false) {
+        guard force || keysRouteToHost != hostInput else { return }
+        keysRouteToHost = hostInput
+        let context = state.keyboardContext
+        let hostType = hostInput ? hostProxyForReading?.keyboardType?.keyboardType : nil
+        context.keyboardType = hostType ?? .alphabetic
+        setKeyboardCase(context.preferredKeyboardCase)
     }
 
-    @objc private func typeKey(_ sender: UIButton) { insert(sender.currentTitle ?? "") }
-    @objc private func space() { insert(" ") }
-    @objc private func newline() { insert("\n") }
-    @objc private func backspace() {
-        if hostInput {
-            guard let proxy = hostProxyForWriting() else { return }
-            sendingToHost = true; proxy.deleteBackward(); sendingToHost = false
-        }
-        else if selected == nil, permitsPrivateInput { editor.deleteBackward(); retainDraft() }
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        PanelStyle.refreshBorders(editor)
     }
-    @objc private func toggleShift() { shift.toggle(); buildKeys() }
-    @objc private func toggleNumbers() { numbers.toggle(); buildKeys() }
-    @objc private func nextKeyboard() { retainDraft(); advanceToNextInputMode() }
 }
 
 // The keyboard controller uses this editor to route basic hardware insertion
@@ -661,7 +745,7 @@ private final class RoutingTextView: UITextView {
         didSet {
             // Repeated label refreshes must not reactivate or rebuild selection UI.
             guard oldValue != isPrivateDestination else { return }
-            tintColor = isPrivateDestination ? .label : .clear
+            tintColor = isPrivateDestination ? Greyscale.ink.uiColor : .clear
             for interaction in interactions {
                 if let selection = interaction as? UITextSelectionDisplayInteraction {
                     selection.isActivated = isPrivateDestination

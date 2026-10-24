@@ -2,7 +2,8 @@
  panel content and the click/drag handle. Built once by PillController (PillController.swift), which
  animates the window frame while fading the glyph and content; the content is laid out once at its
  final size and pinned to the top-left, so the window reveals it instead of re-laying it out per frame.
- The 14 pt corner radius makes the 28 pt pill a capsule and keeps the panel's corners soft. */
+ The 14 pt corner radius makes the 28 pt pill a capsule and keeps the panel's corners soft.
+ PillAcceptanceTests opens the existing accessible handle through its stable identifier. */
 import AppKit
 import SwiftUI
 import MindMachinePill
@@ -53,6 +54,7 @@ final class PillRootView: NSView {
         handle.frame = bounds
         handle.autoresizingMask = [.width, .height]
         handle.toolTip = "Mind Machine: click or press ⌃⌥Space"
+        handle.setAccessibilityIdentifier("pill-open")
         addSubview(handle)
     }
 

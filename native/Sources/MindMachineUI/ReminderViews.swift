@@ -1,6 +1,7 @@
 /* Checklist/reminder controls used by WorkspaceView on Mac and the companion.
  The keyboard renders the same VaultModel operations with UIKit controls. These
- views never change the original capture text when completion or dates change. */
+ views never change the original capture text when completion or dates change.
+ Colours and button styles come from Greyscale.swift. */
 import SwiftUI
 import MindMachineCore
 
@@ -30,13 +31,15 @@ public struct ReminderEditor: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(reminderID == nil ? "Choose a reminder" : "Edit reminder").font(.headline)
-            Text("One date for the whole capture or checklist").font(.caption)
+            Text(reminderID == nil ? "Choose a reminder" : "Edit reminder").font(.headline).accessibilityIdentifier("reminder-editor-title")
+            Text("One date for the whole capture or checklist").font(.caption).foregroundStyle(Greyscale.inkSecondary.color)
             DatePicker("Date and time", selection: $date, in: Date()..., displayedComponents: [.date, .hourAndMinute])
-                .environment(\.timeZone, zone)
-            Text("Time zone: \(zone.identifier)").font(.caption)
+                .environment(\.timeZone, zone).accessibilityIdentifier("reminder-date-picker")
+            Text("Time zone: \(zone.identifier)").font(.caption).foregroundStyle(Greyscale.inkSecondary.color)
+                .accessibilityIdentifier("reminder-time-zone")
             HStack {
                 Button("Cancel", action: close).disabled(saving)
+                    .buttonStyle(GreyscaleButtonStyle()).accessibilityIdentifier("cancel-reminder")
                 Spacer()
                 Button(saving ? "Saving…" : reminderID == nil ? "Set reminder" : "Save changes") {
                     saving = true
@@ -47,9 +50,10 @@ public struct ReminderEditor: View {
                         saving = false
                         if saved { close() }
                     }
-                }.disabled(saving || date <= Date()).accessibilityIdentifier("confirm-reminder")
+                }.buttonStyle(GreyscaleButtonStyle(.prominent))
+                    .disabled(saving || date <= Date()).accessibilityIdentifier("confirm-reminder")
             }
-        }.padding(10).background(Color.primary.opacity(0.04)).clipShape(RoundedRectangle(cornerRadius: 8))
+        }.foregroundStyle(Greyscale.ink.color).greyscaleCard(padding: 12)
     }
 }
 
@@ -65,9 +69,9 @@ public struct ReminderOfferView: View {
                         .id(id)
                 } else {
                     HStack {
-                        Text("Saved. Add a reminder?").font(.caption)
-                        Button("Choose date") { choosing = true }
-                        Button("Not now") { model.offeredCapture = nil }
+                        Text("Saved. Add a reminder?").font(.caption).accessibilityIdentifier("reminder-offer")
+                        Button("Choose date") { choosing = true }.accessibilityIdentifier("reminder-offer-choose")
+                        Button("Not now") { model.offeredCapture = nil }.accessibilityIdentifier("reminder-offer-dismiss")
                     }
                 }
             }.onChange(of: model.offeredCapture) { _, _ in choosing = false }
@@ -94,21 +98,27 @@ public struct CaptureTasksView: View {
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }.buttonStyle(.plain).accessibilityIdentifier("checklist-item")
                 }
-                if model.vault.isOverdue(captureID: capture.id, now: Date()) { Text("Overdue").font(.caption.bold()) }
+                if model.vault.isOverdue(captureID: capture.id, now: Date()) {
+                    Text("Overdue").font(.caption.bold()).accessibilityIdentifier("reminder-overdue")
+                }
                 let reminder = model.vault.reminders.first { $0.captureID == capture.id && $0.status != .cancelled }
                 if editing {
                     ReminderEditor(model: model, captureID: capture.id, reminder: reminder) { editing = false }
                 } else if let reminder {
-                    Text(reminderDateLabel(reminder)).font(.caption)
+                    Text(reminderDateLabel(reminder)).font(.caption).accessibilityIdentifier("reminder-date")
                     HStack {
                         Button("Edit reminder") { editing = true }.disabled(capture.allItemsComplete)
+                            .buttonStyle(GreyscaleButtonStyle()).accessibilityIdentifier("edit-reminder")
                         Button("Remove reminder") { model.removeReminder(id: reminder.id) }
+                            .buttonStyle(GreyscaleButtonStyle()).accessibilityIdentifier("remove-reminder")
                     }
                 } else if !capture.allItemsComplete {
-                    if model.offeredCapture == capture.id { Text("Set a new reminder?").font(.caption) }
+                    if model.offeredCapture == capture.id { Text("Set a new reminder?").font(.caption).accessibilityIdentifier("reminder-renew") }
                     Button("Set reminder") { editing = true }
-                } else { Text("Complete · no pending reminder").font(.caption) }
-                Text(model.deviceNotificationStatus).font(.caption2).foregroundStyle(.secondary)
+                        .buttonStyle(GreyscaleButtonStyle()).accessibilityIdentifier("set-reminder")
+                } else { Text("Complete · no pending reminder").font(.caption).accessibilityIdentifier("reminder-complete") }
+                Text(model.deviceNotificationStatus).font(.caption2).foregroundStyle(Greyscale.inkSecondary.color)
+                    .accessibilityIdentifier("reminder-notification-status")
             }
         }
     }

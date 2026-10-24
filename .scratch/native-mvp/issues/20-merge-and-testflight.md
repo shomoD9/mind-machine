@@ -1,12 +1,12 @@
 # 20: Merge backend and keyboard, then verify TestFlight processing
 
 Status: claimed
-Blocked by: process 207171 must exit before keyboard-ui integration; Apple signing/processing must pass
+Blocked by: combined native/core CI and Apple signing/processing must pass
 
 Founder authorized merging PR #3 then PR #4, resolving backend/UI conflicts, fixing real CI/release failures and shipping without PR review.
 
 - [x] Merge green backend PR #3 first.
-- [ ] Wait for keyboard process exit and recheck PR #4 head/checks.
+- [x] Recheck PR #4 head/checks after the interrupted run.
 - [ ] Integrate new main while keeping keyboard copy/visuals and backend behavior; native/core/UI checks green.
 - [ ] Merge PR #4 and verify main CI.
 - [ ] Dispatch TestFlight on main and read VALID for both platform builds.
