@@ -40,3 +40,22 @@ jobs:
           java-version: '21'
       - name: Full model bounds including liveness
         run: spec/run-tlc.sh
+
+  performance-comparison:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app
+      - name: Same-runner public core before and after
+        run: |
+          set -o pipefail
+          native/Scripts/compare_core_performance.sh 7ac950e | tee performance-comparison.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-comparison
+          path: performance-comparison.txt

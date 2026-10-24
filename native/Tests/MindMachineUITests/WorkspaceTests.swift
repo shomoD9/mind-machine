@@ -139,4 +139,30 @@ final class WorkspaceTests: XCTestCase {
         XCTAssertEqual(model.query, "old shelf")
         XCTAssertEqual(model.chatDraft, "Where did I leave it?")
     }
+    // The keyboard's newest-first window must retain recent older notes when a
+    // save arrives, and checklist edits must not expand the resident snapshot.
+    @MainActor
+    func testKeyboardSaveAndChecklistEditKeepNewestHundredSources() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("vault.json")
+        try VaultFile(url: url).update { vault in
+            for index in 0..<120 {
+                vault.captures.append(Capture(text: "source \(index)", checklist: [ChecklistItem(text: "item")],
+                                              createdAt: Date(timeIntervalSince1970: Double(index))))
+            }
+        }
+        let model = VaultModel(url: url, notificationAccess: .keyboard)
+        model.draft = "newest capture"
+        model.saveCapture()
+        XCTAssertEqual(model.vault.captures.count, 100)
+        XCTAssertTrue(model.vault.captures.contains { $0.text == "source 119" }, "Save must keep the newest older source")
+        XCTAssertFalse(model.vault.captures.contains { $0.text == "source 20" })
+        let source = try XCTUnwrap(model.vault.captures.first { !$0.checklist.isEmpty })
+        model.setItem(captureID: source.id, itemID: source.checklist[0].id, complete: true)
+        XCTAssertEqual(model.vault.captures.count, 100)
+        XCTAssertEqual(try VaultFile(url: url).capture(id: source.id)?.checklist[0].complete, true)
+        XCTAssertEqual(try VaultFile(url: url).read().captures.count, 121, "Bounded editing must retain every other source")
+    }
+
 }

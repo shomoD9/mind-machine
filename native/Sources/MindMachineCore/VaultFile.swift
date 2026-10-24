@@ -27,14 +27,14 @@ public final class VaultFile: @unchecked Sendable {
     }
 
     // WAL supports readers in other processes. FULL + fullfsync commits before
-    // Saved; a bounded 2 MiB page cache avoids an in-memory keyboard-sized index.
+    // Saved; a bounded 512 KiB page cache avoids an in-memory keyboard-sized index.
     private func open() throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let path = url.deletingPathExtension().appendingPathExtension("sqlite").path
         guard sqlite3_open_v2(path, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nil) == SQLITE_OK else { throw failure() }
         do {
             sqlite3_busy_timeout(db, 5000)
-            try execute("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; PRAGMA cache_size=-2048; PRAGMA secure_delete=ON;")
+            try execute("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; PRAGMA cache_size=-512; PRAGMA secure_delete=ON;")
             try execute("""
                 CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value BLOB NOT NULL);
                 CREATE TABLE IF NOT EXISTS captures(id TEXT PRIMARY KEY, payload BLOB NOT NULL, created REAL NOT NULL);
@@ -99,7 +99,7 @@ public final class VaultFile: @unchecked Sendable {
     }
     private func readCurrent(captureLimit: Int? = nil) throws -> Vault {
         var vault = try JSONDecoder().decode(Vault.self, from: value("vault") ?? Data())
-        let sql = captureLimit.map { "SELECT payload FROM captures ORDER BY created DESC, rowid DESC LIMIT \(max(1,$0))" } ?? "SELECT payload FROM captures ORDER BY created, rowid"
+        let sql = captureLimit.map { "SELECT payload FROM captures ORDER BY created DESC, id LIMIT \(max(0,$0))" } ?? "SELECT payload FROM captures ORDER BY created, rowid"
         try rows(sql) { stmt in
             vault.captures.append(try JSONDecoder().decode(Capture.self, from: blob(stmt, 0)))
         }
@@ -120,9 +120,13 @@ public final class VaultFile: @unchecked Sendable {
     // Existing rich-text/checklist/reminder callers retain their mutation API.
     // Only changed sources are reindexed; no full-index rebuild on each save.
     @discardableResult
-    public func update(_ mutate: (inout Vault) throws -> Void) throws -> Vault {
+    public func update(captureIDs: [UUID]? = nil, captureLimit: Int? = nil,
+                       _ mutate: (inout Vault) throws -> Void) throws -> Vault {
         try withStore { try transaction {
-            let old = try readCurrent()
+            // Known-source mutations load only those originals and the shared
+            // metadata. The result uses the caller's normal bounded window.
+            var old = try readCurrent(captureLimit: captureIDs == nil ? nil : 0)
+            if let captureIDs { old.captures = try Set(captureIDs).compactMap { try capture(id: $0) } }
             var latest = old
             try mutate(&latest)
             let previous = Dictionary(uniqueKeysWithValues: old.captures.map { ($0.id, $0) })
@@ -144,7 +148,7 @@ public final class VaultFile: @unchecked Sendable {
             for note in affected { try materialize(note) }
             var metadata = latest; metadata.captures = []
             try put("vault", JSONEncoder().encode(metadata))
-            return try readCurrent()
+            return try readCurrent(captureLimit: captureLimit)
         } }
     }
 
@@ -202,9 +206,12 @@ public final class VaultFile: @unchecked Sendable {
                 // using an indexed recent scan over integer FTS membership. This
                 // avoids scoring/sorting all 10k notes for each early keystroke.
                 var hits: [SearchHit] = []
+                let membership = words.allSatisfy { $0.count == 2 }
+                    ? "EXISTS (SELECT 1 FROM notes WHERE notes.rowid=c.rowid AND notes MATCH ?)"
+                    : "c.rowid IN (SELECT rowid FROM notes WHERE notes MATCH ?)"
                 try rows("""
                     SELECT c.payload FROM captures c INDEXED BY captures_created
-                    WHERE c.rowid IN (SELECT rowid FROM notes WHERE notes MATCH ?)\(taskFilter)
+                    WHERE \(membership)\(taskFilter)
                     ORDER BY c.created DESC,c.id LIMIT ?
                     """, [expression,String(max(1,min(limit,100)))]) { statement in
                     let capture = try JSONDecoder().decode(Capture.self, from: blob(statement,0))
@@ -280,16 +287,16 @@ public final class VaultFile: @unchecked Sendable {
     }
 
     private func write(_ capture: Capture) throws {
+        try execute("DELETE FROM notes WHERE rowid IN (SELECT rowid FROM captures WHERE id=?)", [capture.id.uuidString])
         try execute("INSERT OR REPLACE INTO captures(id,payload,created) VALUES(?,?,?)", [capture.id.uuidString, String(data: try JSONEncoder().encode(capture), encoding: .utf8)!, String(capture.createdAt.timeIntervalSince1970)])
-        try execute("DELETE FROM notes WHERE id=?", [capture.id.uuidString])
         try execute("INSERT INTO notes(rowid,id,text) SELECT rowid,id,? FROM captures WHERE id=?", [capture.text,capture.id.uuidString])
         for word in Set(Self.words(capture.text)) where word.count >= 4 {
             for signature in Self.signatures(word) { try execute("INSERT OR IGNORE INTO spellings(term,word) VALUES(?,?)", [signature,word]) }
         }
     }
     private func remove(_ id: UUID) throws {
+        try execute("DELETE FROM notes WHERE rowid IN (SELECT rowid FROM captures WHERE id=?)", [id.uuidString])
         try execute("DELETE FROM captures WHERE id=?", [id.uuidString])
-        try execute("DELETE FROM notes WHERE id=?", [id.uuidString])
     }
 
     // Public sync state stays in the same durable database as its mutation queue.

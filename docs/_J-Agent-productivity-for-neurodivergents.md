@@ -10,6 +10,10 @@
 
 - Task 2: updated charts first, then changed only keyboard input/status controller logic (no view construction/layout/visuals) to block unsavable private typing/paste/custom keys/save with existing copy and subscribe to sync status. Marked saves pending synchronously. Added an in-process stopped-engine retry that revalidates account binding and rejects old-engine callbacks; preserved outbox/cursor/key and all permanent failure guards. Copy/Mac Insert and missing-model recreation after granting access remain integration follow-ups. CloudKit service events still need signed devices; unsigned CI proves compilation and local invariants.
 
+- Task 3: confirmed unindexed FTS-ID deletion scanned the corpus twice per append and changed it to source row-ID deletion. Added scoped checklist mutations and bounded result reads, indexed snapshot ordering, a smaller SQLite cache, a common-prefix query path and newest-window retention. Added one regression for actual recent-source eviction/window expansion and a same-runner baseline/after probe; the comparison also proves the window regression fails against the old model. Native CI 40041939434 and core CI 40041939424 were green before performance changes. No iPhone memory claim is inferred from Mac metrics.
+
+- Same-runner CI 40053473039 passed the model, public invariants and performance comparison. Median append p95 fell 14.221→5.697 ms; cold 100-source snapshot 26.042→14.123 ms; first Recall 6.537→6.475 ms; peak RSS 12.109→10.609 MiB. Physical footprint stayed approximately 3.25 MiB. The old model failed the window test at the predicted assertion. Native CI caught a one-letter correlated-FTS regression (p ~25 ms); kept the measured two-letter improvement and restored the posting-list path for one-letter queries. Also gave the synthetic fixture deterministic creation dates after its random equal-time ordering exposed an invalid newest-item assumption. Added an append budget only after measuring it.
+
 ## 2026-10-23 - Claude Sonnet 5.5 - Claude Code
 
 ### GPT-6 - Codex API (icon-sandbox worktree)
