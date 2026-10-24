@@ -40,10 +40,10 @@ final class KeyboardAcceptanceTests: XCTestCase {
         // an unrelated query must hide it, proving results follow the query.
         selectMode("Recall")
         editor.tap()
-        editor.typeText("teles")
+        typeQuery("teles")
         let result = app.buttons["keyboard-result"]
         expectResult(result)
-        replaceQuery("absentquasar")
+        replaceQuery("zz")
         XCTAssertTrue(app.staticTexts["keyboard-results-empty"].waitForExistence(timeout: 5))
         XCTAssertFalse(result.exists)
         replaceQuery("telescpoe")
@@ -64,7 +64,7 @@ final class KeyboardAcceptanceTests: XCTestCase {
         XCTAssertTrue(app.textViews["keyboard-editor"].waitForExistence(timeout: 10))
         selectMode("Recall")
         app.textViews["keyboard-editor"].tap()
-        app.textViews["keyboard-editor"].typeText("teles")
+        typeQuery("teles")
         expectResult(app.buttons["keyboard-result"])
         app.buttons["keyboard-result"].tap()
         expectValue(app.textViews["keyboard-editor"], "Tonight telescope code 7319")
@@ -77,7 +77,7 @@ final class KeyboardAcceptanceTests: XCTestCase {
         editor.typeText("unfinished draft")
         selectMode("Recall")
         editor.tap()
-        editor.typeText("teles")
+        typeQuery("teles")
         cycleSizes(editor: editor, text: "teles", destination: "Typing into: Private search")
         selectMode("Capture")
         expectValue(editor, "unfinished draft")
@@ -136,10 +136,20 @@ final class KeyboardAcceptanceTests: XCTestCase {
 
     private func replaceQuery(_ text: String) {
         let editor = app.textViews["keyboard-editor"]
-        // The preceding query leaves its caret at the end; avoid tapping the
-        // middle of the text when replacing it with hardware delete events.
+        // Delete through the real keyplane at the retained caret; XCTest's
+        // hardware focus is unavailable for this embedded Recall editor.
         let count = (editor.value as? String ?? "").count
-        editor.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: count) + text)
+        for _ in 0..<count { tapKey("delete") }
+        expectValue(editor, "")
+        typeQuery(text)
+    }
+
+    private func typeQuery(_ text: String) {
+        // An empty private editor starts a sentence with shift enabled. Turn it
+        // off explicitly so the prefix/typo fixtures are entered exactly as given.
+        tapKey("shift")
+        for key in text { tapKey(String(key)) }
+        expectValue(app.textViews["keyboard-editor"], text)
     }
 
     private func expectResult(_ result: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
