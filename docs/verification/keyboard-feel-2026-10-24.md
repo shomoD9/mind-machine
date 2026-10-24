@@ -23,7 +23,30 @@ This audit compares the Mind Machine keyboard (`native/Apps/Keyboard`) with Appl
 | 123 / space / return width | 91.3 / 190.0 / 91.7 | 92.7 / 193.0 / 92.3 | follows from the edge margin |
 | Corner radius (visual) | ≈ 4.3 at the scan line | ≈ 4.3 | none measurable |
 
-KeyboardKit's iOS 26 adjustment (`rowHeight + 2`, insets − 0.5) applies only to screens narrower than 428 pt; the 440 pt iPhone 17 Pro Max uses a separate 56 pt row. Apple's geometry for the Pro Max and for landscape has not been measured yet. The new geometry test captures both keyboards on the CI device (iPhone 17 Pro Max) in both orientations.
+KeyboardKit's iOS 26 adjustment (`rowHeight + 2`, insets − 0.5) applies only to screens narrower than 428 pt; the 440 pt iPhone 17 Pro Max uses a separate 56 pt row.
+
+## Geometry (iPhone 17 Pro Max, portrait and landscape)
+
+`KeyboardFeelTests.testCaptureGeometryAgainstAppleKeyboard` (CI run [40103948865](https://github.com/shomoD9/mind-machine/actions/runs/40103948865), iPhone 17 Pro Max, iOS 26.2) launched the test host twice per orientation: once showing this keyboard and once with `--apple-keyboard-reference`, which brings up Apple's keyboard on the same screen. It logged XCUITest key frames for both and saved screenshots, measured here at 3×.
+
+| Measure | Apple | Mind Machine | Gap |
+| --- | --- | --- | --- |
+| Portrait key cell pitch | 43.33 | 44.0 | ours 0.67 pt wider |
+| Portrait screen edge to Q face | 7.33 | 4.0 | ours 3.3 pt closer to the edge |
+| Portrait letter face | 36.0 × 45.0 | 36.0 × 46.0 | ours 1 pt taller |
+| Portrait gap between faces | 7.33 | 8.0 | ours 0.67 pt wider |
+| Portrait row pitch | 56.0 | 56.0 | none |
+| Portrait shift face width | 48.7 | 49.3 | follows from the edge margin |
+| Landscape row pitch | 35.33 | 40.0 | ours 4.7 pt taller per row, 19 pt over four rows |
+| Landscape letter face | 64.7 × 27.3 | 87.7 × 32.0 (full-width test host) | height: ours 4.7 pt taller |
+| Landscape gap between faces | 7.33 | 8.0 | ours 0.67 pt wider |
+| Landscape keyboard width | 722 (x 117–839, globe and dictation beside it) | 956 in the test host | not comparable, see below |
+
+Two rules hold on both phones: Apple's gap between faces and its screen margin are both 7.33 pt, and portrait faces sit 5.5 pt inside a 54 or 56 pt row. KeyboardKit draws each face 1 pt inside its configured horizontal inset, so its configured 3 pt inset shows as an 8 pt gap.
+
+In landscape Apple's keyboard occupies the middle 722 pt with the globe and dictation keys beside it. iOS does the same for third-party keyboards on Face ID iPhones, so the extension's width in landscape is set by the system; the test host embeds the controller across the full window and cannot reproduce that width. Row height and gaps are comparable and are matched; the landscape width needs a device check.
+
+The baseline run also showed G2 directly: in landscape the destination row, status and Save button were squeezed out and the bottom key row ran off the screen (`testLandscapeShowsShorterKeysAndAWorkingPanel` failed on "keyboard-save must stay usable in landscape"). `testKeysWithoutAppleAlternatesShowNoAccentCallout` failed with `ț` (G5). Caps lock, the accented e and delete repeat passed before any change (G9, G6 repeat).
 
 ## Gaps
 

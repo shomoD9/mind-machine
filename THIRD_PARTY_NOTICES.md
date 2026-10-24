@@ -12,11 +12,11 @@ The OpenWhispr, Handy and VoiceInk (GPL-3.0) projects were read as references fo
 
 ## iPhone keyboard keys
 
-The keyboard extension's letter, number and symbol keys come from KeyboardKit, linked as a Swift package by the `MindMachineKeyboard` target only. It is used unmodified.
+The keyboard extension's letter, number and symbol keys come from KeyboardKit, linked as a Swift package by the `MindMachineKeyboard` target only. It is used unmodified: Mind Machine subclasses its standard keyboard behaviour and action handler and passes layouts, button styles and callout actions through its public hooks, without copying or patching its source.
 
 | Project | Version | Commit | Licence | Used in | What is used |
 | --- | --- | --- | --- | --- | --- |
-| [KeyboardKit](https://github.com/KeyboardKit/KeyboardKit) | 9.9.1 (exact pin in `native/Scripts/generate_project.py`) | `a7e33ac2e6f47e16288ce09ec8d765cd329f918c` | MIT | `native/Apps/Keyboard/KeyboardViewController.swift`, `RoutedTextProxy.swift`, `InputClickFeedback.swift` | `KeyboardView` keys, layouts, callouts, gestures, shift and caps-lock behaviour, repeat delete, haptic engine and styles |
+| [KeyboardKit](https://github.com/KeyboardKit/KeyboardKit) | 9.9.1 (exact pin in `native/Scripts/generate_project.py`) | `a7e33ac2e6f47e16288ce09ec8d765cd329f918c` | MIT | `native/Apps/Keyboard/KeyboardViewController.swift`, `KeyplaneView.swift`, `KeyplaneBehavior.swift`, `KeyAlternates.swift`, `RoutedTextProxy.swift`, `InputClickFeedback.swift` | `KeyboardView` keys, layouts, callouts, gestures, shift and caps-lock behaviour, repeat delete, space-bar cursor drag, haptic engine and styles; `StandardKeyboardBehavior` and `StandardActionHandler` as base classes |
 
 9.9.1 is the last MIT-licensed, source-distributed KeyboardKit release. Versions 10.0 and later are a closed-source binary under the Kankoda Sweden AB licence and must not replace this pin without a licensing decision.
 

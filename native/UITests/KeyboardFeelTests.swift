@@ -5,6 +5,7 @@
  test also saves screenshots of this keyboard and of Apple's keyboard on the same simulator, in
  portrait and landscape, as evidence for docs/verification/keyboard-feel-2026-10-24.md. */
 import XCTest
+import UIKit
 
 final class KeyboardFeelTests: XCTestCase {
     private var app: XCUIApplication!
@@ -18,10 +19,13 @@ final class KeyboardFeelTests: XCTestCase {
 
     override func tearDownWithError() throws {
         if testRun?.hasSucceeded == false {
-            attach(app.screenshot(), name: "failure")
-            let tree = XCTAttachment(string: app.debugDescription)
-            tree.lifetime = .keepAlways
-            add(tree)
+            // The screen, not the app: the geometry test ends with the app terminated.
+            attach(XCUIScreen.main.screenshot(), name: "failure")
+            if app.state == .runningForeground {
+                let tree = XCTAttachment(string: app.debugDescription)
+                tree.lifetime = .keepAlways
+                add(tree)
+            }
         }
         app.terminate()
         // Later tests (including KeyboardAcceptanceTests) assume portrait.
