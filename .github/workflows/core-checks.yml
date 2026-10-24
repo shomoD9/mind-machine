@@ -1,61 +1,54 @@
-# Runs the core invariants and bounded sync model on pushes to the overnight
-# branch and PRs. Native CI separately owns app/UI builds and sandbox smoke tests.
+# Calls the fixed-order native gates without changing native-ci's UI jobs or
+# TestFlight signing. Push safety uses 3 revisions; extended mode retains 4.
 name: core-checks
 on:
   push:
-    branches: [overnight-core]
+    branches: [main, overnight-core]
+    paths: ['native/**', 'spec/**', '.github/workflows/core-checks.yml']
   pull_request:
     paths: ['native/**', 'spec/**', '.github/workflows/core-checks.yml']
+  schedule:
+    - cron: '30 20 * * *'
   workflow_dispatch:
+    inputs:
+      extended_model:
+        description: 'Run full model bounds and liveness (can take over an hour)'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
-  group: core-checks-${{ github.ref }}
+  group: core-checks-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  invariants:
+  checks:
+    # The overnight branch already runs on push; avoid a duplicate macOS job
+    # for its PR event while retaining PR checks for other feature branches.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.ref != 'overnight-core'
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.2.app
-      - name: Public core and presentation invariants
-        run: swift test --package-path native
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-      - name: Model invariants and historical counterexamples
-        run: spec/run-tlc.sh ci-safe broken-ack-early shipped-NoDuplicateCopies-causal shipped-DeleteSparesOtherCopies-causal shipped-DeleteSparesUnseenEdits shipped-NoStaleCopyBesideNewer
-  model-extended:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: macos-26
-    timeout-minutes: 120
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - name: Full model bounds including liveness
-        run: spec/run-tlc.sh
-
-  performance-comparison:
-    runs-on: macos-26
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.2.app
-      - name: Same-runner public core before and after
+      - name: Fixed-order gates
+        env:
+          EXTENDED: ${{ github.event_name == 'schedule' || inputs.extended_model == true }}
         run: |
           set -o pipefail
-          native/Scripts/compare_core_performance.sh 7ac950e | tee performance-comparison.txt
+          if [ "$EXTENDED" = true ]; then
+            native/Scripts/checks.sh --extended | tee core-checks.txt
+          else
+            native/Scripts/checks.sh | tee core-checks.txt
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: performance-comparison
-          path: performance-comparison.txt
+          name: core-checks
+          path: core-checks.txt

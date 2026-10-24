@@ -77,7 +77,7 @@ AncGlobal(r) == {r} \cup UNION {AncGlobal(q) : q \in Parents(r)}
 Projectable(S) == IF RequireCompleteAncestry THEN {r \in S : AncGlobal(r) \subseteq S} ELSE S
 
 ContentHeads(R) == {r \in R : IsPut(r) /\ ~\E s \in R : IsPut(s) /\ r \in Parents(s)}
-Covers(S, n) == UNION {info[t].covers : t \in Tombs(S, n)}
+Covers(S, n) == UNION {info[t].covers : t \in Tombs(Projectable(S), n)}
 
 Collapse(H) ==
     IF CollapseIdentical
@@ -240,6 +240,27 @@ Fairness ==
 Spec == Init /\ [][Next]_vars /\ Fairness
 
 (***************************************************************************)
+(* Projection safety needs four revisions (base, two edits, delete), but    *)
+(* not every engine cursor/outbox interleaving. DeliverRevision abstracts   *)
+(* cloud save+fetch as delivery of ANY created revision, including before   *)
+(* parents. This overapproximates transport for safety; liveness remains    *)
+(* covered by Spec, not this abstraction. Swift SyncInvariantTests replay   *)
+(* both these projection stories and the 100-record transport boundary.     *)
+(***************************************************************************)
+DeliverRevision(d, r) ==
+    /\ r \in Created \ store[d]
+    /\ store' = [store EXCEPT ![d] = @ \cup {r}]
+    /\ UNCHANGED <<info, nextId, outbox, log, engPend, cursor, gone, crashes>>
+
+ProjectionNext ==
+    \/ \E p \in Proc, v \in Values : Capture(p, v)
+    \/ \E p \in Proc, n \in Created, h \in Created, v \in Values : Edit(p, n, h, v)
+    \/ \E p \in Proc, n \in Created, x \in Created : Delete(p, n, x)
+    \/ \E d \in Dev, r \in Created : DeliverRevision(d, r)
+
+ProjectionSpec == Init /\ [][ProjectionNext]_vars
+
+(***************************************************************************)
 (* Rules. Each has one plain sentence; spec/run-tlc.sh checks them one by   *)
 (* one so each failure is reported on its own.                              *)
 (***************************************************************************)
@@ -299,10 +320,12 @@ CausalOnly == \A d \in Dev : \A r \in store[d] : Parents(r) \subseteq store[d]
 CausalNoDuplicateCopies == CausalOnly => NoDuplicateCopies
 CausalDeleteSparesOtherCopies == CausalOnly => DeleteSparesOtherCopies
 
-\* A deleted copy never comes back on a device that holds its tombstone,
-\* whatever order revisions arrived in (ReplicationTests.swift:31-35).
+\* A deleted copy never comes back once the device can apply its tombstone.
+\* An incomplete remote tombstone is durable transport state, not an applied
+\* delete: VaultFile.materialize waits for its parents, exactly as for puts.
+\* Local deletes always have complete ancestry (ReplicationTests.swift).
 DeletedStaysDeleted ==
-    \A d \in Dev : \A t \in store[d] : ~IsPut(t) =>
+    \A d \in Dev : \A t \in Projectable(store[d]) : ~IsPut(t) =>
         info[t].covers \cap Visible(store[d], NoteOf(t)) = {}
 
 \* RULE 2. "A note seen in Recall is eventually consistent on both devices."

@@ -96,4 +96,22 @@ final class SyncInvariantTests: XCTestCase {
         XCTAssertEqual(try b.read().captures.map(\.text), ["version 150"])
     }
 
+    // An unordered delete cannot identify ancestors hidden behind its missing
+    // parent. Once the parent arrives, the applied deletion cannot resurrect.
+    func testIncompleteTombstoneWaitsForItsParentBeforeApplyingDelete() throws {
+        let a = store("a"), b = store("b")
+        try a.append(Capture(text: "base"))
+        let base = try XCTUnwrap(try a.pendingRevisions().first)
+        try a.update { $0.captures[0].text = "edited" }
+        let edit = try XCTUnwrap(try a.pendingRevisions().first { $0.capture?.text == "edited" })
+        try a.update { $0.captures.removeAll() }
+        let deletion = try XCTUnwrap(try a.pendingRevisions().first { $0.capture == nil })
+        try b.merge([base, deletion])
+        XCTAssertEqual(try b.read().captures.map(\.text), ["base"])
+        try b.merge([edit])
+        XCTAssertTrue(try b.read().captures.isEmpty)
+        try b.merge([base, edit, deletion])
+        XCTAssertTrue(try b.search("").isEmpty, "An applied deletion must never resurrect on replay")
+    }
+
 }
