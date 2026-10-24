@@ -16,11 +16,16 @@ echo 'GATE 1: tracked diff whitespace (no configured Swift formatter/linter)'
 git diff --check
 git show --format= --check HEAD
 
-echo 'GATE 2: public package invariants'
+# Reject workflow trust regressions before paying for Swift builds.
+echo 'GATE 2: workflow trust rules and factory regressions'
+python3 factory/check_workflows.py
+python3 -m unittest discover -s factory -p 'test_*.py'
+
+echo 'GATE 3: public package invariants'
 swift test --package-path native
 swift test --package-path native/Pill
 
-echo 'GATE 3: model safety and counterexample sensitivity'
+echo 'GATE 4: model safety and counterexample sensitivity'
 if command -v java >/dev/null && java -version >/dev/null 2>&1; then
   if [ "$MODE" = --extended ]; then
     spec/run-tlc.sh
@@ -32,7 +37,7 @@ else
   echo 'SKIP TLC: install Java 17+; CI provisions Java 21. Swift regressions above still run.'
 fi
 
-echo 'GATE 4: Release query/save budgets and process durability'
+echo 'GATE 5: Release query/save budgets and process durability'
 swift test -c release --package-path native --filter SearchPerformanceTests
 BIN="$(swift build -c release --package-path native --show-bin-path)"
 python3 native/Scripts/verify_vault_processes.py "$BIN/VaultIntegrityProbe"
@@ -60,7 +65,7 @@ for name, budget in budgets.items():
     assert 0 < measured < budget, (name, measured, budget)
 PY
 
-echo 'GATE 5: unsigned bundles and requested entitlements'
+echo 'GATE 6: unsigned bundles and requested entitlements'
 xcodebuild -quiet -project native/MindMachine.xcodeproj -scheme MindMachine \
   -configuration Debug -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$BUILD/ios" CODE_SIGNING_ALLOWED=NO build

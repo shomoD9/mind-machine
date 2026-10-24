@@ -1,0 +1,34 @@
+# Trusted default-branch consumer of pr-intake JSON. Labels or closes only;
+# never checks out a PR, restores a PR cache, runs PR code or merges.
+name: pr-gate
+on:
+  workflow_run:
+    workflows: [pr-intake]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  gate:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read # Required to download the triggering run's artifact.
+      pull-requests: write
+      issues: write
+    concurrency:
+      group: pr-gate-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: |
+            factory
+            .github/workflows
+      - name: Validate artifact and apply decision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 factory/gate.py

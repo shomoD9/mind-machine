@@ -1,0 +1,41 @@
+# Linux path/metadata intake. Executes only base-commit factory files, never PR
+# code; pr-gate consumes its JSON after validating provenance and schema.
+name: pr-intake
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+permissions:
+  contents: read
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+          sparse-checkout: factory
+      - name: Classify metadata with base scripts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python3 factory/intake.py --pr "$PR_NUMBER" > intake.json
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          path = Path('intake.json')
+          result = json.loads(path.read_text())
+          result['run_id'] = int(os.environ['GITHUB_RUN_ID'])
+          result['run_attempt'] = int(os.environ['GITHUB_RUN_ATTEMPT'])
+          path.write_text(json.dumps(result, sort_keys=True) + '\n')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pr-intake
+          path: intake.json
+          if-no-files-found: error
+          retention-days: 7

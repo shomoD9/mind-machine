@@ -2,6 +2,13 @@
 
 ## 2026-10-24 - Claude Opus 5.5 - Claude Code
 
+### GPT-6 - Codex API (mm-intake)
+
+- Read the phase-1 brief, plan sections 2/4/5 and pending decisions, domain/glossary/ADR, tracker/triage guidance, CHECKS, checks.sh and all three workflows to constrain work to intake and hardening. Claimed .scratch/factory-intake/issues/01-intake.md. Derived lane paths from the actual native/spec tree; proposed configurable 1,000-line/100-file caps and kept pending policies open.
+- Built base-owned metadata/path classification, rename/traversal protection, outsider issue/protected-path rules, conservative network/capability patch detection and JSON output. Added a bounded artifact consumer with closed-schema validation, run/current-PR/metadata binding and producer-byte provenance to prevent forged or stale close requests. No PR code executes in either factory job.
+- Resolved checkout/upload-artifact/setup-java/cache v4 commits through gh api, pinned existing workflows, preserved TestFlight signing/secrets logic and added a fixed-order workflow/factory gate before Swift. Added plain-language FACTORY documentation and updated CHECKS/DESIGN. Applied prove-it-works for real-artifact verification and the local pr skill for the forthcoming PR body.
+- Ran 24 stdlib regressions covering lanes, budgets, adversarial text/paths, rename origins, artifact schemas/archive traversal/stale metadata and workflow trust; all passed. The mutation control ran the real traversal test against a matcher missing normalization and observed the predicted 'B' != 'D' failure. Installed actionlint into /tmp for full workflow syntax validation; further CI and real-PR evidence follows.
+
 ### GPT-6 - Codex API (mm-merge)
 
 - Resumed the founder-authorized merge in this worktree; verified PR #3 at 1a1ac09 and PR #5 at bb7f54a. Read domain/ADR/tracker and merge-conflict/runtime guidance. Main native-ci 40073996209 failed only the sandbox animation sampler (two expansion widths, required three); keyboard-ui already contains resize-notification sampling with unchanged thresholds. Retained UI copy/visuals and sampler, backend sync/storage logic and deterministic performance fixture. Integrated the Full Access guard at the KeyboardKit router boundary; the isolated UI host uses its existing test storage adapter. Local checks cover generation, syntax and diff integrity; macOS CI must compile and drive both native UIs.
