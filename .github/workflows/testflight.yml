@@ -49,10 +49,12 @@ jobs:
             scheme: MindMachine
             destination: generic/platform=iOS
             app: MindMachine.app
+            platform: IOS
           - name: TestFlight Mac app
             scheme: MindMachineMac
             destination: generic/platform=macOS
             app: MindMachineMac.app
+            platform: MAC_OS
     env:
       # One auto-incrementing number per workflow run. Both platforms use it, and so does the keyboard extension
       # because the build setting is applied to every target of the archive.
@@ -172,6 +174,17 @@ jobs:
             -authenticationKeyPath "$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID" 2>&1 | tee "$RUNNER_TEMP/export.log"
+
+      # Upload acceptance precedes processing. Query the exact platform/build with the same
+      # release credential and require Apple's VALID state before declaring delivery successful.
+      - name: Confirm App Store processing is VALID
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: >-
+          python3 native/Scripts/verify_app_store_processing.py
+          6826119193 "$BUILD_NUMBER" "${{ matrix.platform }}"
+          "$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
 
       # When Apple rejects a signing or upload step, xcodebuild prints only a log path. This prints the lines that carry
       # the exact Apple error; Actions masks any secret value that appears in them.

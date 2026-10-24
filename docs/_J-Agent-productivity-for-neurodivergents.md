@@ -2,6 +2,12 @@
 
 ## 2026-10-24 - GPT-6 - Codex API (overnight-core workspace)
 
+### GPT-6 - Codex API (mm-merge workspace)
+
+- Read project/domain/ADR/tracker instructions and release history, fetched origin and created the requested isolated worktree. Left both existing worktrees untouched. Verified PR #3's head/checks and merged it at 1a1ac09a207c1fc811f4b0cbf0e5dcf66ee961e5. Started polling process 207171 at 60-second intervals before touching keyboard-ui.
+- Inspected real main CI/release runs and prior Apple failures to establish release evidence. The locally available App Store credential returned 401; use the workflow's configured release credentials instead. Added an exact app/build/platform processing check to require Apple's VALID state after upload, with bounded polling and no token logging. Consulted Apple's build/token API references. Local signature verification and the actual release workflow provide the checks; device/CloudKit acceptance remains separate.
+
+
 - Read AGENTS, CONTEXT, testing plan, domain/ADR/tracker guidance, tickets 10–17, prior review result, PR #2 product/software charts, model/configs and formal/statechart skills. Inspected all core projection, replication and caller paths to locate the causes and avoid UI/signing work.
 - Applied requested TDD, root-cause, artifact proof and blast-radius skills. Added four public saved-vault regressions and pushed a temporary red checkpoint; dispatched macOS CI 40023094767 to prove the actual assertion failures and capture the existing Release benchmark before implementation. Git identity was missing, so configured a repository-local Codex bot identity.
 - Read macOS CI assertion diffs: duplicates 2 versus 1, both deletes empty versus retained content, out-of-order newest/base versus base. Recorded baseline query p95 6.477 ms, append p95 16.637 ms, cold open/first query 23.688 ms. Only after these failures changed projection logic; added complete-chain staging, equivalent-head membership, copy-local tombstones and one-time projection migration without changing the encrypted revision format.
