@@ -39,6 +39,7 @@ final class KeyboardAcceptanceTests: XCTestCase {
         // Prefix and transposition queries must find the exact saved original;
         // an unrelated query must hide it, proving results follow the query.
         selectMode("Recall")
+        editor.tap()
         editor.typeText("teles")
         let result = app.buttons["keyboard-result"]
         expectResult(result)
@@ -75,12 +76,16 @@ final class KeyboardAcceptanceTests: XCTestCase {
         editor.tap()
         editor.typeText("unfinished draft")
         selectMode("Recall")
+        editor.tap()
         editor.typeText("teles")
         cycleSizes(editor: editor, text: "teles", destination: "Typing into: Private search")
         selectMode("Capture")
         expectValue(editor, "unfinished draft")
         cycleSizes(editor: editor, text: "unfinished draft", destination: "Typing into: Private note")
-        editor.typeText(" survives")
+        // Mode buttons can take native hardware-key focus. On-screen keys keep
+        // using the preserved route/caret without tapping and moving the caret.
+        tapKey("space")
+        for key in "survives" { tapKey(String(key)) }
         expectValue(editor, "unfinished draft survives")
         expectValue(app.textViews["host-composer"], "host draft stays here")
 

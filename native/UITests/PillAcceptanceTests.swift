@@ -30,7 +30,7 @@ final class PillAcceptanceTests: XCTestCase {
         editor.click()
         editor.typeText("Tonight telescope code 7319")
         app.buttons["save-capture"].click()
-        expectLabel(app.staticTexts["save-status"], "Saved on this device")
+        expectText(app.staticTexts["save-status"], "Saved on this device")
 
         // Save via the actual button, query via the actual field, inspect the
         // original via its result. No model calls or filesystem assertions.
@@ -43,15 +43,17 @@ final class PillAcceptanceTests: XCTestCase {
         XCTAssertTrue(result.waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons.matching(identifier: "capture-result").count, 1)
         result.click()
-        expectLabel(app.staticTexts["original-text"], "Tonight telescope code 7319")
+        expectText(app.staticTexts["original-text"], "Tonight telescope code 7319")
         app.buttons["back-to-recall"].click()
         app.buttons["pill-close"].click()
         XCTAssertTrue(pill.waitForExistence(timeout: 5))
     }
 
-    private func expectLabel(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
-        let matches = NSPredicate(format: "label == %@", text)
+    // macOS SwiftUI StaticText exposes displayed text as AXValue. The failure
+    // bundle confirms save-status has this value and an empty accessibility label.
+    private func expectText(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
+        let matches = NSPredicate(format: "value == %@", text)
         XCTAssertTrue(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: matches, object: element)], timeout: 5) == .completed,
-                      "Expected \(text.debugDescription), got \(element.label)", file: file, line: line)
+                      "Expected \(text.debugDescription), got \(String(describing: element.value))", file: file, line: line)
     }
 }

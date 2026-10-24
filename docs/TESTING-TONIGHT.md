@@ -27,6 +27,8 @@ The note revision is AES-256-GCM encrypted by the app before entering CloudKit e
 
 ## Keyboard Capture → Recall → Insert
 
+`native-ci` now has required XCUITest jobs for the iPhone keyboard workspace and Mac pill. The iPhone runner embeds the production keyboard controller/keyplane in a dedicated simulator host, with a real host text field, a fresh throwaway vault and sync disabled. It checks local save acknowledgement, unchanged host text, prefix/typo Recall, explicit insertion, process relaunch, mode/Size draft preservation and basic on-screen keys. The Mac runner clicks the pill and saves/recalls an original; the existing sandboxed self-test still covers window behavior. Download `keyboard-ui-results` and `pill-ui-results` for Xcode result bundles. These tests bypass keyboard registration and Full Access, so complete the signed-device/second-host checks below as well as typing feel, memory and live sync.
+
 1. Settings → General → Keyboard → Keyboards → Add New Keyboard → Mind Machine. Select it and enable **Allow Full Access**. Full Access enables the shared App Group and private-cloud networking. The app includes these instructions and a link to Settings.
 2. In Notes or the included app test host, type `host draft stays here` with the normal keyboard. Switch to Mind Machine with the globe. Capture opens privately; its destination label says Private note.
 3. Type `Tonight telescope code 7319` and tap Save note. Require **Saved on this device** before leaving. The host draft must remain unchanged. Force-close/reopen the host and verify the note remains in Recall.
