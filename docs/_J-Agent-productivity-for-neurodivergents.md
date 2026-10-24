@@ -2,6 +2,14 @@
 
 ## 2026-10-24 - Claude Opus 5.5 - Claude Code
 
+### GPT-6 - Codex API (mm-fast)
+
+- Read CHECKS.md, checks.sh and native-ci first, then AGENTS, CONTEXT, ADR 0001 and domain/tracker/triage instructions. Claimed the authorized two-deliverable ticket under `.scratch/fast-factory/`; kept workflow changes in new fast-core.yml to avoid factory-intake conflicts.
+- Installed official Swift 6.2.1 Ubuntu toolchain and host dependencies. Ran full package (CloudKit import failure), Pill (CoreGraphics failure) and existing portable tests. Added only Linux manifest selection and a CryptoKit availability guard, preserving Apple targets and implementation. All 23 portable tests pass cold in 8.377s (0.946s execution); read actual main Mac job/step timestamps for a 151s job / 25s Debug test comparison. No UI, app, signing, TestFlight or PRODUCT changes.
+- Added the stdlib watchdog under tools because factory does not exist. Implemented persisted change-only events, final-result priority, both-heartbeat stall detection, dead-process-only single relaunch and CLI locking. Ran 16 stdlib tests with fake liveness/temp files plus subprocess CLI checks for persistence, private output and overlapping observers. Documented the state machine and supervision limits.
+- Drove a real child process through STARTING → RUNNING → STALLED → RUNNING → DIED → quiet → EXITED_OK. This exposed an early-death/grace bug that fake tests missed: DIED incorrectly reentered STARTING without a relaunch. Restricted new grace to an actual reserved relaunch and added the no-repeat regression; all 16 tests and the live zombie/death smoke now pass.
+- Queried the real checkout v4 commit through gh api and checked the official Swift image tag. Added the isolated Linux workflow with a five-minute bound, measured test summary and watchdog tests. Applying prove-it-works and PR skills for local artifact checks, reviewable PR and hosted verification; subsequent CI evidence is appended here.
+
 ### GPT-6 - Codex API (mm-merge)
 
 - Resumed the founder-authorized merge in this worktree; verified PR #3 at 1a1ac09 and PR #5 at bb7f54a. Read domain/ADR/tracker and merge-conflict/runtime guidance. Main native-ci 40073996209 failed only the sandbox animation sampler (two expansion widths, required three); keyboard-ui already contains resize-notification sampling with unchanged thresholds. Retained UI copy/visuals and sampler, backend sync/storage logic and deterministic performance fixture. Integrated the Full Access guard at the KeyboardKit router boundary; the isolated UI host uses its existing test storage adapter. Local checks cover generation, syntax and diff integrity; macOS CI must compile and drive both native UIs.
