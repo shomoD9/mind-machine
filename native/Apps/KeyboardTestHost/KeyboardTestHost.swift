@@ -1,6 +1,9 @@
-/* Dedicated simulator host launched by KeyboardAcceptanceTests in native-ci.
+/* Dedicated simulator host launched by KeyboardAcceptanceTests and KeyboardFeelTests in native-ci.
  It owns a visible host field; the production keyboard is embedded here so tests
- do not depend on Settings, Full Access grants or keyboard-daemon preferences. */
+ do not depend on Settings, Full Access grants or keyboard-daemon preferences.
+ With --apple-keyboard-reference it also focuses a plain field so Apple's own keyboard
+ appears on the same simulator, as the geometry reference for KeyboardFeelTests. --host-text,
+ --host-return-search and --host-return-automatically set the host field's draft and traits. */
 import UIKit
 
 @main
@@ -21,13 +24,25 @@ private final class HostController: UIViewController, TextRouteOwner {
     private let composer = UITextView()
     private let hostProxy = RoutedTextProxy()
     private let keyboard = KeyboardViewController()
+    // A near-invisible field with the system keyboard; focused only for the reference capture.
+    private let reference = UITextField()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        composer.text = "host draft stays here"
+        // --host-text replaces the default draft, so delete-repeat tests have whole words to remove.
+        let arguments = ProcessInfo.processInfo.arguments
+        if let flag = arguments.firstIndex(of: "--host-text"), flag + 1 < arguments.count {
+            composer.text = arguments[flag + 1]
+        } else {
+            composer.text = "host draft stays here"
+        }
         composer.font = .systemFont(ofSize: 17)
         composer.autocorrectionType = .no
+        // Return-key traits for KeyboardFeelTests: an action return key (--host-return-search)
+        // and Apple's disabled-while-empty rule (--host-return-automatically).
+        if arguments.contains("--host-return-search") { composer.returnKeyType = .search }
+        composer.enablesReturnKeyAutomatically = arguments.contains("--host-return-automatically")
         composer.inputView = UIView(frame: .zero)
         composer.selectedRange = NSRange(location: composer.text.utf16.count, length: 0)
         composer.accessibilityIdentifier = "host-composer"
@@ -44,7 +59,6 @@ private final class HostController: UIViewController, TextRouteOwner {
         // controller is embedded as a child input surface; no system keyboard daemon
         // or fake save/search operation participates. The proxy writes this text view.
         hostProxy.owner = self
-        let arguments = ProcessInfo.processInfo.arguments
         guard let flag = arguments.firstIndex(of: "--vault-id"), flag + 1 < arguments.count,
               let id = UUID(uuidString: arguments[flag + 1]) else {
             fatalError("UI host requires a test-owned vault UUID")
@@ -62,6 +76,17 @@ private final class HostController: UIViewController, TextRouteOwner {
             keyboard.view.bottomAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
         keyboard.didMove(toParent: self)
+
+        reference.accessibilityIdentifier = "apple-keyboard-reference"
+        reference.alpha = 0.02
+        reference.frame = CGRect(x: 0, y: 0, width: 2, height: 2)
+        view.addSubview(reference)
+    }
+
+    // Apple's keyboard slides up over the embedded one; nothing else in the host changes.
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if ProcessInfo.processInfo.arguments.contains("--apple-keyboard-reference") { reference.becomeFirstResponder() }
     }
 
     // Adapt the host's real field to UITextDocumentProxy at the operating-system

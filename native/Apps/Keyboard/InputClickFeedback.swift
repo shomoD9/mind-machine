@@ -2,8 +2,9 @@
  InputClickFeedbackService as KeyboardKit's feedback service. Sound goes through
  UIDevice.playInputClick, which plays only when the person has Keyboard Clicks turned on in
  iOS Settings (Sounds & Haptics → Keyboard Feedback → Sound). Haptics use KeyboardKit's own
- engine (UIFeedbackGenerator), which iOS silences when System Haptics is off. iOS does not
- expose the separate Keyboard Feedback → Haptic switch to third-party keyboards. */
+ engine (UIFeedbackGenerator), which iOS silences when System Haptics is off, and stay prepared
+ between keys. iOS does not expose the separate Keyboard Feedback → Haptic switch to
+ third-party keyboards (audit G12, G13 in docs/verification/keyboard-feel-2026-10-24.md). */
 import UIKit
 import KeyboardKit
 
@@ -19,6 +20,9 @@ final class InputClickFeedbackService: FeedbackService {
 
     func triggerHapticFeedback(_ feedback: Feedback.Haptic) {
         haptics.triggerHapticFeedback(feedback)
+        // Keep the Taptic Engine awake for the next key: an idle generator adds latency to the
+        // first tap after a pause, which Apple's own keyboard does not have.
+        haptics.hapticEngine.prepare(feedback)
     }
 }
 

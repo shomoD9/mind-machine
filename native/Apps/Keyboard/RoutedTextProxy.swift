@@ -3,7 +3,9 @@
  period, space-bar cursor drag and autocapitalisation check goes through here. Each call asks
  the controller (TextRouteOwner) for the current typing destination: the private note editor,
  the host app's text field, or nothing while a read-only original is displayed. Host writes use
- the controller's validated host proxy; host text is never read into or retained by the note. */
+ the controller's validated host proxy; host text is never read into or retained by the note.
+ Its traits (keyboard type, return key, autocapitalisation) also come from that destination;
+ KeyboardViewController reads enablesReturnKeyAutomatically to disable return on an empty field. */
 import UIKit
 
 @MainActor
@@ -75,8 +77,14 @@ final class RoutedTextProxy: NSObject, UITextDocumentProxy {
         get { host?.keyboardType ?? .default }
         set {}
     }
+    // The return key's label and its disabled-while-empty rule follow the destination field.
+    // The private note leaves both at UIKit's defaults (return, never disabled).
     var returnKeyType: UIReturnKeyType {
-        get { host?.returnKeyType ?? .default }
+        get { host?.returnKeyType ?? editor?.returnKeyType ?? .default }
+        set {}
+    }
+    var enablesReturnKeyAutomatically: Bool {
+        get { host?.enablesReturnKeyAutomatically ?? editor?.enablesReturnKeyAutomatically ?? false }
         set {}
     }
     var keyboardAppearance: UIKeyboardAppearance {
