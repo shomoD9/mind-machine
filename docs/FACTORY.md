@@ -6,10 +6,10 @@ Phase 1 labels PRs and closes rejected ones. It runs on Linux and uses **zero AI
 | --- | --- |
 | A | Markdown/docs, translations and tests-only changes. PASS intake. |
 | B | Core package logic and other paths without a stricter rule. ROUTE for review. |
-| C | Sync, storage, workspace/pill state and `spec/`. ROUTE; approved spec is a future prerequisite, with no approval flow or auto-merge here. |
+| C | Sync, storage, workspace/pill state, `spec/` and the tracked build specifications. ROUTE; approved spec is a future prerequisite, with no approval flow or auto-merge here. |
 | D | `.github/`, `factory/`, agent configuration, dependencies, entitlements, Info.plist, Xcode/config/build/signing scripts and keyboard source. Reject outsiders. |
 
-`factory/lanes.json` holds the rules. All matching rules apply; the strictest lane wins, including both paths of renames and deleted paths. Paths are normalized before matching. Keyboard source is conservatively D because a path alone cannot establish whether an edit enables networking. Added/deleted API patch lines mentioning network APIs or Full Access also enter D, including shared code; missing Swift/plist patches enter D. These checks are conservative routing rules, not semantic proof against obfuscated network code.
+`factory/lanes.json` holds the rules. All matching rules apply; the strictest lane wins, including both paths of renames and deleted paths. Paths are normalized before matching. Keyboard source is conservatively D because a path alone cannot establish whether an edit enables networking. Added/deleted API patch lines mentioning network APIs or Full Access also enter D, including shared shipping code; missing shipping Swift/plist patches enter D. Documentation and test fixtures may quote these APIs. These checks are conservative routing rules, not semantic proof against obfuscated network code.
 
 The default budget is **1,000 additions + deletions and 100 files** per PR, configurable in `lanes.json`. Outsiders must link an issue in the body with `Refs #123`, `Fixes #123` or a full issue URL in this repository. This checks the reference syntax, not issue approval or acceptance criteria. OWNER/MEMBER/COLLABORATOR associations and exact factory bot logins with GitHub's Bot type bypass outsider-only rules; they still receive a lane and obey budgets. The only configured bot is `github-actions[bot]`. There is no vouch policy.
 

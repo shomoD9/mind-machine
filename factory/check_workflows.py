@@ -16,17 +16,22 @@ def violations(source):
     if any(re.search(r"\bpull_request_target\b", line) for line in lines):
         errors.append("pull_request_target forbidden: use read-only pull_request plus workflow_run")
     for line in lines:
-        match = re.match(r"\s*(?:-\s*)?uses:\s*(.*?)\s*$", line)
-        if not match:
-            continue
-        action = match[1].strip("\"'")
-        # Local actions are repository code. Remote actions and reusable workflows
-        # must use an exact Git commit; Docker actions require a content digest.
-        if action.startswith("./"):
-            continue
-        if not re.fullmatch(r"[^\s@]+@[0-9a-f]{40}", action) and not re.fullmatch(r"docker://[^\s]+@sha256:[0-9a-f]{64}", action):
-            errors.append(f"unpinned action: {action}")
+        # Also inspect quoted keys and inline mappings, so changing YAML style
+        # cannot turn a floating action into an invisible one.
+        matches = re.finditer(r"(?:^|[\s{,])['\"]?uses['\"]?\s*:\s*('(?:[^']*)'|\"(?:[^\"]*)\"|[^,\s}\]]*)", line)
+        for match in matches:
+            action = match[1].strip("\"'")
+            if not pinned(action):
+                errors.append(f"unpinned action: {action}")
     return errors
+
+
+def pinned(action):
+    # Local actions are repository code. Remote actions and reusable workflows
+    # must use an exact Git commit; Docker actions require a content digest.
+    return (action.startswith("./")
+            or bool(re.fullmatch(r"[^\s@]+@[0-9a-f]{40}", action))
+            or bool(re.fullmatch(r"docker://[^\s]+@sha256:[0-9a-f]{64}", action)))
 
 
 def main():

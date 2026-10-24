@@ -39,3 +39,4 @@ jobs:
           path: intake.json
           if-no-files-found: error
           retention-days: 7
+          overwrite: true # Reruns replace the prior attempt; JSON binds run_attempt.

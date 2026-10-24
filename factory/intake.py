@@ -66,7 +66,12 @@ def classify(pr, files, config, repository):
     # patches for Swift/plist changes fail into D rather than hiding an edit.
     for file in files:
         path = file["filename"]
-        if path.endswith((".swift", ".plist")) and "patch" not in file:
+        # Documentation and test fixtures can quote these APIs without granting
+        # shipping code a capability. Their path rules still apply above.
+        if not path.endswith((".swift", ".plist")) or any(
+                fnmatch.fnmatchcase(path, pattern) for pattern in config["non_shipping_paths"]):
+            continue
+        if "patch" not in file and file.get("additions", 1) + file.get("deletions", 1) > 0:
             lanes.append("D")
         for line in file.get("patch", "").splitlines():
             if line.startswith(("+", "-")) and not line.startswith(("+++", "---")):

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # Fixture regressions for the base-owned intake, artifact consumer and workflow
 # guard. Run by checks.sh via unittest discovery; includes a killed mutant.
-import copy
+import base64
 import io
 import json
 from pathlib import Path
-import subprocess
+import os
 import unittest
 from unittest import mock
 import zipfile
@@ -56,7 +56,7 @@ class IntakeRules(unittest.TestCase):
 
     def test_core_logic_routes_b_but_sync_storage_and_state_route_c(self):
         self.assertEqual(self.classify(["native/Sources/MindMachineCore/ProcessMemory.swift"])["lane"], "B")
-        for path in ("spec/fixed-safe.cfg", "native/Sources/MindMachineCore/VaultFile.swift", "native/Pill/Sources/MindMachinePill/PillState.swift"):
+        for path in ("spec/fixed-safe.cfg", ".scratch/native-mvp/spec.md", "native/Sources/MindMachineCore/VaultFile.swift", "native/Pill/Sources/MindMachinePill/PillState.swift"):
             with self.subTest(path=path):
                 value = self.classify([path])
                 self.assertEqual((value["lane"], value["verdict"]), ("C", "ROUTE"))
@@ -88,6 +88,15 @@ class IntakeRules(unittest.TestCase):
             pr, files = fixture(["native/Sources/Shared.swift"])
             files[0]["patch"] = "@@ -1 +1 @@\n-" + text
             self.assertEqual(result(pr, files)["lane"], "D")
+
+    def test_docs_and_test_fixtures_can_quote_network_and_full_access_apis(self):
+        for path in ("docs/network.md", "native/Tests/PrivacyTests.swift"):
+            pr, files = fixture([path])
+            files[0]["patch"] = "@@ -1 +1 @@\n+URLSession RequestsOpenAccess Full Access"
+            self.assertEqual(result(pr, files)["lane"], "A")
+        pr, files = fixture(["native/Tests/RenamedTests.swift"])
+        files[0].pop("patch")
+        self.assertEqual(result(pr, files)["lane"], "A")
 
     def test_missing_swift_patch_cannot_hide_network_change(self):
         pr, files = fixture(["native/Sources/Shared.swift"])
@@ -197,6 +206,64 @@ class ArtifactRules(unittest.TestCase):
             gate.bind_result(data, run, pr, REPO)
 
 
+    def exercise_gate(self, verdict="REJECT", tampered=False):
+        # Drive the complete trusted entrypoint against API fixtures, including
+        # provenance and artifact download. Every outgoing write is recorded.
+        pr, files = fixture(["factory/intake.py"] if verdict == "REJECT" else ["spec/fixed-safe.cfg"])
+        data = result(pr, files)
+        run = run_fixture(pr)
+        blob = io.BytesIO()
+        with zipfile.ZipFile(blob, "w") as archive:
+            archive.writestr("intake.json", json.dumps(data))
+        producer = b"trusted producer workflow"
+        writes = []
+
+        def fake_api(endpoint, method="GET", payload=None, raw=False):
+            if method != "GET":
+                writes.append((endpoint, method, payload))
+                return {}
+            if endpoint.endswith("/actions/runs/99"):
+                return run
+            if "/artifacts?" in endpoint:
+                return {"artifacts": [{"id": 5, "name": "pr-intake", "expired": False, "size_in_bytes": len(blob.getvalue())}]}
+            if endpoint.endswith("/artifacts/5/zip"):
+                return blob.getvalue()
+            if endpoint.endswith("/pulls/7"):
+                return pr
+            if "/contents/" in endpoint:
+                content = b"forged producer" if tampered else producer
+                return {"content": base64.b64encode(content).decode()}
+            if "/labels?" in endpoint:
+                return [{"name": data["label"]}]
+            self.fail("unexpected API route: " + endpoint)
+
+        def fake_path(value):
+            return mock.Mock(read_text=lambda: json.dumps({"workflow_run": {"id": 99}}), read_bytes=lambda: producer)
+
+        with mock.patch.dict(os.environ, {"GITHUB_EVENT_PATH": "event.json", "GITHUB_REPOSITORY": REPO}), mock.patch.object(gate, "api", fake_api), mock.patch.object(gate, "Path", fake_path), mock.patch("builtins.print"):
+            if tampered:
+                with self.assertRaisesRegex(ValueError, "producer workflow changed"):
+                    gate.main()
+            else:
+                gate.main()
+        return writes
+
+    def test_tampered_producer_cannot_authorize_any_label_comment_or_close(self):
+        self.assertEqual(self.exercise_gate(tampered=True), [])
+
+    def test_valid_rejection_labels_comments_exact_reason_and_closes_without_merge(self):
+        writes = self.exercise_gate()
+        self.assertEqual([method for _, method, _ in writes], ["POST", "POST", "PATCH"])
+        self.assertIn("`LANE_D_OUTSIDER`", writes[1][2]["body"])
+        self.assertEqual(writes[2][2], {"state": "closed"})
+        self.assertFalse(any("/merge" in endpoint for endpoint, _, _ in writes))
+
+    def test_lane_c_only_labels_and_never_closes_or_merges(self):
+        writes = self.exercise_gate(verdict="ROUTE")
+        self.assertEqual(len(writes), 1)
+        self.assertEqual(writes[0][2], {"labels": ["lane-c"]})
+
+
 class WorkflowRules(unittest.TestCase):
     def test_missing_top_level_permissions_cannot_inherit_write_defaults(self):
         self.assertIn("missing top-level permissions", check_workflows.violations("jobs:\n  permissions: read-all\n"))
@@ -205,6 +272,10 @@ class WorkflowRules(unittest.TestCase):
         for action in ("actions/checkout@v4", "docker://example:latest", "owner/repo/.github/workflows/a.yml@main"):
             self.assertTrue(check_workflows.violations(f"permissions: {{}}\n  - uses: {action}\n"))
         self.assertEqual(check_workflows.violations("permissions: {}\n  - uses: actions/checkout@" + "a" * 40 + " # v4\n"), [])
+
+    def test_inline_and_quoted_uses_cannot_hide_floating_actions(self):
+        for text in ('steps: [{uses: actions/checkout@v4}]', "  - 'uses': 'actions/checkout@v4'", '  - uses:'):
+            self.assertIn("unpinned action", "\n".join(check_workflows.violations("permissions: {}\n" + text)))
 
     def test_target_event_with_head_checkout_is_forbidden(self):
         source = "permissions: {}\non: [pull_request_target]\nsteps:\n  - uses: actions/checkout@" + "a" * 40 + "\n    with:\n      ref: ${{ github.event.pull_request.head.sha }}\n"

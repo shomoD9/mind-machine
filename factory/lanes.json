@@ -41,7 +41,10 @@
         "native/Sources/MindMachineUI/VaultModel.swift",
         "native/Apps/Shared/DeviceVault.swift",
         "native/Pill/Sources/MindMachinePill/PillState.swift",
-        "native/Pill/Sources/MindMachinePill/PillPreferences.swift"
+        "native/Pill/Sources/MindMachinePill/PillPreferences.swift",
+        ".scratch/native-mvp/spec.md",
+        ".scratch/native-mvp/spec-draft.md",
+        ".scratch/factory-intake/spec.md"
       ]
     },
     {
@@ -74,5 +77,11 @@
     "URLSession|URLRequest|NSURLConnection|NWConnection|NWListener|CFStream|CFNetwork",
     "import\\s+(Network|WebKit)|NSAppTransportSecurity|NSAllows.*Networking|NSLocalNetworkUsageDescription",
     "\\b(socket|connect|getaddrinfo)\\s*\\("
+  ],
+  "non_shipping_paths": [
+    "docs/*",
+    "native/Tests/*",
+    "native/UITests/*",
+    "native/Pill/Tests/*"
   ]
 }

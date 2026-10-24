@@ -13,7 +13,7 @@ from intake import api, CODES, SHA, metadata_digest
 FIELDS = {"schema_version", "metadata_digest", "repository", "pr_number", "head_sha", "base_sha", "lane", "label", "reasons", "size", "verdict", "run_id", "run_attempt"}
 ADVICE = {
     "LANE_D_OUTSIDER": "Ask a maintainer to make CI, dependency, build or keyboard-capability changes in a trusted branch.",
-    "SIZE_LIMIT": "Split the change to at most 1,000 added/deleted lines and 100 files (see factory/lanes.json for current caps).",
+    "SIZE_LIMIT": "Split the change to fit the configured line/file budgets in factory/lanes.json.",
     "ISSUE_REQUIRED": "Link a repository issue in the body with Refs #123 or its full issue URL, then open a new PR.",
     "INVALID_PATH": "Remove paths that escape the repository or use backslashes.",
     "FILES_INCOMPLETE": "Reduce the file count and open a new PR so every changed path can be checked."
