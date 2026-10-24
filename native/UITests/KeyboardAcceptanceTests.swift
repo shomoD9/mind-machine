@@ -148,7 +148,14 @@ final class KeyboardAcceptanceTests: XCTestCase {
         // An empty private editor starts a sentence with shift enabled. Turn it
         // off explicitly so the prefix/typo fixtures are entered exactly as given.
         tapKey("shift")
-        for key in text { tapKey(String(key)) }
+        var prefix = ""
+        for key in text {
+            tapKey(String(key))
+            prefix.append(key)
+            // Observe each completed edit before the next gesture. A missed
+            // key fails here; the driver never retries or repairs entered text.
+            XCTAssertEqual(app.textViews["keyboard-editor"].value as? String, prefix)
+        }
         expectValue(app.textViews["keyboard-editor"], text)
     }
 
@@ -170,7 +177,10 @@ final class KeyboardAcceptanceTests: XCTestCase {
     private func tapKey(_ key: String, file: StaticString = #filePath, line: UInt = #line) {
         let element = app.descendants(matching: .any).matching(identifier: "keyboard-key-" + key).firstMatch
         XCTAssertTrue(element.waitForExistence(timeout: 5), "Missing key \(key)", file: file, line: line)
-        element.tap()
+        // KeyboardKit consumes press/release gestures. An explicit short hold
+        // gives SwiftUI both phases while Recall re-renders between characters;
+        // it stays below long-press and repeat-delete thresholds.
+        element.press(forDuration: 0.12)
     }
 
     private func expectValue(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
