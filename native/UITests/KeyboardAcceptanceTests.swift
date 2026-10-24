@@ -30,6 +30,9 @@ final class KeyboardAcceptanceTests: XCTestCase {
     func testCaptureRecallInsertAndRelaunch() {
         let editor = app.textViews["keyboard-editor"]
         XCTAssertTrue(editor.waitForExistence(timeout: 10), "Production keyboard must appear in the host")
+        // UIKit exposes an empty UITextView without a raw AX value. Check that
+        // state before typing, then require the exact saved and recalled text.
+        expectValue(editor, "")
         editor.tap()
         editor.typeText("Tonight telescope code 7319")
         app.buttons["keyboard-save"].tap()
@@ -198,7 +201,14 @@ final class KeyboardAcceptanceTests: XCTestCase {
 // (run 40110448639), mistaking observation latency for a product mismatch.
 extension XCTestCase {
     func expectValue(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
-        expectText(element, text, attribute: { $0.value as? String }, file: file, line: line)
+        expectText(element, text, attribute: { snapshot in
+            let value = snapshot.value
+            // An existing empty UITextView has no raw AX value (run 40113103269).
+            // Normalize only that representation; snapshot errors still throw,
+            // and other element types or non-string values remain mismatches.
+            if value == nil && snapshot.elementType == .textView { return "" }
+            return value as? String
+        }, file: file, line: line)
     }
 
     func expectLabel(_ element: XCUIElement, _ text: String, file: StaticString = #filePath, line: UInt = #line) {
@@ -208,8 +218,8 @@ extension XCTestCase {
     private func expectText(_ element: XCUIElement, _ text: String,
                             attribute: (XCUIElementSnapshot) -> String?, file: StaticString, line: UInt) {
         // Keep the five-second settling budget, but allow each AX request its
-        // normal XCTest transport deadline. Compare the value actually sampled;
-        // nil, a missing element and a wrong string must all fail the assertion.
+        // normal XCTest transport deadline. Compare the completed observation;
+        // a missing element, invalid attribute or wrong string must still fail.
         let deadline = ProcessInfo.processInfo.systemUptime + 5
         do {
             var actual = attribute(try element.snapshot())
