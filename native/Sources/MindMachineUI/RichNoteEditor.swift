@@ -1,6 +1,9 @@
-/* Native visual note editor used by WorkspaceView on Mac/iPhone. The keyboard
- reuses RichTextEditing for the same bold/italic/list operations and RTF format.
- The editor surface and formatting chips use the Greyscale palette. */
+/* Native note editor used by WorkspaceView for Capture on the Mac pill and the iPhone companion.
+ The editor is a plain writing page: no formatting buttons, no card around it, and an optional prompt
+ drawn where the first word will go until the person starts typing. RTF is still restored and stored
+ alongside the exact original string. The keyboard (Apps/Keyboard/KeyboardViewController.swift) calls
+ RichTextEditing.apply for its own bold/italic/list chips; the Mac and companion editors no longer do,
+ and a later ticket replaces them with Markdown typed in the page. Colours come from Greyscale.swift. */
 import SwiftUI
 #if os(iOS)
 import UIKit
@@ -92,9 +95,13 @@ public enum RichTextEditing {
         #endif
     }
 
+    // The writing font is shared by the live editor, restored plain drafts and the prompt overlay,
+    // so the prompt sits exactly where typed text will appear. The Mac page uses 15 pt rather than the
+    // 13 pt system size: about 65 characters per line across the 540 pt pill, a comfortable measure.
     #if os(iOS)
     private typealias NativeFont = UIFont
-    private static var bodyFont: UIFont { .preferredFont(forTextStyle: .body) }
+    static var bodyFont: UIFont { .preferredFont(forTextStyle: .body) }
+    static var writingFont: Font { .body }
     private static func has(_ format: NoteFormat, in font: UIFont) -> Bool {
         font.fontDescriptor.symbolicTraits.contains(format == .bold ? .traitBold : .traitItalic)
     }
@@ -106,7 +113,8 @@ public enum RichTextEditing {
     }
     #else
     private typealias NativeFont = NSFont
-    private static var bodyFont: NSFont { .systemFont(ofSize: NSFont.systemFontSize) }
+    static var bodyFont: NSFont { .systemFont(ofSize: 15) }
+    static var writingFont: Font { .system(size: 15) }
     private static func has(_ format: NoteFormat, in font: NSFont) -> Bool {
         NSFontManager.shared.traits(of: font).contains(format == .bold ? .boldFontMask : .italicFontMask)
     }
@@ -120,45 +128,24 @@ public enum RichTextEditing {
 public struct RichNoteEditor: View {
     @Binding private var text: String
     @Binding private var richText: Data?
-    @StateObject private var controller = NoteEditorController()
+    private let prompt: String?
 
-    public init(text: Binding<String>, richText: Binding<Data?>) { _text = text; _richText = richText }
+    /// `prompt` is shown in the page while the note is empty, in the writing font and the faintest ink.
+    public init(text: Binding<String>, richText: Binding<Data?>, prompt: String? = nil) {
+        _text = text; _richText = richText; self.prompt = prompt
+    }
     public var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // Formatting is optional and never adds an organizing step to capture.
-            HStack(spacing: 4) {
-                ForEach(NoteFormat.allCases, id: \.rawValue) { format in
-                    // Titles stay as authored; the weight or slant previews the effect.
-                    Button { controller.apply(format) } label: {
-                        Text(format.rawValue)
-                            .fontWeight(format == .bold ? .bold : .medium)
-                            .italic(format == .italic)
-                            .padding(.horizontal, 9).padding(.vertical, 4)
-                            .background(Greyscale.fill.color, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    }
-                    .buttonStyle(.plain).font(.subheadline).foregroundStyle(Greyscale.ink.color)
-                    .accessibilityLabel(format == .checkbox ? "Checkbox" : format == .bullet ? "Bullet" : format.rawValue)
-                    .accessibilityIdentifier("format-\(format == .checkbox ? "checkbox" : format == .bullet ? "bullet" : format.rawValue.lowercased())")
+        NativeNoteAdapter(text: $text, richText: $richText)
+            .accessibilityLabel("Private note").accessibilityIdentifier("capture-editor")
+            // Both native editors have zero text insets and line padding (set below), so the prompt's
+            // top-left corner is the caret's. It ignores clicks, which land in the editor underneath.
+            .overlay(alignment: .topLeading) {
+                if let prompt, text.isEmpty {
+                    Text(prompt).font(RichTextEditing.writingFont)
+                        .foregroundStyle(Greyscale.inkTertiary.color)
+                        .allowsHitTesting(false).accessibilityHidden(true)
                 }
             }
-            NativeNoteAdapter(text: $text, richText: $richText, controller: controller)
-                .padding(6)
-                .background(Greyscale.paper.color, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Greyscale.hairline.color, lineWidth: 1))
-                .accessibilityLabel("Private note").accessibilityIdentifier("capture-editor")
-        }
-    }
-}
-
-@MainActor
-private final class NoteEditorController: NSObject, ObservableObject {
-    weak var editor: NativeNoteTextView?
-    var changed: () -> Void = {}
-
-    func apply(_ format: NoteFormat) {
-        guard let editor else { return }
-        RichTextEditing.apply(format, to: editor)
-        changed()
     }
 }
 
@@ -166,7 +153,6 @@ private final class NoteEditorController: NSObject, ObservableObject {
 private struct NativeNoteAdapter: UIViewRepresentable {
     @Binding var text: String
     @Binding var richText: Data?
-    let controller: NoteEditorController
 
     func makeCoordinator() -> Coordinator { Coordinator() }
     func makeUIView(context: Context) -> UITextView {
@@ -174,13 +160,15 @@ private struct NativeNoteAdapter: UIViewRepresentable {
         // Native elements need the identifier as well as the SwiftUI wrapper so
         // UI acceptance can focus/type into the actual editor on both platforms.
         editor.accessibilityIdentifier = "capture-editor"
-        editor.font = .preferredFont(forTextStyle: .body)
-        // The rounded paper surface is drawn by SwiftUI around this view.
+        editor.font = RichTextEditing.bodyFont
+        // The page is the screen behind it: no own background, and text starts at the view's edge
+        // so it lines up with the prompt and the surrounding layout margins.
         editor.backgroundColor = .clear
+        editor.textContainerInset = .zero
+        editor.textContainer.lineFragmentPadding = 0
         editor.tintColor = Greyscale.ink.uiColor
         editor.allowsEditingTextAttributes = true
         editor.delegate = context.coordinator
-        controller.editor = editor
         return editor
     }
     func updateUIView(_ editor: UITextView, context: Context) {
@@ -192,7 +180,6 @@ private struct NativeNoteAdapter: UIViewRepresentable {
             richText = try? RichTextEditing.encoded(editor.attributedText)
         }
         context.coordinator.changed = publish
-        controller.changed = publish
     }
     final class Coordinator: NSObject, UITextViewDelegate {
         var changed: () -> Void = {}
@@ -203,7 +190,6 @@ private struct NativeNoteAdapter: UIViewRepresentable {
 private struct NativeNoteAdapter: NSViewRepresentable {
     @Binding var text: String
     @Binding var richText: Data?
-    let controller: NoteEditorController
 
     func makeCoordinator() -> Coordinator { Coordinator() }
     func makeNSView(context: Context) -> NSScrollView {
@@ -211,13 +197,17 @@ private struct NativeNoteAdapter: NSViewRepresentable {
         guard let editor = scroll.documentView as? NSTextView else { return scroll }
         editor.setAccessibilityIdentifier("capture-editor")
         editor.isRichText = true
-        // The rounded paper surface is drawn by SwiftUI around this view.
+        // The page is the panel behind it: no own background, an overlay scroller that appears only
+        // while scrolling, and text starting at the view's edge so it lines up with the prompt and tabs.
         scroll.drawsBackground = false
+        scroll.scrollerStyle = .overlay
+        scroll.autohidesScrollers = true
         editor.drawsBackground = false
+        editor.textContainerInset = .zero
+        editor.textContainer?.lineFragmentPadding = 0
         editor.importsGraphics = false
-        editor.font = .systemFont(ofSize: NSFont.systemFontSize)
+        editor.font = RichTextEditing.bodyFont
         editor.delegate = context.coordinator
-        controller.editor = editor
         return scroll
     }
     func updateNSView(_ scroll: NSScrollView, context: Context) {
@@ -228,7 +218,6 @@ private struct NativeNoteAdapter: NSViewRepresentable {
             richText = editor.textStorage.flatMap { try? RichTextEditing.encoded($0) }
         }
         context.coordinator.changed = publish
-        controller.changed = publish
     }
     final class Coordinator: NSObject, NSTextViewDelegate {
         var changed: () -> Void = {}
