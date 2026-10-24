@@ -1,5 +1,10 @@
 # Agent journal — productivity-for-neurodivergents
 
+## 2026-10-25 - Claude Opus 5.5 - Claude Code
+
+- Took the founder's Capture window redesign request (visual layout and copy only) as ticket 22 under `.scratch/native-mvp/`. Read AGENTS, the domain/tracker/triage guidance, DESIGN's pill and greyscale sections, and every file that draws the pill panel, so the redesign starts from the code that renders it.
+- Downloaded the `pill-selftest` artifact from main's native-ci run 40104384896 and stored its Capture, Recall and collapsed snapshots as the before images in `docs/verification/pill-capture-2026-10-25/`. That main run failed two self-test timing checks before any of this work, which matters when reading this PR's CI.
+
 ## 2026-10-24 - Claude Opus 5.5 - Claude Code
 
 ### GPT-6 - Codex API (mm-fast)
