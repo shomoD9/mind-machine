@@ -5,7 +5,8 @@
  textDocumentProxy. VaultModel supplies the same persisted capture/recall operations as Mac.
  Panel styling comes from KeyboardPanelStyle.swift; key sounds from InputClickFeedback.swift;
  the hosted keys from KeyplaneView.swift; Apple-like gesture behaviour (delete acceleration,
- held and sliding shift, inert return) from KeyplaneBehavior.swift. */
+ held and sliding shift, inert return) from KeyplaneBehavior.swift. In landscape the panel
+ compacts so the keys and note fit a short screen (applyPadSize). */
 import UIKit
 import SwiftUI
 import Combine
@@ -54,6 +55,8 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
     private lazy var save = PanelStyle.button("Save note", id: "keyboard-save", kind: .prominent) { [weak self] in self?.primaryAction() }
     private let modes = UISegmentedControl(items: ["Capture", "Recall"])
     private let toolRow = UIStackView()
+    // Mode switcher and Size; in landscape the destination and formatting row joins it.
+    private let header = UIStackView()
     private let formatting = UIStackView()
     private lazy var sizeButton = PanelStyle.button("Size: Default", id: "pad-size", kind: .quiet,
                                                     font: .systemFont(ofSize: 13, weight: .medium)) { [weak self] in self?.changeSize() }
@@ -225,7 +228,7 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         modes.addTarget(self, action: #selector(changeMode), for: .valueChanged)
         modes.accessibilityIdentifier = "keyboard-mode"
         PanelStyle.styleSegments(modes)
-        let header = UIStackView(arrangedSubviews: [modes, sizeButton])
+        header.addArrangedSubview(modes); header.addArrangedSubview(sizeButton)
         header.spacing = 8; header.alignment = .center
         modes.setContentHuggingPriority(.defaultLow, for: .horizontal)
         modes.heightAnchor.constraint(equalToConstant: 32).isActive = true
@@ -281,7 +284,10 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         editor.accessibilityLabel = "Private note"
         editor.accessibilityIdentifier = "keyboard-editor"
         stack.addArrangedSubview(editor)
+        // Below required, so a host that grants less height than requested squeezes the
+        // results first, then the note, and never breaks the keys' layout.
         height = editor.heightAnchor.constraint(equalToConstant: 110)
+        height?.priority = UILayoutPriority(999)
         height?.isActive = true
         scroll.addSubview(results)
         scroll.accessibilityIdentifier = "keyboard-results"
@@ -294,6 +300,7 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
             results.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor)
         ])
         resultsHeight = scroll.heightAnchor.constraint(equalToConstant: 110)
+        resultsHeight?.priority = UILayoutPriority(998)
         resultsHeight?.isActive = true
         stack.addArrangedSubview(scroll)
         // Status on the left, the primary action on the right. The system globe key
@@ -580,16 +587,23 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         applyPadSize()
     }
 
+    // An iPhone in landscape has a compact vertical size class. The keys shrink there on their
+    // own (KeyboardKit's 40 pt landscape rows); the panel follows with shorter notes and one
+    // header row, so the whole keyboard stays near 300 pt on a 375-440 pt tall screen.
+    private var compactHeight: Bool { traitCollection.verticalSizeClass == .compact }
+
     private func applyPadSize() {
         restoringEditor = true
         let padHeight: CGFloat
-        let requestedHeight: CGFloat
+        var requestedHeight: CGFloat
+        let compact = compactHeight
         switch workspace.size {
-        // Requested heights include KeyboardKit's four rows (about 216-224 pt in portrait).
+        // Portrait heights include KeyboardKit's four rows (about 216-224 pt).
         case .minimised: padHeight = 32; requestedHeight = 400
-        case .standard: padHeight = 110; requestedHeight = 520
-        case .expanded: padHeight = 240; requestedHeight = 670
+        case .standard: padHeight = compact ? 44 : 110; requestedHeight = 520
+        case .expanded: padHeight = compact ? 88 : 240; requestedHeight = 670
         }
+        arrangeToolRow(compact: compact)
         let name = workspace.size == .minimised ? "Min" : workspace.size == .expanded ? "Expanded" : "Default"
         PanelStyle.setTitle("Size: \(name)", on: sizeButton)
         let choosingDate = reminderSession != nil
@@ -599,12 +613,30 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
         notificationStatus.isHidden = !(choosingDate || selected != nil)
         formatting.isHidden = choosingDate || workspace.size == .minimised || model?.mode != 0 || selected != nil
         toolRow.isHidden = destination.isHidden && formatting.isHidden
-        height?.constant = selected != nil ? max(32, padHeight / 2) : model?.mode == 0 ? padHeight : 36
-        resultsHeight?.constant = choosingDate ? requestedHeight - 150 : selected != nil ? max(64, padHeight / 2) : padHeight
+        let editorHeight = selected != nil ? max(32, padHeight / 2) : model?.mode == 0 ? padHeight : 36
+        var resultsShown = selected != nil ? max(64, padHeight / 2) : padHeight
         scroll.isHidden = !choosingDate && selected == nil && (model?.mode == 0 || workspace.size == .minimised)
+        if compact && !choosingDate {
+            // Landscape asks for exactly what is visible: 160 pt of keys (four 40 pt rows) and
+            // 104 pt of header, actions row, margins and spacing, plus the note and any results.
+            if selected != nil { resultsShown = 44 }
+            requestedHeight = 264 + editorHeight + (scroll.isHidden ? 0 : resultsShown + 7)
+        }
+        height?.constant = editorHeight
+        resultsHeight?.constant = choosingDate ? requestedHeight - 150 : resultsShown
         workspaceHeight?.constant = requestedHeight
         view.layoutIfNeeded()
         restoringEditor = false
+    }
+
+    // Destination and formatting sit on their own row in portrait and beside the mode switcher
+    // in landscape, where height is scarce and width is not.
+    private func arrangeToolRow(compact: Bool) {
+        if compact, toolRow.superview !== header {
+            header.insertArrangedSubview(toolRow, at: 1)
+        } else if !compact, toolRow.superview !== stack {
+            stack.insertArrangedSubview(toolRow, at: 1)
+        }
     }
 
     private func formatNote(_ format: NoteFormat) {
@@ -760,6 +792,8 @@ final class KeyboardViewController: KeyboardInputViewController, UITextViewDeleg
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         PanelStyle.refreshBorders(editor)
+        // Rotation between portrait and landscape changes the panel's heights and header row.
+        if previousTraitCollection?.verticalSizeClass != traitCollection.verticalSizeClass { applyPadSize() }
     }
 }
 
