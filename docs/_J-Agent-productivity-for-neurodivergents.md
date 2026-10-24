@@ -2,6 +2,13 @@
 
 ## 2026-10-24 - Claude Opus 5.5 - Claude Code
 
+### GPT-6 - Codex API (mm-ck)
+
+- Read repository instructions, local tracker/triage/domain guidance, CONTEXT and ADR 0001 to preserve the private-sync contract and track this task as ticket 21. Applied cloud-environment, prose-writing and artifact-verification guidance. The environment-status tool and network-policy file are unavailable; no credential contents were inspected.
+- Inspected every CloudKit reference, `PrivateCloudSync`, `RevisionCipher`, `VaultModel`, generated configuration and entitlements to establish the sole app record type/field and runtime zone. Checked Apple's text-schema grammar, encryption restrictions and deployment documentation before adding `native/CloudKit/schema.ckdb` and Shomo's Console/deployment/verification guide. Updated DESIGN to record the schema boundary while retaining the outstanding Production/device acceptance gate. Workflows, app code, secrets and PRODUCT remain untouched.
+- Reviewed the guide against current UI capabilities, corrected the testing-guide link, and verified the schema/source/container/runtime-zone match plus local links with an executable Python comparison; whitespace checks passed. Swift/Xcode/cktool are unavailable, so Apple service validation remains manual. Read and applied the PR-writing skill. The GitHub connector rejected repository lookup arguments; the configured `gh` CLI identifies the expected repository and main base, with no existing PR on this branch. Preparing the authorized commit, push and unmerged PR.
+- Committed and pushed `9a29916` to `cloudkit-schema`, opened [PR #8](https://github.com/shomoD9/mind-machine/pull/8) titled “CloudKit production schema file and deploy steps”, and read back its OPEN/unmerged state, expected base/head and absent auto-merge request. Checked the exact five changed paths, wrote `/tmp/mm-ck-result.md` with the required DONE ending and resolved repository ticket 21. Publishing this final tracker/journal checkpoint, then checking remote head equality and updating the result with the final commit; Production deployment and signed-device acceptance remain Shomo's manual work.
+
 ### GPT-6 - Codex API (mm-merge)
 
 - Finished and pushed integration d2ff900; local project regeneration, Python/shell syntax and diff checks passed (no Swift/Xcode on Linux). Watched PR native-ci 40078696237 and core-checks 40078696266 to successful exit: iPhone UI 3/3, Mac UI 1/1, sandbox 51/51, Release query/save p95 5.137/5.551 ms. Applied the PR-writing and artifact-verification skills, replaced PR #4’s draft body with scope/evidence/risks, marked it ready and merged at 8fa4c3d9c5832d9945688777916fa55687cf270b.
