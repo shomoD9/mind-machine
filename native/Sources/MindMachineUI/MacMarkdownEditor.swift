@@ -31,11 +31,16 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
         scroll.documentView = editor
         editor.setAccessibilityIdentifier("capture-editor")
         editor.isRichText = true
-        // The rounded paper surface is drawn by SwiftUI around this view.
+        // The page is the panel behind it: no own background, an overlay scroller that appears only
+        // while scrolling, and text starting at the view's edge so it lines up with the prompt and tabs.
         scroll.drawsBackground = false
+        scroll.scrollerStyle = .overlay
+        scroll.autohidesScrollers = true
         editor.drawsBackground = false
+        editor.textContainerInset = .zero
+        editor.textContainer?.lineFragmentPadding = 0
         editor.importsGraphics = false
-        editor.font = .systemFont(ofSize: NSFont.systemFontSize)
+        editor.font = RichTextEditing.bodyFont
         return (scroll, editor)
     }
 
