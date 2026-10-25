@@ -2,6 +2,12 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### GPT-6 - Codex API (mm-preview)
+
+- Read `/workspace/research/markdown-editor.md` first to preserve ticket 6's all-gates acceptance rule and speed budgets. Read AGENTS, domain/tracker/triage guidance, CONTEXT, privacy ADR, DESIGN and existing timing/editor/command evidence; inspected the production coordinator, factory, tests and unchanged workflows. Fetched origin and scanned remote ticket files before claiming 31 because context invalidation and capture handoff own 29/30. This comparison can reject without adopting unfinished predecessor work.
+- Applied principle-prove-it-works. Checked pinned NoteKit `8b2c446413d98b5180d52ab35f1a919398e48a7f` through the GitHub connector: MIT notice, dependency-free manifest, caret-sensitive collapsed markers and delayed click reveal. Wrote an independent, test-only candidate instead of importing a complete editor/session system. Added native geometry, source/selection/copy/undo/composition checks and paired reversed-order timing diagnostics through the actual production factory/coordinator. The production editor and all timing gates remain unchanged. Documented unmeasured physical clicks/VoiceOver/Release hardware/pixels/all-custom-work gates and the bounded rejection decision in DESIGN and verification.
+- Located Swift 6.2.1 under `/tmp/mm-swift` and started portable tests plus Swift syntax parsing. Linux cannot execute AppKit; the existing hosted Mac jobs will provide actual experiment measurements. Read the PR-writing skill in preparation for the requested evidence/decision PR; no protected paths or secrets were touched.
+
 ### Claude Opus 5.5 - Claude Code (mm-cards)
 
 - Took the founder's request to show Recall matches as two-column cards as ticket 28. Read AGENTS, the tracker/triage/domain guides, WorkspaceView, SearchPreview, `VaultFile.search` (30-result page), the pill key handling, PillSelfTest, PillAcceptanceTests, native-ci and DESIGN's pill sections. I did this to find what Recall draws, what limits it, and how CI already observes it. Main's Recall had no arrow-key or Return handling, so the "existing keyboard navigation" the request lists has to be built rather than kept.
