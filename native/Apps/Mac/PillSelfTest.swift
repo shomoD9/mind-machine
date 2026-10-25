@@ -7,6 +7,7 @@
  skip interpolation frames. The capture baseline records open/input and per-key
  dispatch/draw distributions without changing the editor; --capture-baseline-only
  and --capture-baseline-cold support the Release rerun script. Nothing here runs in normal use. */
+// Capture baseline also records the source styler's measured paragraph work.
 import AppKit
 import MindMachinePill
 import MindMachineUI
@@ -469,7 +470,7 @@ enum PillSelfTest {
                         let unit = paragraph ? "baseline text " : "baseline text\n"
                         let source = String(String(repeating: unit, count: bytes / unit.count + 1).prefix(bytes))
                         guard await seedBaseline(source, editor: editor) else { continue }
-                        var dispatch: [Double] = [], draw: [Double] = []
+                        var dispatch: [Double] = [], draw: [Double] = [], styling: [Double] = []
                         for _ in 0..<keyCount {
                             let event = keyEvent(code: 7, characters: "x")
                             let signpost = OSSignpostID(log: timingLog)
@@ -477,6 +478,9 @@ enum PillSelfTest {
                             let start = ProcessInfo.processInfo.systemUptime
                             panel.sendEvent(event)
                             dispatch.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                            if let styler = editor.delegate as? MacMarkdownEditor {
+                                styling.append(styler.lastStyleMilliseconds)
+                            }
                             editor.displayIfNeeded()
                             draw.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
                             os_signpost(.end, log: timingLog, name: "Capture key to draw", signpostID: signpost)
@@ -488,7 +492,8 @@ enum PillSelfTest {
                         let expected = source + String(repeating: "x", count: keyCount)
                         check("baseline \(name) retains every key in view and model", editor.string == expected && controller.model.draft == expected)
                         documents[name] = ["initialUTF8Bytes": bytes, "dispatch": distribution(dispatch),
-                                           "dispatchToDrawProxy": distribution(draw, p95: 33, p99: 50)]
+                                           "dispatchToDrawProxy": distribution(draw, p95: 33, p99: 50),
+                                           "paragraphStyling": distribution(styling, p95: 2, p99: 4)]
                         print("[baseline] Completed \(name)")
                         fflush(stdout)
                     }

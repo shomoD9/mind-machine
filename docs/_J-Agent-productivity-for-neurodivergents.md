@@ -2,6 +2,13 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### GPT-6 - Codex API (mm-mdstyles)
+
+- Read repository/domain/tracker/triage instructions, CONTEXT, ADR, Markdown research and ticket 25; fetched main/redesign and allocated ticket 26. Applied cloud-runtime and prove-it-works skills. Runtime status tool/network-policy file are unavailable; configured GitHub CLI works. Reviewed PR #10's diff to keep Capture layout and view styling out of this change.
+- Reran unchanged merged-main native-ci (40153281833) and downloaded actual sandbox timing JSON. All five native jobs passed. Draw-proxy p50/p95/p99 ms: 1 KiB 1.145/1.674/1.840; 10 KiB 1.300/1.551/1.591; 100 KiB 4.959/6.762/8.624; huge paragraph 35.659/42.183/46.159. Warm open p95 36.730 ms. The existing huge-paragraph p95 misses the proposed 33 ms budget; full Release/physical hardware measurements remain separate.
+- Added a dependency-free bounded UTF-16 paragraph parser and Mac text-view coordinator. Source remains authoritative; attributes are disposable, markers visible/muted, and Mac callbacks publish literal text without whole-document RTF encoding. Restyling follows native character processing, changes only affected paragraphs/differing attributes, bypasses undo registration and defers marked text. Pasting uses plain source and automatic source substitutions are disabled. Added focused portable and Mac tests for syntax, exact Unicode bytes, real copy/save/reopen, locality, undo and composition. Extended existing baseline JSON with styling-only samples while retaining its fixture/count/budget boundaries.
+- All 28 Linux SwiftPM tests passed; touched Mac Swift syntax parses and whitespace checks pass. Reviewed scope and updated living DESIGN/verification notes. Applying the PR-writing skill; publishing the first Mac runtime-verification checkpoint. No PRODUCT, workflow/signing/entitlement/release files or Capture layout/view styling changed.
+
 ### GPT-6 - Codex API (mm-mdbase)
 
 - Re-read the saved prompt and clean git state after the reconnect continuation. Applied diagnosing-bugs/root-cause skills and retrieved actual failed logs plus the retained self-test artifact. The original command `gh run view 40131868749 --log-failed` shows “self-test did not finish” at the unchanged 120-second deadline during 10 KiB typing; no report-writing error occurred. All other native jobs passed. The direct failure evidence makes extra serialization hypotheses unnecessary.
