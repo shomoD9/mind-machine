@@ -470,6 +470,8 @@ enum PillSelfTest {
                         let unit = paragraph ? "baseline text " : "baseline text\n"
                         let source = String(String(repeating: unit, count: bytes / unit.count + 1).prefix(bytes))
                         guard await seedBaseline(source, editor: editor) else { continue }
+                        print("[baseline] Seeded \(name); view=\(editor.frame.size), container=\(String(describing: editor.textContainer?.containerSize))")
+                        fflush(stdout)
                         var dispatch: [Double] = [], draw: [Double] = [], styling: [Double] = []
                         for _ in 0..<keyCount {
                             let event = keyEvent(code: 7, characters: "x")
@@ -483,6 +485,10 @@ enum PillSelfTest {
                             }
                             editor.displayIfNeeded()
                             draw.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                            if dispatch.count == 1 {
+                                print("[baseline] First key in \(name): dispatch=\(dispatch[0]) ms, draw=\(draw[0]) ms, style=\(styling.last ?? -1) ms")
+                                fflush(stdout)
+                            }
                             os_signpost(.end, log: timingLog, name: "Capture key to draw", signpostID: signpost)
                             modern = modern && editor.textLayoutManager != nil
                             // Give SwiftUI and AppKit a run-loop turn between keys;
