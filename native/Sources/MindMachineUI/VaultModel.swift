@@ -162,8 +162,10 @@ public final class VaultModel: ObservableObject {
         catch { self.error = error.localizedDescription; return nil }
     }
 
-    public func searchHits(openTasks: Bool = false) -> [SearchHit] {
-        do { return try file.search(query, openTasks: openTasks) }
+    /// Searches the typed query, or `query` when given: the Mac Recall grid passes the query it is
+    /// showing, which trails the field by one run-loop turn (WorkspaceView.swift).
+    public func searchHits(openTasks: Bool = false, query: String? = nil) -> [SearchHit] {
+        do { return try file.search(query ?? self.query, openTasks: openTasks) }
         catch { self.error = "Could not search: \(error.localizedDescription)"; return [] }
     }
 

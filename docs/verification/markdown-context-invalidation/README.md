@@ -1,4 +1,4 @@
-# Markdown context invalidation — ticket 29
+# Markdown context invalidation — ticket 30
 
 Inserting a newline must restyle both resulting paragraphs. The previous invalidator used only the inserted characters, so a separator at the end of an edit excluded the right paragraph. `MarkdownContextInvalidation.affected` includes the edit's right endpoint before invoking the existing bounded discovery. Mac Capture records character edits in `willProcessEditing`, before native attribute fixing can widen their range through an existing newline, then calls that pure core function against text storage from `textDidChange`. Ordinary character edits still return only their containing paragraph.
 
@@ -46,3 +46,7 @@ On a Mac, use Capture on main and this branch with the same appearance and note 
 ## Integration with ticket 4
 
 Merged `origin/main` at `278a905` (PR #16) into `ade796b`. Retained all portable context and command tests plus the AppKit attribute oracle, command undo/redo and composition tests. The production editor combines command hooks with `willProcessEditing` and `MarkdownContextInvalidation`; command source edits use that same invalidation path. Integration Linux verification passes: all 48 Swift tests (including nine context and nine command tests) and all 17 Python watchdog tests. All ten merged AppKit test bodies are the exact union of both parents; other test files are byte-for-byte identical to their respective parents. Touched Mac sources parse and whitespace checks pass. Hosted verification of the integration commit is pending; results will be appended to `/tmp/mm-mdctx-result.md`.
+
+## Integration with Recall cards
+
+Merged `origin/main` at `12f53bd` (PR #15) into `e1b48ec`. Both implementations and their tests are retained unchanged; only the journal required manual conflict resolution. Recall keeps tracker number 29; context invalidation moves to [ticket 30](../../../.scratch/native-mvp/issues/30-markdown-editor-context-invalidation.md). Linux and hosted integration verification is recorded in `/tmp/mm-mdctx-result.md`.

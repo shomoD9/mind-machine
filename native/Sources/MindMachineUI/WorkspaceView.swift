@@ -7,13 +7,25 @@
  Layout: the Capture editor is the page itself, with its prompt inside it. One footer row runs along the
  bottom of every mode: a small sync glyph on the left (SyncIndicator.swift decides how much it says and
  it opens the sync setup sheet), the latest acknowledgement, and in Capture the one prominent action,
- Save, with its shortcut. PillAcceptanceTests and PillSelfTest drive these controls by identifier. */
+ Save, with its shortcut. Recall shows matches as RecallCards two wide on the Mac (RecallCards.swift, with
+ the grid rules in RecallGrid.swift) and as rows on the iPhone. The Mac grid searches and redraws one
+ run-loop turn after the query field, from a result page kept in state, so neither the search nor the
+ grid's layout delays the typed letter. PillAcceptanceTests and PillSelfTest drive these controls by
+ identifier. */
 import SwiftUI
 import MindMachineCore
 
 public struct WorkspaceView: View {
     @ObservedObject private var model: VaultModel
     @State private var openTasks = false
+    /// The Recall card the keyboard has selected, kept by note so a reload that reorders results keeps it.
+    @State private var recallSelection: UUID?
+    /// The query the Mac Recall grid is showing. It follows `model.query` one run-loop turn later, so a
+    /// keystroke's frame draws only the typed letter and the grid redraws in the next frame.
+    @State private var shownQuery = ""
+    /// The Mac Recall result page for `shownQuery`, kept between renders. The body re-runs on every
+    /// keystroke; reading this page instead of searching keeps SQLite and JSON decoding out of that frame.
+    @State private var recallPage = RecallCardGrid.Page()
     @State private var showSettings = false
     @State private var showSyncSetup = false
     private let showsHeader: Bool
@@ -152,15 +164,32 @@ public struct WorkspaceView: View {
 
     // Recall reads the shared retrieval path and opens originals without changing drafts.
     // It mirrors the Capture page: the query is typed on the page in the writing font above one hairline,
-    // the filter and search note share one small line, and results are rows rather than boxed cards.
+    // and the filter and search note share one small line. On the Mac, matches are cards two wide
+    // (RecallCards.swift) that the arrow keys move through from the query; the iPhone keeps
+    // hairline-separated rows, which suit its narrow width.
     private var recall: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        // One result page serves the results, the empty-state line and the keyboard. The body re-runs on
+        // every keystroke, timer reload and sync-status change. On the Mac the page is searched only when
+        // the shown query, the filter or the vault changes (refreshRecallPage), so the arrow keys and Return
+        // act on the cards that are on screen. The iPhone searches once per render.
+        #if os(macOS)
+        let hits = recallPage.hits
+        #else
+        let hits = model.searchHits(openTasks: openTasks)
+        #endif
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Greyscale.inkTertiary.color)
                     .accessibilityHidden(true)
+                #if os(macOS)
+                RecallQueryField(text: $model.query, placeholder: "Recall something you saved",
+                                 onMove: { moveSelection($0, in: hits) }, onSubmit: { openSelection(in: hits) })
+                    .frame(maxWidth: .infinity)
+                #else
                 TextField("Recall something you saved", text: $model.query).textFieldStyle(.plain)
                     .font(RichTextEditing.writingFont)
                     .accessibilityIdentifier("recall-query")
+                #endif
             }
             .padding(.bottom, 8)
             .overlay(alignment: .bottom) { Rectangle().fill(Greyscale.hairline.color).frame(height: 1) }
@@ -172,37 +201,108 @@ public struct WorkspaceView: View {
                     .font(.caption).foregroundStyle(Greyscale.inkSecondary.color).tint(Greyscale.prominent.color)
                     .fixedSize().accessibilityIdentifier("open-tasks-toggle")
             }
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    // One SQLite search per render serves both the list and the empty-state line;
-                    // the body re-runs on every timer reload and sync-status change.
-                    let hits = model.searchHits(openTasks: openTasks)
-                    ForEach(hits, id: \.capture.id) { hit in
-                        let original = hit.capture
-                        Button { model.selectedCapture = original.id } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(SearchPreview.attributed(hit.highlightedText)).lineLimit(3).multilineTextAlignment(.leading)
-                                    .foregroundStyle(Greyscale.ink.color)
-                                HStack(spacing: 6) {
-                                    Text(original.createdAt, style: .date).foregroundStyle(Greyscale.inkTertiary.color)
-                                    if model.vault.isOverdue(captureID: original.id, now: Date()) {
-                                        Text("Overdue").bold().foregroundStyle(Greyscale.ink.color)
-                                    }
-                                }.font(.caption)
-                            }
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .overlay(alignment: .bottom) { Rectangle().fill(Greyscale.hairline.color).frame(height: 1) }
-                            .contentShape(Rectangle())
-                        }.buttonStyle(.plain).accessibilityIdentifier("capture-result")
-                    }
+            ScrollViewReader { proxy in
+                ScrollView {
                     if hits.isEmpty {
                         Text("Nothing found yet").foregroundStyle(Greyscale.inkSecondary.color).padding(.top, 4)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("recall-empty")
+                    } else {
+                        #if os(macOS)
+                        // Compared before its body runs: a keystroke changes neither the page nor the
+                        // selection, so the grid and its cards are not rebuilt in the typed letter's frame.
+                        RecallCardGrid(page: recallPage, selection: recallSelection) { id in
+                            recallSelection = id
+                            model.selectedCapture = id
+                        }
+                        .equatable()
+                        #else
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(hits, id: \.capture.id) { hit in
+                                let original = hit.capture
+                                Button { model.selectedCapture = original.id } label: {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(SearchPreview.attributed(hit.highlightedText)).lineLimit(3).multilineTextAlignment(.leading)
+                                            .foregroundStyle(Greyscale.ink.color)
+                                        HStack(spacing: 6) {
+                                            Text(original.createdAt, style: .date).foregroundStyle(Greyscale.inkTertiary.color)
+                                            if model.vault.isOverdue(captureID: original.id, now: Date()) {
+                                                Text("Overdue").bold().foregroundStyle(Greyscale.ink.color)
+                                            }
+                                        }.font(.caption)
+                                    }
+                                    .padding(.vertical, 10)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .overlay(alignment: .bottom) { Rectangle().fill(Greyscale.hairline.color).frame(height: 1) }
+                                    .contentShape(Rectangle())
+                                }.buttonStyle(.plain).accessibilityIdentifier("capture-result")
+                            }
+                        }
+                        #endif
                     }
+                }
+                // Keep the keyboard selection in view; nil anchor scrolls only as far as needed.
+                .onChange(of: recallSelection) { _, id in
+                    if let id { proxy.scrollTo(id) }
                 }
             }
         }
+        // A new query or filter is a new result set, so the selection starts again from the query.
+        // The grid takes the new query after this frame has drawn the typed letter. The block reads the
+        // query when it runs, so several keys typed within one turn produce one grid update.
+        .onChange(of: model.query) { _, _ in
+            clearSelection()
+            #if os(macOS)
+            DispatchQueue.main.async {
+                if shownQuery != model.query { shownQuery = model.query; refreshRecallPage() }
+            }
+            #endif
+        }
+        #if os(macOS)
+        // The query can change while Recall is off screen (another mode, or the pill collapsed).
+        .onAppear { shownQuery = model.query; refreshRecallPage() }
+        // Saves, timer reloads and sync replace the vault, which can change matches and Overdue marks.
+        // Array equality returns early when the captures are the same storage, as they are while typing.
+        .onChange(of: model.vault) { _, _ in refreshRecallPage() }
+        #endif
+        .onChange(of: openTasks) { _, _ in
+            clearSelection()
+            #if os(macOS)
+            refreshRecallPage()
+            #endif
+        }
+    }
+
+    #if os(macOS)
+    /// Searches the shown query once and keeps the page, with each card's Overdue mark worked out here
+    /// so drawing a card reads no vault state.
+    private func refreshRecallPage() {
+        let hits = model.searchHits(openTasks: openTasks, query: shownQuery)
+        let now = Date()
+        let overdue = Set(hits.map(\.capture.id).filter { model.vault.isOverdue(captureID: $0, now: now) })
+        recallPage = RecallCardGrid.Page(hits: hits, overdue: overdue)
+    }
+    #endif
+
+    /// Clearing only when set avoids a second render on every keystroke.
+    private func clearSelection() { if recallSelection != nil { recallSelection = nil } }
+
+    /// Applies one arrow key to the card selection. Returns false when the key belongs to the query's caret.
+    private func moveSelection(_ direction: RecallGrid.Direction, in hits: [SearchHit]) -> Bool {
+        let current = recallSelection.flatMap { id in hits.firstIndex { $0.capture.id == id } }
+        switch RecallGrid.move(from: current, direction, count: hits.count) {
+        case .select(let index): recallSelection = hits[index].capture.id; return true
+        case .field: recallSelection = nil; return true
+        case .ignored: return false
+        }
+    }
+
+    /// Return opens the selected card, or the first match when nothing is selected, as Spotlight does.
+    private func openSelection(in hits: [SearchHit]) {
+        let selected = recallSelection.flatMap { id in hits.first { $0.capture.id == id } }
+        guard let hit = selected ?? hits.first else { return }
+        recallSelection = hit.capture.id
+        model.selectedCapture = hit.capture.id
     }
 
     // Original inspection is independent of editing; returning preserves the query.
