@@ -2,6 +2,15 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### Claude Opus 5.5 - Claude Code (mm-cards)
+
+- Took the founder's request to show Recall matches as two-column cards as ticket 28. Read AGENTS, the tracker/triage/domain guides, WorkspaceView, SearchPreview, `VaultFile.search` (30-result page), the pill key handling, PillSelfTest, PillAcceptanceTests, native-ci and DESIGN's pill sections. I did this to find what Recall draws, what limits it, and how CI already observes it. Main's Recall had no arrow-key or Return handling, so the "existing keyboard navigation" the request lists has to be built rather than kept.
+- Downloaded main's latest `pill-selftest` artifacts (runs 40180636797 and 40194786090) to read the empty Recall snapshot and the Capture typing numbers. The sandboxed self-test takes about 66 s of its 120 s limit, which leaves room for a populated Recall step. Its whole key turns are dominated by the 1 ms task sleep, so the typing gate uses the dispatch-to-draw proxy, as the Capture baseline does.
+- Design reasoning before code: Notes gallery and Bear (first line as title, preview, date last), Notion/Obsidian galleries (equal-height cards keep rows aligned), Raycast grid and Finder (arrows move in two dimensions), and Spotlight (focus stays in the query; Return opens the top hit). Rejected thumbnails, shadows, glass, masonry heights and three columns. The rationale is in the PR body and DESIGN.
+- Added `RecallGrid` (pure movement and card-text rules, with unit tests), `RecallCard` and the Mac `RecallQueryField`, and changed `WorkspaceView` to use a lazy two-column grid on the Mac only. The iPhone rows are unchanged. Compiled and ran the pure rules and their tests with the local Swift 6.2.1 Linux toolchain; AppKit/SwiftUI files were syntax-parsed only, so the Mac compile and behaviour are proven by CI.
+- Extended PillSelfTest with 37 `[Sample]` notes, a populated snapshot, arrow/Return checks through the real field, and a typing measurement over a full 30-card page. I also added an XCUITest journey for geometry, keys, empty state and Open tasks. No existing check, budget or deadline changed.
+- Rebased onto main after PR #14 merged. Open PR #13 (`recall-populated-screenshot`) also adds a populated Recall snapshot to PillSelfTest; whichever merges second must reconcile the two steps.
+
 ### GPT-6 - Codex API (mm-speed)
 
 - Resumed PR #14 at `f01a1ef` after a hung run. Read repository/domain/tracker/triage guidance, CONTEXT, privacy ADR, debugging/root-cause, cloud-runtime, verification and PR skills. Runtime-status tooling/network policy remain unavailable. Fetched both failing jobs with 90-second command bounds; both Swift failures are `{7,3}` versus `{7,2}` in the new Unicode selection fixture. Reviewed and retained the pending `{8,2}` correction: it selects the full decomposed accent without weakening the assertion. Protected files remain untouched.

@@ -7,13 +7,17 @@
  Layout: the Capture editor is the page itself, with its prompt inside it. One footer row runs along the
  bottom of every mode: a small sync glyph on the left (SyncIndicator.swift decides how much it says and
  it opens the sync setup sheet), the latest acknowledgement, and in Capture the one prominent action,
- Save, with its shortcut. PillAcceptanceTests and PillSelfTest drive these controls by identifier. */
+ Save, with its shortcut. Recall shows matches as RecallCards two wide on the Mac (RecallCards.swift, with
+ the grid rules in RecallGrid.swift) and as rows on the iPhone. PillAcceptanceTests and PillSelfTest
+ drive these controls by identifier. */
 import SwiftUI
 import MindMachineCore
 
 public struct WorkspaceView: View {
     @ObservedObject private var model: VaultModel
     @State private var openTasks = false
+    /// The Recall card the keyboard has selected, kept by note so a reload that reorders results keeps it.
+    @State private var recallSelection: UUID?
     @State private var showSettings = false
     @State private var showSyncSetup = false
     private let showsHeader: Bool
@@ -152,15 +156,26 @@ public struct WorkspaceView: View {
 
     // Recall reads the shared retrieval path and opens originals without changing drafts.
     // It mirrors the Capture page: the query is typed on the page in the writing font above one hairline,
-    // the filter and search note share one small line, and results are rows rather than boxed cards.
+    // and the filter and search note share one small line. On the Mac, matches are cards two wide
+    // (RecallCards.swift) that the arrow keys move through from the query; the iPhone keeps
+    // hairline-separated rows, which suit its narrow width.
     private var recall: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        // One SQLite search per render serves the results, the empty-state line and the keyboard;
+        // the body re-runs on every keystroke, timer reload and sync-status change.
+        let hits = model.searchHits(openTasks: openTasks)
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Greyscale.inkTertiary.color)
                     .accessibilityHidden(true)
+                #if os(macOS)
+                RecallQueryField(text: $model.query, placeholder: "Recall something you saved",
+                                 onMove: { moveSelection($0, in: hits) }, onSubmit: { openSelection(in: hits) })
+                    .frame(maxWidth: .infinity)
+                #else
                 TextField("Recall something you saved", text: $model.query).textFieldStyle(.plain)
                     .font(RichTextEditing.writingFont)
                     .accessibilityIdentifier("recall-query")
+                #endif
             }
             .padding(.bottom, 8)
             .overlay(alignment: .bottom) { Rectangle().fill(Greyscale.hairline.color).frame(height: 1) }
@@ -172,37 +187,83 @@ public struct WorkspaceView: View {
                     .font(.caption).foregroundStyle(Greyscale.inkSecondary.color).tint(Greyscale.prominent.color)
                     .fixedSize().accessibilityIdentifier("open-tasks-toggle")
             }
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    // One SQLite search per render serves both the list and the empty-state line;
-                    // the body re-runs on every timer reload and sync-status change.
-                    let hits = model.searchHits(openTasks: openTasks)
-                    ForEach(hits, id: \.capture.id) { hit in
-                        let original = hit.capture
-                        Button { model.selectedCapture = original.id } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(SearchPreview.attributed(hit.highlightedText)).lineLimit(3).multilineTextAlignment(.leading)
-                                    .foregroundStyle(Greyscale.ink.color)
-                                HStack(spacing: 6) {
-                                    Text(original.createdAt, style: .date).foregroundStyle(Greyscale.inkTertiary.color)
-                                    if model.vault.isOverdue(captureID: original.id, now: Date()) {
-                                        Text("Overdue").bold().foregroundStyle(Greyscale.ink.color)
-                                    }
-                                }.font(.caption)
-                            }
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .overlay(alignment: .bottom) { Rectangle().fill(Greyscale.hairline.color).frame(height: 1) }
-                            .contentShape(Rectangle())
-                        }.buttonStyle(.plain).accessibilityIdentifier("capture-result")
-                    }
+            ScrollViewReader { proxy in
+                ScrollView {
                     if hits.isEmpty {
                         Text("Nothing found yet").foregroundStyle(Greyscale.inkSecondary.color).padding(.top, 4)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("recall-empty")
+                    } else {
+                        #if os(macOS)
+                        // Lazy: of the bounded result page (VaultFile.search, 30 by default) only the cards
+                        // in view are built, so a broad query costs the same to draw as a narrow one.
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: RecallGrid.columns),
+                                  alignment: .leading, spacing: 8) {
+                            ForEach(hits, id: \.capture.id) { hit in
+                                let id = hit.capture.id
+                                RecallCard(hit: hit, selected: recallSelection == id,
+                                           overdue: model.vault.isOverdue(captureID: id, now: Date())) {
+                                    recallSelection = id
+                                    model.selectedCapture = id
+                                }
+                                .id(id)
+                            }
+                        }
+                        #else
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(hits, id: \.capture.id) { hit in
+                                let original = hit.capture
+                                Button { model.selectedCapture = original.id } label: {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(SearchPreview.attributed(hit.highlightedText)).lineLimit(3).multilineTextAlignment(.leading)
+                                            .foregroundStyle(Greyscale.ink.color)
+                                        HStack(spacing: 6) {
+                                            Text(original.createdAt, style: .date).foregroundStyle(Greyscale.inkTertiary.color)
+                                            if model.vault.isOverdue(captureID: original.id, now: Date()) {
+                                                Text("Overdue").bold().foregroundStyle(Greyscale.ink.color)
+                                            }
+                                        }.font(.caption)
+                                    }
+                                    .padding(.vertical, 10)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .overlay(alignment: .bottom) { Rectangle().fill(Greyscale.hairline.color).frame(height: 1) }
+                                    .contentShape(Rectangle())
+                                }.buttonStyle(.plain).accessibilityIdentifier("capture-result")
+                            }
+                        }
+                        #endif
                     }
+                }
+                // Keep the keyboard selection in view; nil anchor scrolls only as far as needed.
+                .onChange(of: recallSelection) { _, id in
+                    if let id { proxy.scrollTo(id) }
                 }
             }
         }
+        // A new query or filter is a new result set, so the selection starts again from the query.
+        .onChange(of: model.query) { _, _ in clearSelection() }
+        .onChange(of: openTasks) { _, _ in clearSelection() }
+    }
+
+    /// Clearing only when set avoids a second render on every keystroke.
+    private func clearSelection() { if recallSelection != nil { recallSelection = nil } }
+
+    /// Applies one arrow key to the card selection. Returns false when the key belongs to the query's caret.
+    private func moveSelection(_ direction: RecallGrid.Direction, in hits: [SearchHit]) -> Bool {
+        let current = recallSelection.flatMap { id in hits.firstIndex { $0.capture.id == id } }
+        switch RecallGrid.move(from: current, direction, count: hits.count) {
+        case .select(let index): recallSelection = hits[index].capture.id; return true
+        case .field: recallSelection = nil; return true
+        case .ignored: return false
+        }
+    }
+
+    /// Return opens the selected card, or the first match when nothing is selected, as Spotlight does.
+    private func openSelection(in hits: [SearchHit]) {
+        let selected = recallSelection.flatMap { id in hits.first { $0.capture.id == id } }
+        guard let hit = selected ?? hits.first else { return }
+        recallSelection = hit.capture.id
+        model.selectedCapture = hit.capture.id
     }
 
     // Original inspection is independent of editing; returning preserves the query.
