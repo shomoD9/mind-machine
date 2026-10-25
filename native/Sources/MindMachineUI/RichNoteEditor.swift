@@ -1,10 +1,8 @@
-/* Native note editor used by WorkspaceView for Capture on the Mac pill and the iPhone companion.
- The editor is a plain writing page: no formatting buttons, no card around it, and an optional prompt
- drawn where the first word will go until the person starts typing. RTF is still restored and stored
- alongside the exact original string. The keyboard (Apps/Keyboard/KeyboardViewController.swift) calls
- RichTextEditing.apply for its own bold/italic/list chips; the Mac and companion editors no longer do,
- and Mac Capture styles Markdown typed in the page through MacMarkdownEditor, keeping the stored text
- literal source with no RTF; the companion keeps RTF. Colours come from Greyscale.swift. */
+/* Native Capture page used by WorkspaceView on Mac and iPhone. Both adapters
+ derive Markdown attributes from literal source and publish no RTF. The keyboard
+ extension separately calls RichTextEditing for its existing visual controls and
+ RTF payloads. No formatting chrome is added to the companion or pill editors.
+ Greyscale supplies colours; the prompt overlays the first caret position. */
 import SwiftUI
 #if os(iOS)
 import UIKit
@@ -155,36 +153,23 @@ private struct NativeNoteAdapter: UIViewRepresentable {
     @Binding var text: String
     @Binding var richText: Data?
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    func makeUIView(context: Context) -> UITextView {
-        let editor = UITextView()
-        // Native elements need the identifier as well as the SwiftUI wrapper so
-        // UI acceptance can focus/type into the actual editor on both platforms.
-        editor.accessibilityIdentifier = "capture-editor"
-        editor.font = RichTextEditing.bodyFont
-        // The page is the screen behind it: no own background, and text starts at the view's edge
-        // so it lines up with the prompt and the surrounding layout margins.
-        editor.backgroundColor = .clear
-        editor.textContainerInset = .zero
-        editor.textContainer.lineFragmentPadding = 0
-        editor.tintColor = Greyscale.ink.uiColor
-        editor.allowsEditingTextAttributes = true
-        editor.delegate = context.coordinator
+    func makeCoordinator() -> IPhoneMarkdownEditor { IPhoneMarkdownEditor() }
+    func makeUIView(context: Context) -> IPhoneMarkdownTextView {
+        let editor = IPhoneMarkdownEditor.makeEditor()
+        context.coordinator.attach(to: editor)
+        // Publish the first accepted key even before a representable update.
+        context.coordinator.changed = {
+            text = editor.text ?? ""
+            richText = nil
+        }
         return editor
     }
-    func updateUIView(_ editor: UITextView, context: Context) {
-        // Do not replace attributed text during ordinary typing; native selection,
-        // undo and composition remain owned by the same live editor.
-        if editor.text != text { RichTextEditing.restore(text: text, richText: richText, in: editor) }
-        let publish = {
-            text = editor.text
-            richText = try? RichTextEditing.encoded(editor.attributedText)
+    func updateUIView(_ editor: IPhoneMarkdownTextView, context: Context) {
+        context.coordinator.restoreIfNeeded(text, in: editor)
+        context.coordinator.changed = {
+            text = editor.text ?? ""
+            richText = nil
         }
-        context.coordinator.changed = publish
-    }
-    final class Coordinator: NSObject, UITextViewDelegate {
-        var changed: () -> Void = {}
-        func textViewDidChange(_ textView: UITextView) { changed() }
     }
 }
 #else

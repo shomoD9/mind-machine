@@ -3,7 +3,8 @@
  do not depend on Settings, Full Access grants or keyboard-daemon preferences.
  With --apple-keyboard-reference it also focuses a plain field so Apple's own keyboard
  appears on the same simulator, as the geometry reference for KeyboardFeelTests. --host-text,
- --host-return-search and --host-return-automatically set the host field's draft and traits. */
+ --host-return-search and --host-return-automatically set the host field's draft and traits.
+ --iphone-markdown-probe runs companion UIKit verification in this Simulator-only host. */
 import UIKit
 
 @main
@@ -12,7 +13,8 @@ final class KeyboardTestHost: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         let window = UIWindow(frame: UIScreen.main.bounds)
-        window.rootViewController = HostController()
+        window.rootViewController = ProcessInfo.processInfo.arguments.contains("--iphone-markdown-probe")
+            ? IPhoneMarkdownProbe() : HostController()
         window.makeKeyAndVisible()
         self.window = window
         return true
