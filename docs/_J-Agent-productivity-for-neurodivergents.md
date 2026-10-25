@@ -2,6 +2,12 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### GPT-6 - Codex API (mm-handoff)
+
+- Completed four portable red/green slices: stale acknowledgement initially returned true, duplicate/blank/replayed submissions were accepted, checklist snapshots were empty, and a stubbed background save reopened with no captures. Implemented revision-owned acknowledgement and actor-isolated durable writes. All 44 Linux tests pass, including a held storage/main-actor editing check. Added Mac hosted binding/window recreation, held-save, failure/durable retry and selected Markdown clipboard tests, plus real pill close/reopen coverage. Moved Mac presentation refresh and its due-event/notification reads off input while retaining existing reconciliation behavior.
+
+- Read ticket 5 research, DESIGN, project/domain/tracker/triage guidance, CONTEXT and privacy ADR. Inspected Mac editor, model, controller, package tests and hosted verification. Applied TDD and root-cause/artifact verification at the user-authorized portable handoff and native adapter seams. Found synchronous main-actor save/activation reads and a callback installed only during representable updates; measuring before changing the input path. Downloaded successful ticket-4 native run 40203281622 as the unchanged editor baseline.
+
 ### GPT-6 - Codex API (mm-mdcmds)
 
 - Read passing core-checks 40199148582 logs: 63 main-package tests (one pre-existing skip), 35 Pill tests and every deterministic gate passed, including both new AppKit command tests. Native-ci 40199148608 passed Mac/iOS builds, sandbox and both UI jobs; only its unchanged storage benchmark failed. Downloaded the real sandbox artifact: no failed checks, TextKit 2 throughout, draw p95 3.481/3.657/5.382 ms at 1/10/100 KiB and 53.465 ms for the huge paragraph. Recorded the existing huge-paragraph 33 ms budget miss without claiming a speedup. Publishing the second checkpoint with shortcut routing confined to key equivalents.

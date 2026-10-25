@@ -13,6 +13,10 @@ import MindMachineCore
 public final class MarkdownCaptureTextView: NSTextView {
     public override func paste(_ sender: Any?) { pasteAsPlainText(sender) }
 
+    // Copy and cut export the selected source. Advertising rich formats lets
+    // receiving apps prefer presentation over the authored Markdown.
+    public override var writablePasteboardTypes: [NSPasteboard.PasteboardType] { [.string] }
+
     // Only command keys enter planning; every other text-system action stays native.
     public override func insertNewline(_ sender: Any?) {
         if !MacMarkdownEditingCommands.apply(.newline, to: self) { super.insertNewline(sender) }
