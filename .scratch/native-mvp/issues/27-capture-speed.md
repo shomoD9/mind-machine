@@ -1,0 +1,16 @@
+# 27: Capture window open speed and typing latency
+
+Status: claimed
+Blocked by: none
+
+Performance only, on branch `capture-speed` from latest main. Keep behavior/layout identical; leave PRODUCT, workflows, signing, entitlements and release/TestFlight files untouched.
+
+- [x] Reuse repeatable Mac open-to-input and per-key harness; retain actual baseline samples.
+- [ ] Identify measured bottlenecks, optimise only justified work, remeasure.
+- [ ] Preserve input, native undo/composition, source bytes, layout and existing tests.
+- [ ] Commit, push, open PR titled "Capture window: open speed and typing latency", watch checks (45-minute bound, at most 3 push rounds), leave unmerged.
+- [ ] Write `/tmp/mm-speed-result.md` with status, PR, before/after, changes and CI.
+
+## Comments
+
+- 2026-10-25, GPT-6 / Codex API (mm-speed): read tracker/triage/domain instructions, CONTEXT and privacy ADR before implementation. Linux has no AppKit; downloaded latest-main native-ci 40180636797 self-test artifact and benchmark logs before editing. Baseline warm-open p95 74.368 ms; typing draw p95 9.677/4.354/8.758/71.433 ms for 1/10/100 KiB and 100 KiB single paragraph. First push measures show-request cost and comparison candidates before any production optimisation.

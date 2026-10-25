@@ -10,6 +10,7 @@
 import XCTest
 import AppKit
 import QuartzCore
+import Darwin
 import MindMachineUI
 
 final class CaptureTypingCostTests: XCTestCase {
@@ -86,6 +87,20 @@ final class CaptureTypingCostTests: XCTestCase {
                 }
                 return (scroll, editor as NSTextView, coordinator as AnyObject)
             }),
+            ("capture+contiguousBindingEcho", {
+                let (scroll, editor) = MacMarkdownEditor.makeScrollableEditor()
+                let coordinator = MacMarkdownEditor()
+                coordinator.attach(to: editor)
+                coordinator.restore(source, in: editor)
+                // Candidate only: retain both native string reads and replace
+                // just the Debug generic UTF-8 iteration with a byte comparison.
+                coordinator.changed = { [weak editor] in
+                    guard let editor else { return }
+                    let published = editor.string
+                    if !Self.sameBytes(editor.string, published) { XCTFail("binding echo diverged") }
+                }
+                return (scroll, editor as NSTextView, coordinator as AnyObject)
+            }),
             ("capture+defaultParagraphStyle", {
                 // The previous base attributes, seeded before the delegate attaches.
                 let (scroll, editor) = MacMarkdownEditor.makeScrollableEditor()
@@ -136,5 +151,41 @@ final class CaptureTypingCostTests: XCTestCase {
             }
         }
     }
+    // Kept in the measurement test until the Mac comparison establishes whether
+    // generic byte iteration is a bottleneck. Canonical String equality cannot
+    // replace this: external NFC/NFD changes must still restore exact bytes.
+    private static func sameBytes(_ lhs: String, _ rhs: String) -> Bool {
+        guard lhs.utf8.count == rhs.utf8.count else { return false }
+        return lhs.utf8.withContiguousStorageIfAvailable { left in
+            rhs.utf8.withContiguousStorageIfAvailable { right in
+                left.isEmpty || memcmp(left.baseAddress!, right.baseAddress!, left.count) == 0
+            }
+        }.flatMap { $0 } ?? lhs.utf8.elementsEqual(rhs.utf8)
+    }
+
+    func testByteExactComparisonCandidate() {
+        for (left, right) in [("", ""), ("a", "a"), ("a", "b"), ("", "a"),
+                              ("é", "e\u{301}"), ("éa", "e\u{301}"),
+                              ("👩🏽‍💻", "👩🏽‍💻"), ("x\r\n", "x\n")] {
+            XCTAssertEqual(Self.sameBytes(left, right), left.utf8.elementsEqual(right.utf8))
+        }
+        for bytes in [1_024, 10_240, 102_400] {
+            let source = String(repeating: "x", count: bytes)
+            // Independent storage, as with strings bridged from NSTextStorage.
+            let echo = String(decoding: Array(source.utf8), as: UTF8.self)
+            for (name, compare) in [("generic", { source.utf8.elementsEqual(echo.utf8) }),
+                                     ("contiguous", { Self.sameBytes(source, echo) })] {
+                var samples: [Double] = []
+                for _ in 0..<100 {
+                    let start = ProcessInfo.processInfo.systemUptime
+                    let equal = compare()
+                    samples.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                    XCTAssertTrue(equal)
+                }
+                print("MM_BYTES_BENCH bytes=\(bytes) comparison=\(name) p50Ms=\(samples.sorted()[50]) p95Ms=\(samples.sorted()[94])")
+            }
+        }
+    }
+
 }
 #endif

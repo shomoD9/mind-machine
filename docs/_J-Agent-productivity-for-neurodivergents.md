@@ -2,6 +2,11 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### GPT-6 - Codex API (mm-speed)
+
+- Read project/tracker/triage/domain guidance, CONTEXT, privacy ADR, capture self-test/editor/controller and existing timing evidence to preserve the requested performance-only scope. Applied cloud-runtime, diagnosing-bugs/root-cause and artifact-verification skills; environment-status tool and network-policy file are unavailable. Confirmed Linux lacks AppKit, and configured GitHub CLI works without inspecting secrets.
+- Downloaded latest-main `61eca6a` successful Mac run 40180636797 before changing code. Recorded raw synthetic baseline and percentile evidence. Native layout dominates huge-paragraph dispatch while the existing binding-echo benchmark adds 8–11 ms; added a benchmark-only contiguous comparison candidate and synchronous show-request measurement to distinguish justified optimisations. Created and claimed local ticket 27. Protected paths, tests/counts/deadlines and production behavior remain unchanged.
+
 ### Claude Opus 5.5 - Claude Code (mm-mdstyles)
 
 - Took over PR #12 after three failed Codex rounds. Read the failed native-ci logs for 0f48c1b, 4e39782, d0b03c7 and f80e5e1, the PR diff and the earlier result files. Compared self-test wall time across 25 native-ci runs: before ticket 1's baseline the sandbox self-test took 22–27 s; since PR #11 merged, main takes 119–130 s against the 120-second kill, and PR #11's own branch timed out once. The PR's runs die inside the 100 KiB one-paragraph fixture (0f48c1b reaches key 50; 4e39782 reaches key 1), whose measured styling is 0.2–0.4 ms but whose dispatch rose from main's 34 ms to 37–43 ms. Root cause: the deadline is already spent on main, and the PR adds per-key cost in that fixture outside the styler. The swift test job on 0f48c1b failed only at an artifact upload (ECONNRESET) before its test step ran.
