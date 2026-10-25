@@ -43,3 +43,5 @@ Published head `4e295e85bbc5224d9ce7fd4d42314801778dce99` has passing fast-core.
 ## Resumed publication
 
 The human authorized up to two additional pushes for publishing and verifying the resolved merge. A fresh fetch confirms main remains `12f53bd`, already contained in the local merge. Both journal sections and the Capture/Recall changes are preserved. The earlier push-limit blocker is cleared; all 44 portable Swift tests and all 17 watchdog tests pass locally, with Swift 6.2.1. Changed Swift files syntax-parse and whitespace gates pass. A fresh hosted check run will verify the published merged head. The PR remains open and unmerged. Final check results are recorded in `/tmp/mm-handoff-result.md`.
+
+First resumed head `d52f2fa` passed all eight checks after one core-job rerun; Mac attempt 2 passed the inherited Recall gates. Main then advanced to `e556df5` (context invalidation, PR #17). The second/final authorized push merges it, preserving both documentation sections and the editor callbacks, selected-source copy and pre-attribute-fixing invalidation. Capture handoff is now local ticket 31 because main owns 30. Fresh Linux and hosted verification follow.
