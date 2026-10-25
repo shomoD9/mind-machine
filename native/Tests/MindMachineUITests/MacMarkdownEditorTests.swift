@@ -117,6 +117,30 @@ final class MacMarkdownEditorTests: XCTestCase {
     }
 
     @MainActor
+    func testBindingEchoPreservesEditorAndRestoresByteDistinctUnicode() throws {
+        let (editor, coordinator) = makeEditor()
+        let source = String(repeating: "👩🏽‍💻 e\u{301}\n", count: 2_000)
+        coordinator.restore(source, in: editor)
+        let storage = try XCTUnwrap(editor.textStorage)
+        // Select the complete decomposed accent, on native cluster boundaries.
+        let selection = NSRange(location: 8, length: 2)
+        editor.setSelectedRange(selection)
+        // A sentinel detects any unnecessary whole-document restoration.
+        storage.addAttribute(.backgroundColor, value: NSColor.red, range: NSRange(location: 0, length: 1))
+        coordinator.restoreIfNeeded(source, in: editor)
+        XCTAssertEqual(editor.selectedRange(), selection)
+        XCTAssertEqual(storage.attribute(.backgroundColor, at: 0, effectiveRange: nil) as? NSColor, .red)
+        let normalised = source.precomposedStringWithCanonicalMapping
+        XCTAssertEqual(source, normalised)
+        XCTAssertNotEqual(Data(source.utf8), Data(normalised.utf8))
+        coordinator.restoreIfNeeded(normalised, in: editor)
+        XCTAssertEqual(Data(editor.string.utf8), Data(normalised.utf8))
+        coordinator.restoreIfNeeded("", in: editor)
+        XCTAssertTrue(editor.string.isEmpty)
+        XCTAssertNotNil(editor.textLayoutManager)
+    }
+
+    @MainActor
     func testCopySaveReopenPreservesExactUnicodeBytes() throws {
         let (editor, coordinator) = makeEditor()
         let source = "# e\u{301} 👩🏽‍💻\r\n- [ ] **task**\n- [x] *done* [🔭](https://example.org)\n"

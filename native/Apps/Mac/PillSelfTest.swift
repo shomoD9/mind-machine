@@ -349,13 +349,14 @@ enum PillSelfTest {
         /// Every open is timed from before the normal hotkey handler to a first
         /// key accepted by both the native view and its existing model binding.
         /// Never click the editor or repair focus on this observation path.
-        func baselineOpen() async -> (milliseconds: Double, readyUptime: Double, textKit2: Bool)? {
+        func baselineOpen() async -> (milliseconds: Double, readyUptime: Double, textKit2: Bool, requestMilliseconds: Double)? {
             var settled = false
             controller.onSettled = { transition, _ in if transition.expanding { settled = true } }
             let signpost = OSSignpostID(log: timingLog)
             os_signpost(.begin, log: timingLog, name: "Capture open to input", signpostID: signpost)
             let start = ProcessInfo.processInfo.systemUptime
             controller.send(.hotkey)
+            let requestMilliseconds = (ProcessInfo.processInfo.systemUptime - start) * 1_000
             var editor: NSTextView?
             while ProcessInfo.processInfo.systemUptime - start < 2 {
                 editor = readyEditor()
@@ -385,7 +386,7 @@ enum PillSelfTest {
             let completed = await wait { settled }
             check("baseline open animation completes", completed != nil)
             controller.onSettled = nil
-            return accepted ? (elapsed, readyUptime, modernBefore && modernAfter) : nil
+            return accepted ? (elapsed, readyUptime, modernBefore && modernAfter, requestMilliseconds) : nil
         }
 
         func baselineClose() async {
@@ -442,7 +443,7 @@ enum PillSelfTest {
             let fullSample = CommandLine.arguments.contains("--capture-baseline-only")
             let keyCount = fullSample ? 1_000 : 100
             baseline["sampleProfile"] = coldOnly ? "single-cold-open" : fullSample ? "research-counts" : "ci-sample"
-            var opens: [Double] = []
+            var opens: [Double] = [], requests: [Double] = []
             var modern = true
             let count = coldOnly ? 1 : fullSample ? 100 : 20
             for _ in 0..<count {
@@ -453,6 +454,7 @@ enum PillSelfTest {
                 await sleep(0.001)
                 if let opened = await baselineOpen() {
                     opens.append(opened.milliseconds)
+                    requests.append(opened.requestMilliseconds)
                     modern = modern && opened.textKit2
                     if coldOnly {
                         baseline["readyUptimeSeconds"] = opened.readyUptime
@@ -467,6 +469,9 @@ enum PillSelfTest {
             // This interval always starts at the handler. Only the manual
             // launcher's process-start interval is compared with the 500 ms gate.
             baseline["open"] = distribution(opens, p95: 100)
+            // Synchronous hotkey work (including vault activation) versus the
+            // existing visible/focused/first-key boundary, with no focus repair.
+            baseline["showRequest"] = distribution(requests)
             print("[baseline] \(elapsed) finished \(count) opens")
             fflush(stdout)
             check("baseline all expected opens accept immediate input", opens.count == count)

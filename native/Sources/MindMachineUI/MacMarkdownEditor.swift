@@ -6,6 +6,7 @@
  separate portable-plan adapter in MacMarkdownEditingCommands. */
 #if os(macOS)
 import AppKit
+import Darwin
 import MindMachineCore
 
 /// Pasting into Capture always inserts source, regardless of clipboard styling.
@@ -95,6 +96,26 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
 
     /// External draft restoration is the only whole-source replacement. RTF is
     /// intentionally disposable on Mac; source is never reconstructed from it.
+    public func restoreIfNeeded(_ source: String, in editor: NSTextView) {
+        if !Self.sourceBytesEqual(editor.string, source) { restore(source, in: editor) }
+    }
+
+    // NSTextStorage can bridge a foreign UTF-16 string. Materialise UTF-8 before
+    // comparing, otherwise withContiguousStorageIfAvailable misses the fast path
+    // and Debug performs a generic Swift iteration for every byte on every key.
+    // Canonical String equality would miss external NFC/NFD source changes.
+    nonisolated static func sourceBytesEqual(_ lhs: String, _ rhs: String) -> Bool {
+        var left = lhs, right = rhs
+        left.makeContiguousUTF8()
+        right.makeContiguousUTF8()
+        guard left.utf8.count == right.utf8.count else { return false }
+        return left.utf8.withContiguousStorageIfAvailable { a in
+            right.utf8.withContiguousStorageIfAvailable { b in
+                a.isEmpty || memcmp(a.baseAddress!, b.baseAddress!, a.count) == 0
+            }
+        }.flatMap { $0 } ?? left.utf8.elementsEqual(right.utf8)
+    }
+
     public func restore(_ source: String, in editor: NSTextView) {
         guard !editor.hasMarkedText(), let storage = editor.textStorage else { return }
         applying = true
