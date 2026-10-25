@@ -1,7 +1,7 @@
 # 30: Markdown editor ticket 5 — capture handoff
 
 Status: claimed
-Blocked by: none (origin/main includes tickets 1–4 and Capture speed)
+Blocked by: none (styles, editing commands and Capture speed are on main; context invalidation PR #17 remains open and is independent of handoff)
 
 - Preserve final source characters across rapid typing and close/reopen.
 - Copy Markdown source to the clipboard.

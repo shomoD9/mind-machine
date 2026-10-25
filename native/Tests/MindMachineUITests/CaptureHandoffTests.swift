@@ -18,7 +18,10 @@ final class MacCaptureHandoffTests: XCTestCase {
         defer { release.signal() }
         let storage = CaptureStorage(append: { _ in }, load: { _ in
             started.fulfill()
-            guard release.wait(timeout: .now() + 5) == .success else { throw URLError(.timedOut) }
+            guard release.wait(timeout: .now() + 5) == .success else {
+                XCTFail("The input actor must type and release the read before storage times out")
+                throw URLError(.timedOut)
+            }
             return Vault()
         })
         let model = VaultModel(url: folder.appendingPathComponent("vault.json"), notificationAccess: .disabled,
@@ -46,7 +49,10 @@ final class MacCaptureHandoffTests: XCTestCase {
         defer { window.orderOut(nil) }
         @MainActor func findEditor(_ view: NSView) -> NSTextView? {
             if let editor = view as? NSTextView, !editor.isFieldEditor { return editor }
-            return view.subviews.lazy.compactMap(findEditor).first
+            for child in view.subviews {
+                if let editor = findEditor(child) { return editor }
+            }
+            return nil
         }
         @MainActor func mount() async throws -> NSTextView {
             let host = NSHostingView(rootView: RichNoteEditor(
@@ -136,7 +142,8 @@ final class MacCaptureHandoffTests: XCTestCase {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
         let file = VaultFile(url: folder.appendingPathComponent("vault.json"))
-        let failing = CaptureStorage(append: { _ in throw URLError(.cannotWriteToFile) }, load: { _ in Vault() })
+        let writer = FailFirstWrite(file: file)
+        let failing = CaptureStorage(append: { try writer.append($0) }, load: { try file.read(captureLimit: $0) })
         let model = VaultModel(url: file.url, notificationAccess: .disabled, captureStorage: failing)
         model.draft = "- [ ] **final** e\u{301}"
         await model.submitCapture()?.value
@@ -144,12 +151,11 @@ final class MacCaptureHandoffTests: XCTestCase {
         XCTAssertNotNil(model.error)
         XCTAssertNil(model.notice)
         XCTAssertTrue(model.vault.captures.isEmpty)
-        // A real store verifies the successful side of the same UI boundary.
-        let retry = VaultModel(url: file.url, notificationAccess: .disabled)
-        retry.draft = model.draft
-        await retry.submitCapture()?.value
-        XCTAssertEqual(retry.draft, "")
-        XCTAssertNil(retry.error)
+        // Retry on the same session proves failure released its pending save.
+        let retry = try XCTUnwrap(model.submitCapture())
+        await retry.value
+        XCTAssertEqual(model.draft, "")
+        XCTAssertNil(model.error)
         XCTAssertEqual(try VaultFile(url: file.url).read().captures.map(\.text), ["- [ ] **final** e\u{301}"])
     }
 
@@ -169,6 +175,23 @@ final class MacCaptureHandoffTests: XCTestCase {
         XCTAssertEqual(Data(try XCTUnwrap(board.string(forType: .string)).utf8), Data(selected.utf8))
         XCTAssertNil(board.data(forType: .rtf))
         XCTAssertNil(board.data(forType: .html))
+    }
+}
+
+// This filesystem-boundary fixture rejects exactly one attempt; subsequent
+// attempts use the real durable store, observed through another VaultFile.
+private final class FailFirstWrite: @unchecked Sendable {
+    private let lock = NSLock()
+    private var rejected = false
+    private let file: VaultFile
+    init(file: VaultFile) { self.file = file }
+    func append(_ capture: Capture) throws {
+        lock.lock()
+        let reject = !rejected
+        rejected = true
+        lock.unlock()
+        if reject { throw URLError(.cannotWriteToFile) }
+        try file.append(capture)
     }
 }
 #endif

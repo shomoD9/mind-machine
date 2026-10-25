@@ -1,23 +1,23 @@
 RED slice 1
-/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:13: error: CaptureHandoffTests.testSlowSaveAcknowledgementKeepsFinalCharactersTypedAfterSubmission : XCTAssertFalse failed - 
+/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:13: error: CaptureHandoffTests.testSlowSaveAcknowledgementKeepsFinalCharactersTypedAfterSubmission : XCTAssertFalse failed -
 	 Executed 1 test, with 1 failure (0 unexpected) in 0.001 (0.001) seconds
 	 Executed 1 test, with 1 failure (0 unexpected) in 0.001 (0.001) seconds
 
 RED slice 2
-/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:19: error: CaptureHandoffTests.testPendingSaveCannotBeDuplicatedAndFailureAllowsRetryWithoutClearing : XCTAssertNil failed: "Submission(capture: MindMachineCore.Capture(id: E3B7CBD6-8008-467D-803E-FF48093BB587, createdAt: 2026-10-25 15:47:18 +0000, text: " \n\t", richText: nil, checklist: []), revision: 0)" - 
-/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:21: error: CaptureHandoffTests.testPendingSaveCannotBeDuplicatedAndFailureAllowsRetryWithoutClearing : XCTAssertNil failed: "Submission(capture: MindMachineCore.Capture(id: 9DA9F9BF-47B5-4EF3-B07A-CC2B5CF445F9, createdAt: 2026-10-25 15:47:18 +0000, text: "- [ ] **task**", richText: nil, checklist: []), revision: 0)" - 
+/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:19: error: CaptureHandoffTests.testPendingSaveCannotBeDuplicatedAndFailureAllowsRetryWithoutClearing : XCTAssertNil failed: "Submission(capture: MindMachineCore.Capture(id: E3B7CBD6-8008-467D-803E-FF48093BB587, createdAt: 2026-10-25 15:47:18 +0000, text: " \n\t", richText: nil, checklist: []), revision: 0)" -
+/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:21: error: CaptureHandoffTests.testPendingSaveCannotBeDuplicatedAndFailureAllowsRetryWithoutClearing : XCTAssertNil failed: "Submission(capture: MindMachineCore.Capture(id: 9DA9F9BF-47B5-4EF3-B07A-CC2B5CF445F9, createdAt: 2026-10-25 15:47:18 +0000, text: "- [ ] **task**", richText: nil, checklist: []), revision: 0)" -
 /workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:25: error: CaptureHandoffTests.testPendingSaveCannotBeDuplicatedAndFailureAllowsRetryWithoutClearing : XCTAssertFalse failed - A repeated completion cannot clear another draft
 	 Executed 2 tests, with 3 failures (0 unexpected) in 0.002 (0.002) seconds
 	 Executed 2 tests, with 3 failures (0 unexpected) in 0.002 (0.002) seconds
 
 RED slice 3
-/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:33: error: CaptureHandoffTests.testSnapshotRetainsMarkdownUnicodeAndExistingAuthoredChecklistRules : XCTAssertEqual failed: ("[]") is not equal to ("["**task**", "[done](url)", "Torch", "Keys"]") - 
-/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:34: error: CaptureHandoffTests.testSnapshotRetainsMarkdownUnicodeAndExistingAuthoredChecklistRules : XCTAssertEqual failed: ("[]") is not equal to ("[false, true, false, true]") - 
+/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:33: error: CaptureHandoffTests.testSnapshotRetainsMarkdownUnicodeAndExistingAuthoredChecklistRules : XCTAssertEqual failed: ("[]") is not equal to ("["**task**", "[done](url)", "Torch", "Keys"]") -
+/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:34: error: CaptureHandoffTests.testSnapshotRetainsMarkdownUnicodeAndExistingAuthoredChecklistRules : XCTAssertEqual failed: ("[]") is not equal to ("[false, true, false, true]") -
 	 Executed 3 tests, with 2 failures (0 unexpected) in 0.001 (0.001) seconds
 	 Executed 3 tests, with 2 failures (0 unexpected) in 0.001 (0.001) seconds
 
 RED slice 4
-/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:15: error: CaptureHandoffTests.testBackgroundSaveAcknowledgesOnlyAfterSourceCanBeReopened : XCTAssertEqual failed: ("[]") is not equal to ("["# é 👩🏽‍💻\n**final**"]") - 
+/workspace/repos/mm-handoff/native/Tests/MindMachineCoreTests/CaptureHandoffTests.swift:15: error: CaptureHandoffTests.testBackgroundSaveAcknowledgesOnlyAfterSourceCanBeReopened : XCTAssertEqual failed: ("[]") is not equal to ("["# é 👩🏽‍💻\n**final**"]") -
 	 Executed 4 tests, with 1 failure (0 unexpected) in 0.01 (0.01) seconds
 	 Executed 4 tests, with 1 failure (0 unexpected) in 0.01 (0.01) seconds
 
