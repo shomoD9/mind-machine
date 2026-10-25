@@ -2,9 +2,10 @@
  global hotkey through Carbon, and hands everything visible to PillController (PillController.swift):
  the floating pill that expands into the Capture / Recall panel. The menu-bar item lives in
  PillMenuBar.swift. With "--pill-selftest <file>" the app runs PillSelfTest.swift (used by native-ci)
- against a throwaway vault and exits. Debug --pill-ui-test <UUID> gives XCUITest a separate
- local vault and defaults suite. Capture baseline modifiers reuse the self-test isolation;
- the process-entry timestamp lets its cold-open probe include app initialization.
+ against a throwaway vault and exits; it gets that vault's URL so it can seed sample notes for
+ Recall. Debug --pill-ui-test <UUID> gives XCUITest a separate local vault and defaults suite.
+ Capture baseline modifiers reuse the self-test isolation; the process-entry timestamp lets its
+ cold-open probe include app initialization.
  Also installs the process-lifetime reminder notification presenter. */
 import AppKit
 import Carbon
@@ -35,6 +36,8 @@ final class MacDelegate: NSObject, NSApplicationDelegate {
     private var model: VaultModel!
     private var controller: PillController!
     private var menuBar: PillMenuBar!
+    /// The self-test's throwaway vault, which it fills with sample notes to check Recall cards.
+    private var selfTestVault: URL?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         installReminderNotificationPresentation()
@@ -50,6 +53,7 @@ final class MacDelegate: NSObject, NSApplicationDelegate {
         #endif
         if selfTestPath != nil {
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("mm-selftest-\(UUID().uuidString)/vault.json")
+            selfTestVault = url
             model = VaultModel(url: url, notificationAccess: .disabled)
         } else if let uiTestID {
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("mm-ui-\(uiTestID.uuidString)/vault.json")
@@ -89,7 +93,7 @@ final class MacDelegate: NSObject, NSApplicationDelegate {
 
         if let selfTestPath {
             PillSelfTest.run(controller: controller, hotkeyStatus: status, outputPath: selfTestPath,
-                             processEntry: MindMachineMacMain.processEntry)
+                             processEntry: MindMachineMacMain.processEntry, vaultURL: selfTestVault)
         }
     }
 
