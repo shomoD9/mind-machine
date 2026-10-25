@@ -1,6 +1,6 @@
 # Markdown editor ticket 6: bounded preview comparison
 
-Keep muted markers. Collapsing inactive Markdown markers is accepted only after every gate passes; the small candidate below changes wrapping when its paragraph opens. Native geometry and paired timing results will be recorded after the hosted run. No production editor code or package dependency changes in this comparison.
+Keep muted markers. Collapsing inactive Markdown markers is accepted only after every gate passes; the small candidate below changes wrapping when its paragraph opens. Both first-round hosted lanes measured the trailing word at y=90 pt muted, y=18 pt collapsed, and y=90 pt revealed: 72 pt of reflow. No production editor code or package dependency changes in this comparison.
 
 Source: `/workspace/research/markdown-editor.md` (25 October 2026), ticket 6 and Speed gates and measurement. Local tracker: [31](../../.scratch/native-mvp/issues/31-markdown-preview-comparison.md). Baseline: main `12f53bd`. Context invalidation and capture handoff are separate open branches at comparison start; this rejection experiment does not claim their acceptance.
 
@@ -21,7 +21,7 @@ The wrapping fixture contains a link with a long destination between `outside` a
 | Acceptance gate | Evidence and decision boundary |
 | --- | --- |
 | Caret clicks | Segment geometry measured; physical single/double/triple-click and drag behavior unproven. No click-gate pass claimed. Immediate reveal lacks the pinned reference's click-sequence deferral. |
-| Wrapping | Compare muted → collapsed → revealed `tail` geometry; reject when reveal changes lines. Hosted values pending. |
+| Wrapping | Both first-round hosted lanes: muted → collapsed → revealed `tail` y=90 →18 →90 pt. Reject the simple candidate's 72 pt reflow without click-sequence handling. |
 | VoiceOver | Unmeasured. AppKit text source/attributes and green UI tests cannot establish spoken navigation, selection, punctuation or editing behavior. |
 | Selection/source | Candidate test checks exact UTF-8 including emoji/decomposed accents, preserved native range and plain-source clipboard. Hosted result pending. Drag/word selection remains unproven. |
 | Undo | Candidate test inserts, undoes once with no remaining undo action, and redoes; presentation does not register undo. Hosted result pending. |

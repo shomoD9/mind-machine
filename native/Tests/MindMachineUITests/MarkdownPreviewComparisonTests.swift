@@ -134,7 +134,7 @@ final class MarkdownPreviewComparisonTests: XCTestCase {
         XCTAssertEqual(revealed.minY, muted.minY, accuracy: 1)
         XCTAssertEqual(editor.selectedRange(), NSRange(location: label, length: 0))
         XCTAssertEqual(Data(editor.string.utf8), Data(source.utf8))
-        print("MM_PREVIEW_REJECTION gate=wrapping mutedTailY=\(muted.minY) hiddenTailY=\(hidden.minY) revealedTailY=\(revealed.minY) decision=retain-muted")
+        emit("MM_PREVIEW_REJECTION gate=wrapping mutedTailY=\(muted.minY) hiddenTailY=\(hidden.minY) revealedTailY=\(revealed.minY) decision=retain-muted")
     }
 
     func testCandidateRetainsSourceSelectionUndoAndComposition() throws {
@@ -146,7 +146,10 @@ final class MarkdownPreviewComparisonTests: XCTestCase {
         let undo = try XCTUnwrap(editor.undoManager)
         undo.removeAllActions()
         undo.groupsByEvent = false
+        // Direct insertText has no physical event to create its undo group.
+        undo.beginUndoGrouping()
         editor.insertText("!", replacementRange: editor.selectedRange())
+        undo.endUndoGrouping()
         XCTAssertEqual(Data(editor.string.utf8), Data((source + "!").utf8))
         undo.undo()
         XCTAssertEqual(Data(editor.string.utf8), Data(source.utf8))
@@ -162,12 +165,14 @@ final class MarkdownPreviewComparisonTests: XCTestCase {
         XCTAssertTrue(editor.writeSelection(to: pasteboard, types: editor.writablePasteboardTypes))
         XCTAssertEqual(Data(try XCTUnwrap(pasteboard.string(forType: .string)).utf8), Data((source + "!").utf8))
         editor.setSelectedRange(NSRange(location: (editor.string as NSString).length, length: 0))
+        undo.beginUndoGrouping()
         editor.setMarkedText("に", selectedRange: NSRange(location: 1, length: 0), replacementRange: editor.selectedRange())
         XCTAssertTrue(editor.hasMarkedText())
         let before = candidate?.paintMilliseconds
         candidate?.repaint()
         XCTAssertEqual(candidate?.paintMilliseconds, before)
         editor.insertText("日本", replacementRange: editor.markedRange())
+        undo.endUndoGrouping()
         XCTAssertFalse(editor.hasMarkedText())
         XCTAssertEqual(Data(editor.string.utf8), Data((source + "!日本").utf8))
         XCTAssertNotNil(editor.textLayoutManager)
@@ -175,6 +180,12 @@ final class MarkdownPreviewComparisonTests: XCTestCase {
 
     // Raw ordered samples are retained in hosted test logs. Nearest-rank tails
     // describe this diagnostic sample; missing hardware gates cannot pass from it.
+    private func emit(_ line: String) {
+        // Write each JSON line before XCTest's stderr progress can split a
+        // buffered stdout line, so reviewers can parse every ordered sample.
+        FileHandle.standardOutput.write(Data((line + "\n").utf8))
+    }
+
     private func report(_ samples: [Double], pass: Int, variant: String, fixture: String, metric: String) throws {
         let sorted = samples.sorted()
         func percentile(_ p: Double) -> Double { sorted[max(0, Int(ceil(Double(sorted.count) * p)) - 1)] }
@@ -182,7 +193,7 @@ final class MarkdownPreviewComparisonTests: XCTestCase {
             "count": samples.count, "p50Ms": percentile(0.5), "p95Ms": percentile(0.95),
             "p99Ms": percentile(0.99), "maxMs": sorted.last!, "over100Ms": samples.filter { $0 > 100 }.count,
             "samplesMs": samples, "profile": "shared-Mac-Debug-100-keys-diagnostic"]
-        print("MM_PREVIEW " + String(decoding: try JSONSerialization.data(withJSONObject: row, options: [.sortedKeys]), as: UTF8.self))
+        emit("MM_PREVIEW " + String(decoding: try JSONSerialization.data(withJSONObject: row, options: [.sortedKeys]), as: UTF8.self))
     }
 
     func testPairedTypingAndPasteDiagnostics() throws {
