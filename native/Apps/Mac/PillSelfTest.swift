@@ -7,7 +7,9 @@
  skip interpolation frames. The capture baseline records open/input and per-key
  dispatch/draw distributions without changing the editor; --capture-baseline-only
  and --capture-baseline-cold support the Release rerun script. Nothing here runs in normal use. */
-// Capture baseline also records the source styler's measured paragraph work.
+// Capture baseline also records the source styler's measured paragraph work,
+// and logs process-elapsed seconds plus whole key turns (key, draw and the
+// following run-loop turn) so a CI deadline overrun names the phase that grew.
 import AppKit
 import MindMachinePill
 import MindMachineUI
@@ -57,6 +59,9 @@ enum PillSelfTest {
         }
 
         func sleep(_ seconds: Double) async { try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000)) }
+
+        /// Seconds since process entry, printed with baseline progress lines.
+        var elapsed: String { String(format: "t=%.1fs", ProcessInfo.processInfo.systemUptime - processEntry) }
 
         /// Runs `action` and returns the seconds until the resulting animation settled, or nil on timeout.
         func settle(_ action: () -> Void) async -> Double? {
@@ -405,6 +410,8 @@ enum PillSelfTest {
         /// than changing the editor or failing CI for an uncalibrated VM budget.
         /// Missing input, samples, focus or TextKit 2 remain correctness failures.
         func captureBaseline(coldOnly: Bool) async -> [String: Any] {
+            print("[baseline] \(elapsed) begin")
+            fflush(stdout)
             let previousMotion = controller.reduceMotionOverride
             controller.reduceMotionOverride = false
             defer { controller.reduceMotionOverride = previousMotion }
@@ -457,6 +464,8 @@ enum PillSelfTest {
             // This interval always starts at the handler. Only the manual
             // launcher's process-start interval is compared with the 500 ms gate.
             baseline["open"] = distribution(opens, p95: 100)
+            print("[baseline] \(elapsed) finished \(count) opens")
+            fflush(stdout)
             check("baseline all expected opens accept immediate input", opens.count == count)
             if !coldOnly {
                 // Open once for typing; its key is setup, outside the key distributions.
@@ -465,14 +474,14 @@ enum PillSelfTest {
                     var documents: [String: Any] = [:]
                     for (name, bytes, paragraph) in [("1KiB", 1_024, false), ("10KiB", 10_240, false),
                                                       ("100KiB", 102_400, false), ("100KiB-one-paragraph", 102_400, true)] {
-                        print("[baseline] Starting \(keyCount) keys in \(name)")
+                        print("[baseline] \(elapsed) Starting \(keyCount) keys in \(name)")
                         fflush(stdout)
                         let unit = paragraph ? "baseline text " : "baseline text\n"
                         let source = String(String(repeating: unit, count: bytes / unit.count + 1).prefix(bytes))
                         guard await seedBaseline(source, editor: editor) else { continue }
-                        print("[baseline] Seeded \(name); view=\(editor.frame.size), container=\(String(describing: editor.textContainer?.containerSize))")
+                        print("[baseline] \(elapsed) Seeded \(name); view=\(editor.frame.size), container=\(String(describing: editor.textContainer?.containerSize))")
                         fflush(stdout)
-                        var dispatch: [Double] = [], draw: [Double] = [], styling: [Double] = []
+                        var dispatch: [Double] = [], draw: [Double] = [], styling: [Double] = [], turns: [Double] = []
                         for _ in 0..<keyCount {
                             let event = keyEvent(code: 7, characters: "x")
                             let signpost = OSSignpostID(log: timingLog)
@@ -494,8 +503,13 @@ enum PillSelfTest {
                             // Give SwiftUI and AppKit a run-loop turn between keys;
                             // pacing is outside the measured interval.
                             await sleep(0.001)
+                            // Diagnostic only: the whole turn includes the
+                            // SwiftUI update and Core Animation commit/render.
+                            turns.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
                             if dispatch.count.isMultiple(of: 25) {
-                                print("[baseline] \(name) keys=\(dispatch.count) lastDispatch=\(dispatch.last ?? -1) ms lastStyle=\(styling.last ?? -1) ms")
+                                let recent = turns.suffix(25)
+                                let meanTurn = recent.reduce(0, +) / Double(recent.count)
+                                print("[baseline] \(elapsed) \(name) keys=\(dispatch.count) lastDispatch=\(dispatch.last ?? -1) ms lastStyle=\(styling.last ?? -1) ms meanTurn=\(meanTurn) ms")
                                 fflush(stdout)
                             }
                         }
@@ -503,8 +517,9 @@ enum PillSelfTest {
                         check("baseline \(name) retains every key in view and model", editor.string == expected && controller.model.draft == expected)
                         documents[name] = ["initialUTF8Bytes": bytes, "dispatch": distribution(dispatch),
                                            "dispatchToDrawProxy": distribution(draw, p95: 33, p99: 50),
-                                           "paragraphStyling": distribution(styling, p95: 2, p99: 4)]
-                        print("[baseline] Completed \(name)")
+                                           "paragraphStyling": distribution(styling, p95: 2, p99: 4),
+                                           "keyTurnDiagnostic": distribution(turns)]
+                        print("[baseline] \(elapsed) Completed \(name)")
                         fflush(stdout)
                     }
                     baseline["typing"] = documents

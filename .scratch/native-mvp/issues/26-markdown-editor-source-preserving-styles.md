@@ -13,6 +13,8 @@ Implement ticket 2 from `/workspace/research/markdown-editor.md`. Ticket 24 / PR
 
 ## Comments
 
+- 2026-10-25, Claude Opus 5.5 / Claude Code (mm-mdstyles): main's sandbox self-test already runs 119–130 s against its 120-second kill; the PR's extra per-key cost in the one-paragraph 100 KiB fixture comes from editor setup outside the styler (0.2 ms). Round 1 adds a stock-versus-Capture typing benchmark and elapsed logging, shares the editor factory, and drops the explicit default paragraph style. Tests, counts, budgets and deadline unchanged.
+
 - 2026-10-25, GPT-6 / Codex API (mm-mdstyles): fresh investigation from 4e39782 read failed native/core logs and PR diff first. Added bounded range discovery before parsing/enumeration, lazy attribute transactions and portable read-count/native-boundary tests; all 30 Linux tests pass. Mac regression and sandbox timing require hosted CI. Hold-delete failure is tracked separately. Maximum two push rounds, all protected files/tests/budgets retained.
 
 - 2026-10-25, GPT-6 / Codex API (mm-mdstyles): fix2 investigates the repeated 100 KiB single-paragraph sandbox timeout in native-ci 40158812108. Added real AppKit attribute-transaction/bounded-work regression before changing the styler; hosted macOS supplies the runtime loop. Retained claimed status, deadline and all existing acceptance checks.

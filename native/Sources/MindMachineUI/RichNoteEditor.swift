@@ -208,24 +208,7 @@ private struct NativeNoteAdapter: NSViewRepresentable {
 
     func makeCoordinator() -> MacMarkdownEditor { MacMarkdownEditor() }
     func makeNSView(context: Context) -> NSScrollView {
-        // Construct the modern engine explicitly; never access layoutManager.
-        let scroll = NSScrollView()
-        let editor = MarkdownCaptureTextView(usingTextLayoutManager: true)
-        scroll.hasVerticalScroller = true
-        editor.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-        editor.isVerticallyResizable = true
-        editor.isHorizontallyResizable = false
-        editor.autoresizingMask = [.width]
-        editor.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
-        editor.textContainer?.widthTracksTextView = true
-        scroll.documentView = editor
-        editor.setAccessibilityIdentifier("capture-editor")
-        editor.isRichText = true
-        // The rounded paper surface is drawn by SwiftUI around this view.
-        scroll.drawsBackground = false
-        editor.drawsBackground = false
-        editor.importsGraphics = false
-        editor.font = .systemFont(ofSize: NSFont.systemFontSize)
+        let (scroll, editor) = MacMarkdownEditor.makeScrollableEditor()
         context.coordinator.attach(to: editor)
         controller.editor = editor
         return scroll

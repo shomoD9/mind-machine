@@ -2,6 +2,11 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### Claude Opus 5.5 - Claude Code (mm-mdstyles)
+
+- Took over PR #12 after three failed Codex rounds. Read the failed native-ci logs for 0f48c1b, 4e39782, d0b03c7 and f80e5e1, the PR diff and the earlier result files. Compared self-test wall time across 25 native-ci runs: before ticket 1's baseline the sandbox self-test took 22–27 s; since PR #11 merged, main takes 119–130 s against the 120-second kill, and PR #11's own branch timed out once. The PR's runs die inside the 100 KiB one-paragraph fixture (0f48c1b reaches key 50; 4e39782 reaches key 1), whose measured styling is 0.2–0.4 ms but whose dispatch rose from main's 34 ms to 37–43 ms. Root cause: the deadline is already spent on main, and the PR adds per-key cost in that fixture outside the styler. The swift test job on 0f48c1b failed only at an artifact upload (ECONNRESET) before its test step ran.
+- No Mac is available, so this round adds evidence alongside one fix. Moved the adapter's text-view construction into `MacMarkdownEditor.makeScrollableEditor()`, dropped the explicit default paragraph style from plain-source attributes, added `CaptureTypingCostTests` (stock versus each Capture setting on the same fixture, print-only timing) and elapsed/key-turn logging in the self-test. No test, count, budget, deadline, workflow, PRODUCT, signing, entitlement or layout change. Discarded fix3's unpushed binding-echo identity patch (saved outside the repo); the multi-paragraph 100 KiB fixture already shows whole-document comparison is not the cost.
+
 ### GPT-6 - Codex API (mm-mdstyles)
 
 - Fresh PR #12 investigation at 4e39782: read both failed CI logs with `gh run view --log-failed`, the entire PR diff, domain/tracker/triage guidance, CONTEXT and ADR. Core checks and native SwiftPM report whole 110,279–110,281-unit style ranges; sandbox artifact stops after the first huge-paragraph key (37.148 ms draw, 0.417 ms style). Keyboard hold-delete separately removes one character. Runtime status tooling/network policy remain unavailable; Linux has Swift 6.2.1 and no AppKit. Ranked unbounded range discovery, empty TextKit transactions and binding echo scans; using existing hosted failures as the actual Mac reproduction.

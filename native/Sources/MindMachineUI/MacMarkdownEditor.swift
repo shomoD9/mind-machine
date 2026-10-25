@@ -1,6 +1,8 @@
 /* The Mac Capture adapter in RichNoteEditor owns this paragraph styler as its
- coordinator. It presents Markdown through attributes while text storage and the
- Capture model retain literal source. SwiftPM Mac tests drive the same delegate. */
+ coordinator and builds its text view with makeScrollableEditor(). It presents
+ Markdown through attributes while text storage and the Capture model retain
+ literal source. SwiftPM Mac tests and the typing-cost benchmark drive the same
+ factory and delegate. */
 #if os(macOS)
 import AppKit
 import MindMachineCore
@@ -12,6 +14,31 @@ public final class MarkdownCaptureTextView: NSTextView {
 
 @MainActor
 public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
+    /// Builds the Capture text view inside its scroll view. RichNoteEditor's
+    /// Mac adapter and CaptureTypingCostTests share this, so the benchmark
+    /// measures the same TextKit 2 configuration the app runs.
+    public static func makeScrollableEditor() -> (NSScrollView, MarkdownCaptureTextView) {
+        // Construct the modern engine explicitly; never access layoutManager.
+        let scroll = NSScrollView()
+        let editor = MarkdownCaptureTextView(usingTextLayoutManager: true)
+        scroll.hasVerticalScroller = true
+        editor.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        editor.isVerticallyResizable = true
+        editor.isHorizontallyResizable = false
+        editor.autoresizingMask = [.width]
+        editor.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
+        editor.textContainer?.widthTracksTextView = true
+        scroll.documentView = editor
+        editor.setAccessibilityIdentifier("capture-editor")
+        editor.isRichText = true
+        // The rounded paper surface is drawn by SwiftUI around this view.
+        scroll.drawsBackground = false
+        editor.drawsBackground = false
+        editor.importsGraphics = false
+        editor.font = .systemFont(ofSize: NSFont.systemFontSize)
+        return (scroll, editor)
+    }
+
     public var changed: () -> Void = {}
     public private(set) var lastRestyledRange = NSRange(location: 0, length: 0)
     public private(set) var lastStyleMilliseconds = 0.0
@@ -68,9 +95,11 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
         changed()
     }
 
+    // Plain source carries no paragraph style, as in a stock text view: an
+    // explicit default style is visually identical but gives TextKit one more
+    // paragraph-wide attribute to carry on every edit. List lines add their own.
     private func baseAttributes(_ editor: NSTextView) -> [NSAttributedString.Key: Any] {
-        [.font: bodyFont,
-         .foregroundColor: NSColor.labelColor, .paragraphStyle: NSParagraphStyle.default]
+        [.font: bodyFont, .foregroundColor: NSColor.labelColor]
     }
 
     private func restyle(_ editor: NSTextView) {
