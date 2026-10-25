@@ -1,7 +1,8 @@
-/* The Mac Recall result card and the Mac query field that moves a selection through the cards.
- WorkspaceView (WorkspaceView.swift) lays RecallCards out two wide in a LazyVGrid when Recall has
- matches, compares them with `.equatable()` so unchanged cards are not rebuilt, and uses RecallQueryField in place of a SwiftUI TextField on the Mac so the arrow keys and
- Return reach the grid while the caret stays in the query. RecallGrid.swift holds the movement and
+/* The Mac Recall result card, the two-column grid of cards and the Mac query field that moves a
+ selection through the cards. WorkspaceView (WorkspaceView.swift) shows RecallCardGrid when Recall has
+ matches, compares the grid and each card with `.equatable()` so unchanged ones are not rebuilt, and
+ uses RecallQueryField in place of a SwiftUI TextField on the Mac so the arrow keys and Return reach
+ the grid while the caret stays in the query. RecallGrid.swift holds the movement and
  title/body rules. PillAcceptanceTests and PillSelfTest find the field as `recall-query` and each
  card as `capture-result`.
 
@@ -76,6 +77,44 @@ extension RecallCard: Equatable {
         lhs.hit.capture.id == rhs.hit.capture.id && lhs.hit.capture.createdAt == rhs.hit.capture.createdAt
             && lhs.hit.highlightedText == rhs.hit.highlightedText
             && lhs.selected == rhs.selected && lhs.overdue == rhs.overdue
+    }
+}
+
+/// The Mac Recall result page laid out two wide. WorkspaceView keeps the page in state and applies
+/// `.equatable()`, so the grid's body (and the ForEach over every hit) runs only when the page or the
+/// keyboard selection changes, never for a keystroke that has not yet changed the results.
+struct RecallCardGrid: View {
+    /// One search's results and which of them are overdue, worked out together when the page is searched.
+    struct Page: Equatable {
+        var hits: [SearchHit] = []
+        var overdue: Set<UUID> = []
+    }
+
+    let page: Page
+    let selection: UUID?
+    let open: (UUID) -> Void
+
+    var body: some View {
+        // Lazy: of the bounded result page (VaultFile.search, 30 by default) only the cards in view are
+        // built, so a broad query costs the same to draw as a narrow one.
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: RecallGrid.columns),
+                  alignment: .leading, spacing: 8) {
+            ForEach(page.hits, id: \.capture.id) { hit in
+                let id = hit.capture.id
+                RecallCard(hit: hit, selected: selection == id, overdue: page.overdue.contains(id)) { open(id) }
+                    // Skips rebuilding cards whose text, date and state are unchanged.
+                    .equatable()
+                    .id(id)
+            }
+        }
+    }
+}
+
+/// `open` is left out for the same reason as on RecallCard. The page is unchanged state between renders,
+/// so its arrays share storage and the comparison returns without walking the hits.
+extension RecallCardGrid: Equatable {
+    nonisolated static func == (lhs: RecallCardGrid, rhs: RecallCardGrid) -> Bool {
+        lhs.selection == rhs.selection && lhs.page == rhs.page
     }
 }
 

@@ -8,9 +8,10 @@
  bottom of every mode: a small sync glyph on the left (SyncIndicator.swift decides how much it says and
  it opens the sync setup sheet), the latest acknowledgement, and in Capture the one prominent action,
  Save, with its shortcut. Recall shows matches as RecallCards two wide on the Mac (RecallCards.swift, with
- the grid rules in RecallGrid.swift) and as rows on the iPhone. The Mac grid redraws one run-loop turn
- after the query field, so the grid's layout never delays the typed letter. PillAcceptanceTests and PillSelfTest
- drive these controls by identifier. */
+ the grid rules in RecallGrid.swift) and as rows on the iPhone. The Mac grid searches and redraws one
+ run-loop turn after the query field, from a result page kept in state, so neither the search nor the
+ grid's layout delays the typed letter. PillAcceptanceTests and PillSelfTest drive these controls by
+ identifier. */
 import SwiftUI
 import MindMachineCore
 
@@ -22,6 +23,9 @@ public struct WorkspaceView: View {
     /// The query the Mac Recall grid is showing. It follows `model.query` one run-loop turn later, so a
     /// keystroke's frame draws only the typed letter and the grid redraws in the next frame.
     @State private var shownQuery = ""
+    /// The Mac Recall result page for `shownQuery`, kept between renders. The body re-runs on every
+    /// keystroke; reading this page instead of searching keeps SQLite and JSON decoding out of that frame.
+    @State private var recallPage = RecallCardGrid.Page()
     @State private var showSettings = false
     @State private var showSyncSetup = false
     private let showsHeader: Bool
@@ -164,11 +168,12 @@ public struct WorkspaceView: View {
     // (RecallCards.swift) that the arrow keys move through from the query; the iPhone keeps
     // hairline-separated rows, which suit its narrow width.
     private var recall: some View {
-        // One SQLite search per render serves the results, the empty-state line and the keyboard;
-        // the body re-runs on every keystroke, timer reload and sync-status change. On the Mac it searches
-        // the shown query, so the arrow keys and Return act on the cards that are on screen.
+        // One result page serves the results, the empty-state line and the keyboard. The body re-runs on
+        // every keystroke, timer reload and sync-status change. On the Mac the page is searched only when
+        // the shown query, the filter or the vault changes (refreshRecallPage), so the arrow keys and Return
+        // act on the cards that are on screen. The iPhone searches once per render.
         #if os(macOS)
-        let hits = model.searchHits(openTasks: openTasks, query: shownQuery)
+        let hits = recallPage.hits
         #else
         let hits = model.searchHits(openTasks: openTasks)
         #endif
@@ -204,22 +209,13 @@ public struct WorkspaceView: View {
                             .accessibilityIdentifier("recall-empty")
                     } else {
                         #if os(macOS)
-                        // Lazy: of the bounded result page (VaultFile.search, 30 by default) only the cards
-                        // in view are built, so a broad query costs the same to draw as a narrow one.
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: RecallGrid.columns),
-                                  alignment: .leading, spacing: 8) {
-                            ForEach(hits, id: \.capture.id) { hit in
-                                let id = hit.capture.id
-                                RecallCard(hit: hit, selected: recallSelection == id,
-                                           overdue: model.vault.isOverdue(captureID: id, now: Date())) {
-                                    recallSelection = id
-                                    model.selectedCapture = id
-                                }
-                                // Skips rebuilding cards whose text, date and state are unchanged.
-                                .equatable()
-                                .id(id)
-                            }
+                        // Compared before its body runs: a keystroke changes neither the page nor the
+                        // selection, so the grid and its cards are not rebuilt in the typed letter's frame.
+                        RecallCardGrid(page: recallPage, selection: recallSelection) { id in
+                            recallSelection = id
+                            model.selectedCapture = id
                         }
+                        .equatable()
                         #else
                         LazyVStack(alignment: .leading, spacing: 0) {
                             ForEach(hits, id: \.capture.id) { hit in
@@ -257,13 +253,36 @@ public struct WorkspaceView: View {
         .onChange(of: model.query) { _, _ in
             clearSelection()
             #if os(macOS)
-            DispatchQueue.main.async { if shownQuery != model.query { shownQuery = model.query } }
+            DispatchQueue.main.async {
+                if shownQuery != model.query { shownQuery = model.query; refreshRecallPage() }
+            }
             #endif
         }
+        #if os(macOS)
         // The query can change while Recall is off screen (another mode, or the pill collapsed).
-        .onAppear { shownQuery = model.query }
-        .onChange(of: openTasks) { _, _ in clearSelection() }
+        .onAppear { shownQuery = model.query; refreshRecallPage() }
+        // Saves, timer reloads and sync replace the vault, which can change matches and Overdue marks.
+        // Array equality returns early when the captures are the same storage, as they are while typing.
+        .onChange(of: model.vault) { _, _ in refreshRecallPage() }
+        #endif
+        .onChange(of: openTasks) { _, _ in
+            clearSelection()
+            #if os(macOS)
+            refreshRecallPage()
+            #endif
+        }
     }
+
+    #if os(macOS)
+    /// Searches the shown query once and keeps the page, with each card's Overdue mark worked out here
+    /// so drawing a card reads no vault state.
+    private func refreshRecallPage() {
+        let hits = model.searchHits(openTasks: openTasks, query: shownQuery)
+        let now = Date()
+        let overdue = Set(hits.map(\.capture.id).filter { model.vault.isOverdue(captureID: $0, now: now) })
+        recallPage = RecallCardGrid.Page(hits: hits, overdue: overdue)
+    }
+    #endif
 
     /// Clearing only when set avoids a second render on every keystroke.
     private func clearSelection() { if recallSelection != nil { recallSelection = nil } }

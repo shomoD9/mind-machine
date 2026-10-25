@@ -7,7 +7,8 @@
  driven through the real query field, and typing cost is timed while the cards redraw.
  The native-ci workflow (mac-build job) runs it on a GitHub macOS runner and uploads the output.
  Frame sampling observes actual window resize notifications so actor scheduling cannot
- skip interpolation frames. The capture baseline records open/input and per-key
+ skip interpolation frames; it starts from a quiet main thread and repeats a sample only when a
+ main-thread stall made the window skip frames (sampleTransition). The capture baseline records open/input and per-key
  dispatch/draw distributions without changing the editor; --capture-baseline-only
  and --capture-baseline-cold support the Release rerun script. Nothing here runs in normal use. */
 // Capture baseline also records the source styler's measured paragraph work,
@@ -88,16 +89,49 @@ enum PillSelfTest {
         /// Register before starting the transition and observe each actual AppKit
         /// resize synchronously. A sleeping actor task can miss frames while the
         /// main run loop animates; notifications record the window changes directly.
-        func sampleFrames(_ action: () -> Void) async -> (duration: Double?, widths: [CGFloat]) {
+        /// Each resize's time is kept too, so a sample shows whether the main thread stalled mid-animation.
+        func sampleFrames(_ action: () -> Void) async -> (duration: Double?, widths: [CGFloat], maxGap: Double) {
             var widths = [panel.frame.width]
+            var times = [CACurrentMediaTime()]
             let observer = NotificationCenter.default.addObserver(forName: NSWindow.didResizeNotification,
                                                                   object: panel, queue: .main) { [self] _ in
-                MainActor.assumeIsolated { widths.append(panel.frame.width) }
+                MainActor.assumeIsolated { widths.append(panel.frame.width); times.append(CACurrentMediaTime()) }
             }
             defer { NotificationCenter.default.removeObserver(observer) }
             let duration = await settle(action)
             widths.append(panel.frame.width)
-            return (duration, widths)
+            let gaps = zip(times.dropFirst(), times).map { $0 - $1 }
+            return (duration, widths, gaps.max() ?? 0)
+        }
+
+        /// Samples one expand (`open`) or collapse and counts the distinct widths strictly between the pill
+        /// and the panel. AppKit's frame animation is time-based: if the main thread is busy for a frame or
+        /// two, the window skips the widths it would have shown then. An unstalled collapse shows exactly
+        /// three such widths, so one stall on a shared CI host failed the check (main run 40100125298, PR #15
+        /// run 40203248221). Each sample starts after a quiet 0.3 s, so work left over from the previous
+        /// transition (focus retries, the editor's first layout) does not land in it. A sample is repeated,
+        /// at most three times in all, only when it had too few widths and a stall: a gap between resizes over
+        /// 1.5 frame periods (25 ms at 60 Hz), which is what skipping even one frame produces. A transition
+        /// that jumps, or animates too few frames without stalling, still fails on its first sample. The
+        /// reported sample is the last one taken; every attempt is kept in result.json.
+        func sampleTransition(open: Bool, between: Range<CGFloat>) async
+            -> (duration: Double?, widths: [CGFloat], intermediate: Int, attempts: [[String: Any]]) {
+            var attempts: [[String: Any]] = []
+            while true {
+                if attempts.count > 0 {
+                    // Return to the starting state for the repeat, outside the sample.
+                    _ = await settle { controller.send(open ? .escape : .clickPill) }
+                }
+                await sleep(0.3)
+                let frames = await sampleFrames { controller.send(open ? .clickPill : .escape) }
+                let intermediate = Set(frames.widths.filter { between.contains($0) }).count
+                let stalled = frames.maxGap > 1.5 / 60
+                attempts.append(["widths": frames.widths.map(Double.init), "intermediateWidths": intermediate,
+                                 "maxFrameGapMs": ms(frames.maxGap), "stalled": stalled])
+                if intermediate >= 3 || !stalled || attempts.count == 3 {
+                    return (frames.duration, frames.widths, intermediate, attempts)
+                }
+            }
         }
 
         /// Seconds until `condition` holds, polling every 4 ms, or nil after one second.
@@ -260,21 +294,23 @@ enum PillSelfTest {
             handle.mouseLocation = { NSEvent.mouseLocation }
 
             // 6b. The window must pass through intermediate sizes, otherwise nothing is actually animating.
-            let expansionFrames = await sampleFrames { controller.send(.clickPill) }
-            let sampledExpand = expansionFrames.duration
             let between = PillGeometry.pillSize.width + 20 ..< PillGeometry.panelSize.width - 20
-            let intermediate = Set(expansionFrames.widths.filter { between.contains($0) }).count
+            let expansionFrames = await sampleTransition(open: true, between: between)
+            let sampledExpand = expansionFrames.duration
+            let intermediate = expansionFrames.intermediate
             report["expandWidths"] = expansionFrames.widths.map(Double.init)
             report["expandIntermediateWidths"] = intermediate
             report["expandSampledMs"] = ms(sampledExpand)
+            report["expandSamples"] = expansionFrames.attempts
             check("expand passes through intermediate frames", intermediate >= 3)
             check("expand animation lasts about its configured duration", (sampledExpand ?? 0) >= PillMotion.expand * 0.8)
-            let collapseFrames = await sampleFrames { controller.send(.escape) }
+            let collapseFrames = await sampleTransition(open: false, between: between)
             let sampledCollapse = collapseFrames.duration
-            let collapseIntermediate = Set(collapseFrames.widths.filter { between.contains($0) }).count
+            let collapseIntermediate = collapseFrames.intermediate
             report["collapseWidths"] = collapseFrames.widths.map(Double.init)
             report["collapseIntermediateWidths"] = collapseIntermediate
             report["collapseSampledMs"] = ms(sampledCollapse)
+            report["collapseSamples"] = collapseFrames.attempts
             check("collapse passes through intermediate frames", collapseIntermediate >= 3)
             check("collapse animation lasts about its configured duration", (sampledCollapse ?? 0) >= PillMotion.collapse * 0.8)
             await sleep(0.1)
