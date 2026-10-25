@@ -4,6 +4,8 @@
 
 ### GPT-6 - Codex API (mm-mdcmds)
 
+- Wrote the portable tests before implementing command behavior. A nil-plan scaffold failed the first bullet continuation (`XCTUnwrap` expected a plan); the remaining command cases then failed with 20 assertions before implementation. Added a pure UTF-16 edit planner, separate AppKit executor and small additive view hooks. Nine command tests and all 39 Linux tests pass; Mac sources parse locally but require AppKit CI to compile/run. Added actual native undo/redo, marked-input, shortcut and selection checks without touching timing tests. Updated DESIGN to record the command boundary and chosen Cmd-Shift-Return shortcut.
+
 - Read the complete Markdown editor research and repo/domain/tracker/triage/ADR/design guidance, inspected native text handling and existing tests, fetched origin and scanned remote ticket claims to reserve 28 after capture-speed’s 27. Applying TDD at the portable command-plan and real AppKit undo boundaries specified by the user. Work stays in this worktree; new logic will live in new files to limit overlap with PR #14.
 
 ### Claude Opus 5.5 - Claude Code (mm-mdstyles)

@@ -1,5 +1,6 @@
 /* Real TextKit 2/source round-trip checks for RichNoteEditor's Mac coordinator.
- SwiftPM on the hosted Mac runs this against AppKit and the actual vault model. */
+ SwiftPM on the hosted Mac runs this against AppKit and the actual vault model,
+ including MarkdownCaptureTextView command routing and native undo. */
 #if os(macOS)
 import XCTest
 import AppKit
@@ -171,5 +172,80 @@ final class MacMarkdownEditorTests: XCTestCase {
         XCTAssertTrue(editor.string.hasSuffix("!日本"))
         XCTAssertNotNil(editor.textLayoutManager)
     }
+    @MainActor
+    func testEditingCommandsAreSingleUndoStepsAndPreserveSurroundingSource() throws {
+        // Each direct action is its own event here. Physical keyboard events
+        // already provide that boundary in the running app.
+        for (source, expected, command) in [
+            ("head\n- item", "head\n- item\n- ", "enter"),
+            ("head\n- [x] task", "head\n- [x] task\n- [ ] ", "enter"),
+            ("head\n  - [ ] ", "head\n  ", "enter"),
+            ("head\n9. item", "head\n9. item\n10. ", "enter"),
+            ("head\n- item", "head\n  - item", "tab"),
+            ("head\n  - item", "head\n- item", "backtab"),
+            ("head\n- [ ] 👩🏽‍💻 e\u{301}", "head\n- [x] 👩🏽‍💻 e\u{301}", "toggle")
+        ] {
+            let (editor, coordinator) = makeEditor()
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),
+                                  styleMask: [.titled], backing: .buffered, defer: false)
+            window.contentView = editor
+            window.makeFirstResponder(editor)
+            coordinator.restore(source, in: editor)
+            editor.setSelectedRange(NSRange(location: (source as NSString).length, length: 0))
+            let undo = try XCTUnwrap(editor.undoManager)
+            undo.removeAllActions()
+            undo.groupsByEvent = false
+            switch command {
+            case "enter": editor.insertNewline(nil)
+            case "tab": editor.insertTab(nil)
+            case "backtab": editor.insertBacktab(nil)
+            default:
+                let event = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+                    modifierFlags: [.command, .shift], timestamp: 0, windowNumber: window.windowNumber,
+                    context: nil, characters: "\r", charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
+                XCTAssertTrue(editor.performKeyEquivalent(with: event))
+            }
+            XCTAssertEqual(Data(editor.string.utf8), Data(expected.utf8), command)
+            XCTAssertTrue(undo.canUndo, command)
+            undo.undo()
+            XCTAssertEqual(Data(editor.string.utf8), Data(source.utf8), command)
+            XCTAssertFalse(undo.canUndo, "One command must leave no partial undo: " + command)
+            undo.redo()
+            XCTAssertEqual(Data(editor.string.utf8), Data(expected.utf8), command)
+            XCTAssertNotNil(editor.textLayoutManager)
+        }
+    }
+
+    @MainActor
+    func testCommandSelectionCompositionAndPlainFallbackStayNative() throws {
+        let (editor, coordinator) = makeEditor()
+        coordinator.restore("- item", in: editor)
+        editor.setSelectedRange(NSRange(location: 6, length: 0))
+        editor.moveBackward(nil)
+        editor.moveForwardAndModifySelection(nil)
+        XCTAssertEqual(editor.selectedRange(), NSRange(location: 5, length: 1))
+        editor.insertTab(nil)
+        XCTAssertEqual(editor.string, "  - item")
+        XCTAssertEqual(editor.selectedRange(), NSRange(location: 7, length: 1))
+        coordinator.restore("plain", in: editor)
+        editor.setSelectedRange(NSRange(location: 5, length: 0))
+        editor.insertNewline(nil)
+        XCTAssertEqual(editor.string, "plain\n")
+
+        // A shortcut during marked input must not toggle the task's marker.
+        coordinator.restore("- [ ] task", in: editor)
+        editor.setSelectedRange(NSRange(location: 10, length: 0))
+        editor.setMarkedText("に", selectedRange: NSRange(location: 1, length: 0), replacementRange: editor.selectedRange())
+        XCTAssertTrue(editor.hasMarkedText())
+        let source = editor.string
+        let event = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+            modifierFlags: [.command, .shift], timestamp: 0, windowNumber: 0,
+            context: nil, characters: "\r", charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
+        _ = editor.performKeyEquivalent(with: event)
+        XCTAssertEqual(Data(editor.string.utf8), Data(source.utf8))
+        XCTAssertTrue(editor.hasMarkedText())
+        editor.unmarkText()
+    }
+
 }
 #endif
