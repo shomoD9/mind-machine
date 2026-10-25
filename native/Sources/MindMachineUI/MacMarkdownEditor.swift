@@ -28,12 +28,6 @@ public final class MarkdownCaptureTextView: NSTextView {
            MacMarkdownEditingCommands.apply(.toggleTask, to: self) { return true }
         return super.performKeyEquivalent(with: event)
     }
-    public override func keyDown(with event: NSEvent) {
-        if MacMarkdownEditingCommands.isTaskToggle(event),
-           MacMarkdownEditingCommands.apply(.toggleTask, to: self) { return }
-        super.keyDown(with: event)
-    }
-
 }
 
 @MainActor

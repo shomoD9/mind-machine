@@ -227,7 +227,7 @@ final class MacMarkdownEditorTests: XCTestCase {
                 let event = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
                     modifierFlags: [.command, .shift], timestamp: 0, windowNumber: window.windowNumber,
                     context: nil, characters: "\r", charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
-                XCTAssertTrue(editor.performKeyEquivalent(with: event))
+                XCTAssertTrue(window.performKeyEquivalent(with: event))
             }
             XCTAssertEqual(Data(editor.string.utf8), Data(expected.utf8), command)
             XCTAssertTrue(undo.canUndo, command)

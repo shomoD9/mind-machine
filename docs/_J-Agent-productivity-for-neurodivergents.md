@@ -4,6 +4,10 @@
 
 ### GPT-6 - Codex API (mm-mdcmds)
 
+- Read passing core-checks 40199148582 logs: 63 main-package tests (one pre-existing skip), 35 Pill tests and every deterministic gate passed, including both new AppKit command tests. Native-ci 40199148608 passed Mac/iOS builds, sandbox and both UI jobs; only its unchanged storage benchmark failed. Downloaded the real sandbox artifact: no failed checks, TextKit 2 throughout, draw p95 3.481/3.657/5.382 ms at 1/10/100 KiB and 53.465 ms for the huge paragraph. Recorded the existing huge-paragraph 33 ms budget miss without claiming a speedup. Publishing the second checkpoint with shortcut routing confined to key equivalents.
+
+- Opened PR #16 and watched the first hosted round. Mac app build/sandbox self-test and both Linux checks passed. Read native job 121186382375’s failed log: the unchanged Release durable-append test hit 16.033708 ms against 12 ms before editor tests; no budget changes. Self-review removed the redundant keyDown fallback so ordinary keys do not acquire a new hook, and changed the shortcut test to enter through the window’s real key-equivalent routing. Separate core-checks/runtime evidence is pending.
+
 - Merged origin/main after PR #14 landed. Applied the merge-conflict skill to retain both DESIGN sections and both journal entries; native files merged additively, preserving contiguous-byte binding comparison and its tests. Re-ran portable tests and syntax/whitespace checks before publishing the first hosted checkpoint.
 
 - Wrote the portable tests before implementing command behavior. A nil-plan scaffold failed the first bullet continuation (`XCTUnwrap` expected a plan); the remaining command cases then failed with 20 assertions before implementation. Added a pure UTF-16 edit planner, separate AppKit executor and small additive view hooks. Nine command tests and all 39 Linux tests pass; Mac sources parse locally but require AppKit CI to compile/run. Added actual native undo/redo, marked-input, shortcut and selection checks without touching timing tests. Updated DESIGN to record the command boundary and chosen Cmd-Shift-Return shortcut.
