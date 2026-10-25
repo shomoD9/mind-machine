@@ -76,7 +76,8 @@ final class MacMarkdownEditorTests: XCTestCase {
         editor.setSelectedRange(NSRange(location: 0, length: (source as NSString).length))
         let pasteboard = NSPasteboard.withUniqueName()
         defer { pasteboard.releaseGlobally() }
-        XCTAssertTrue(editor.writeSelection(to: pasteboard, type: .string))
+        // The multi-type entry declares pasteboard types before AppKit writes.
+        XCTAssertTrue(editor.writeSelection(to: pasteboard, types: [.string]))
         XCTAssertEqual(Data(try XCTUnwrap(pasteboard.string(forType: .string)).utf8), Data(source.utf8))
 
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
