@@ -1,6 +1,7 @@
 /* Native Capture/Recall/Chat presentation shared by the iPhone companion (Apps/iOS/MindMachineApp.swift)
  and the Mac floating pill (Apps/Mac/PillPanelView.swift). The keyboard has its own UIKit editor and
- keyplane controller. Colours, buttons and fields come from Greyscale.swift; the caller paints the
+ keyplane controller. Companion and pill Save use the shared asynchronous Capture handoff.
+ Colours, buttons and fields come from Greyscale.swift; the caller paints the
  background and supplies the outer margins. The pill embeds it with showsHeader: false and draws its own
  Capture/Recall tabs; the companion keeps the default header.
 
@@ -125,11 +126,7 @@ public struct WorkspaceView: View {
     // The one prominent action. On the Mac the label carries its shortcut, so the hint is learnt by looking.
     private var saveButton: some View {
         Button {
-            #if os(macOS)
             model.submitCapture()
-            #else
-            model.saveCapture()
-            #endif
         } label: {
             HStack(spacing: 6) {
                 Text("Save")

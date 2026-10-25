@@ -1,7 +1,8 @@
 /* XCUITest acceptance for the production keyboard embedded by KeyboardTestHost.
  MindMachineKeyboardUITests in native-ci drives controls and reads visible text;
  no test reads the vault database or substitutes Capture/Recall operations. The XCTestCase
- extension also supplies snapshot-based text assertions to KeyboardFeelTests. */
+ extension also supplies snapshot-based text assertions to KeyboardFeelTests.
+ IPhoneMarkdownAcceptanceTests launches the companion adapter probe in the same host. */
 import XCTest
 
 final class KeyboardAcceptanceTests: XCTestCase {
@@ -231,5 +232,32 @@ extension XCTestCase {
         } catch {
             XCTFail("Could not snapshot \(element.identifier): \(error)", file: file, line: line)
         }
+    }
+}
+
+// The same hosted Simulator job verifies the companion adapter through a
+// separate host mode; production keyboard journeys above remain unchanged.
+final class IPhoneMarkdownAcceptanceTests: XCTestCase {
+    func testCompanionSourceCompositionUndoContinuationHandoffAndTiming() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--iphone-markdown-probe"]
+        app.launch()
+        defer { app.terminate() }
+        let report = app.staticTexts["iphone-markdown-report"]
+        XCTAssertTrue(report.waitForExistence(timeout: 10))
+        let completed = NSPredicate { _, _ in
+            let label = report.label
+            return label.hasPrefix("PASS ") || label.hasPrefix("FAIL ")
+        }
+        let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: completed, object: nil)], timeout: 240)
+        XCTAssertEqual(result, .completed, report.label)
+        let attachment = XCTAttachment(string: report.label)
+        attachment.name = "iPhone Markdown source, UIKit and timing evidence"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        XCTAssertTrue(report.label.hasPrefix("PASS "), report.label)
     }
 }

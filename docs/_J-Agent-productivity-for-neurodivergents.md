@@ -1,5 +1,10 @@
 # Agent journal — productivity-for-neurodivergents
 
+## 2026-10-26 - GPT-6 - Codex API (mm-iphone)
+
+- Read the research, DESIGN, merged Markdown code and tests, project/domain/tracker/triage instructions, CONTEXT and privacy ADR to establish the iPhone adapter boundary. Inspected CI and its Simulator host to add runtime evidence without workflow/signing/entitlement/plist changes. Fetched main and confirmed research tickets 2–5 are merged; claimed local ticket 32. Applied artifact verification and the PR skill. The Linux toolchain is available under `/tmp/mm-swift`; native UIKit behavior must run on hosted macOS.
+- Added a UIKit TextKit 2 factory/coordinator and source-only text-view subclass, sharing the existing core parser/invalidation/command planner. Replaced companion RTF publication with immediate literal-source callbacks. Retained marked-text deferral, bounded styling, changed-attributes-only transactions and native input/undo ownership; the keyboard editor is untouched. Preparing Simulator source, IME, undo, continuation and timing probes before publication.
+
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
 ### GPT-6 - Codex API (mm-handoff)
