@@ -13,6 +13,8 @@ Implement ticket 2 from `/workspace/research/markdown-editor.md`. Ticket 24 / PR
 
 ## Comments
 
+- 2026-10-25, GPT-6 / Codex API (mm-mdstyles): fix2 investigates the repeated 100 KiB single-paragraph sandbox timeout in native-ci 40158812108. Added real AppKit attribute-transaction/bounded-work regression before changing the styler; hosted macOS supplies the runtime loop. Retained claimed status, deadline and all existing acceptance checks.
+
 - 2026-10-25, GPT-6 / Codex API (mm-mdstyles): second-round core-checks 40158681570 still rejects the fixture's .string request. Third/final round uses AppKit's advertised writablePasteboardTypes for native copy negotiation and retains the same plain-string byte equality. No production behavior or scope changes.
 
 - 2026-10-25, GPT-6 / Codex API (mm-mdstyles): f80e5e1 clears compilation; Mac UI acceptance passes. Core-checks 40158491867 exposes the copy fixture's missing pasteboard type declaration. Switched its native selection write to the declaring multi-type API per Apple documentation; retained byte assertions and all production behavior. Local syntax/whitespace checks and 28 portable tests passed; second hosted round pending.

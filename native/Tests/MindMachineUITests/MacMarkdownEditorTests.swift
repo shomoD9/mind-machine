@@ -69,6 +69,35 @@ final class MacMarkdownEditorTests: XCTestCase {
     }
 
     @MainActor
+    func testHugePlainParagraphDoesNotRestyleUnchangedTextOnEachKey() throws {
+        let (editor, coordinator) = makeEditor()
+        let source = String(repeating: "baseline text ", count: 7_877)
+        coordinator.restore(source, in: editor)
+        let storage = try XCTUnwrap(editor.textStorage)
+        editor.setSelectedRange(NSRange(location: storage.length, length: 0))
+        // Observe real attribute-only transactions. Character insertion may
+        // legitimately fix native attributes; a style pass must not invalidate
+        // the unchanged 100 KiB paragraph after that character transaction.
+        var attributeRanges: [NSRange] = []
+        let observer = NotificationCenter.default.addObserver(
+            forName: NSTextStorage.didProcessEditingNotification, object: storage, queue: nil
+        ) { _ in
+            if storage.editedMask.contains(.editedAttributes), !storage.editedMask.contains(.editedCharacters) {
+                attributeRanges.append(storage.editedRange)
+            }
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        for _ in 0..<3 {
+            editor.insertText("x", replacementRange: editor.selectedRange())
+            print("[style-regression] work=\(coordinator.lastRestyledRange) ms=\(coordinator.lastStyleMilliseconds) attributeEdits=\(attributeRanges)")
+            XCTAssertLessThanOrEqual(coordinator.lastRestyledRange.length, MarkdownParagraph.maximumUTF16Length)
+        }
+        XCTAssertTrue(attributeRanges.isEmpty, "Plain typing must not trigger another attribute transaction: \(attributeRanges)")
+        XCTAssertEqual(Data(editor.string.utf8), Data((source + "xxx").utf8))
+        XCTAssertNotNil(editor.textLayoutManager)
+    }
+
+    @MainActor
     func testCopySaveReopenPreservesExactUnicodeBytes() throws {
         let (editor, coordinator) = makeEditor()
         let source = "# e\u{301} 👩🏽‍💻\r\n- [ ] **task**\n- [x] *done* [🔭](https://example.org)\n"
