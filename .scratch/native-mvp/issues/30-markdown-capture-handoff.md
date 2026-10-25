@@ -1,6 +1,6 @@
 # 30: Markdown editor ticket 5 — capture handoff
 
-Status: claimed
+Status: resolved
 Blocked by: none (styles, editing commands and Capture speed are on main; context invalidation PR #17 remains open and is independent of handoff)
 
 - Preserve final source characters across rapid typing and close/reopen.
@@ -13,3 +13,5 @@ Blocked by: none (styles, editing commands and Capture speed are on main; contex
 ## Comments
 
 - 2026-10-25, GPT-6 / Codex API (mm-handoff): claimed within the user-specified worktree and behavior-only scope. Public test seams are the portable capture handoff and actual Mac editor/model. Existing tests and budgets stay intact.
+
+- 2026-10-25, GPT-6 / Codex API (mm-handoff): implementation and manual spec/standards review complete. All eight hosted checks pass at `61bbb91` on PR #18, including 73 Mac package tests (one existing skip), five native handoff tests and both UI journeys. Evidence, raw before/two after latency runs and failing-first portable assertions are in `docs/verification/markdown-capture-handoff/README.md`. The third push records evidence only and is checked separately; PR stays open and unmerged.
