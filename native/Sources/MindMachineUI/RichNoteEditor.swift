@@ -200,7 +200,7 @@ private struct NativeNoteAdapter: NSViewRepresentable {
     }
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let editor = scroll.documentView as? NSTextView else { return }
-        if !editor.string.utf8.elementsEqual(text.utf8) { context.coordinator.restore(text, in: editor) }
+        context.coordinator.restoreIfNeeded(text, in: editor)
         let publish = {
             text = editor.string
             richText = nil // Mac presentation is derived from the exact Markdown source.
