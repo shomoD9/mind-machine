@@ -15,6 +15,8 @@ The budgets follow measured same-runner samples in `verification/overnight-perf.
 
 Install Java 17+ for TLC (CI provisions 21). Without Java the script prints an explicit skip; Swift regressions still run. `spec/run-tlc.sh` downloads the SHA-256-pinned TLC 1.7.4 jar. The nightly schedule becomes active after merge to main; use workflow dispatch with `extended_model=true` beforehand. Logs are uploaded as the `core-checks` artifact. For a same-runner before/after comparison, run `native/Scripts/compare_core_performance.sh 7ac950e`.
 
+Existing Release and Mac self-test gates also compare measured tails with the committed main baseline using `PerformanceRatchet`; `checks.sh` compares its three fresh keyboard-process medians after their fixed budgets. Relative plus absolute noise allowances, provenance, deliberate-regression proof and intentional refresh instructions are in [performance-ratchet.md](verification/performance-ratchet.md). All fixed budgets above remain unchanged. Linux tests verify the shared comparator without timing Linux as a Mac substitute.
+
 ## Linux fast feedback
 
 `.github/workflows/fast-core.yml` runs on every push and PR on `ubuntu-latest` in `swift:6.2.1-noble`. It installs SQLite headers (`CSQLite` resolves `sqlite3` through pkg-config), runs `swift test --package-path native --jobs 2`, and runs the stdlib watchdog tests. Checkout is pinned to the full commit obtained with `gh api repos/actions/checkout/git/ref/tags/v4`. The job prints `MM_LINUX_CORE seconds=...` and puts build/test elapsed time in the job summary; a five-minute timeout bounds runner use. There is no model call or build cache. The target is roughly 2–3 minutes to feedback including container setup.

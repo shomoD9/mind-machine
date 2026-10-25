@@ -1,5 +1,6 @@
-/* Release benchmark at the saved-vault seam. macOS CI reports 10k-note query
- p95, durable save p95, database bytes and whole-process peak resident memory. */
+/* Release benchmark at the saved-vault seam, called by native-ci and checks.sh.
+ Reports 10k-note query/save p95 and RSS; fixed budgets and PerformanceRatchet
+ independently gate the measured query/save tails against committed main. */
 import XCTest
 import Darwin
 import MindMachineCore
@@ -38,13 +39,23 @@ final class SearchPerformanceTests: XCTestCase {
             try store.append(Capture(text: "Fresh capture \(i)"))
             saves.append(Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000)
         }
-        for query in queries { let samples = perQuery[query]!.sorted(); print("MM_QUERY \(query) p95_ms=\(samples[Int(Double(samples.count)*0.95)-1])") }
+        var measured: [String: Double] = [:]
+        for query in queries {
+            let samples = perQuery[query]!.sorted()
+            let tail = samples[Int(Double(samples.count)*0.95)-1]
+            print("MM_QUERY \(query) p95_ms=\(tail)")
+            measured["query:\(query)"] = tail
+        }
         let p95 = timings.sorted()[Int(Double(timings.count) * 0.95)-1]
         let saveP95 = saves.sorted()[Int(Double(saves.count) * 0.95)-1]
         var usage = rusage(); getrusage(RUSAGE_SELF, &usage)
         print("MM_BENCH notes=10000 queries=240 query_p95_ms=\(p95) save_p95_ms=\(saveP95) peak_rss_mib=\(Double(usage.ru_maxrss)/1048576)")
         XCTAssertLessThan(saveP95, 12, "Measured durable append p95 must stay under 12 ms")
         XCTAssertLessThan(p95, 10, "Warm ranked prefix/typo search p95 must stay under 10 ms")
+        // Keep every fixed budget above; a slowdown can fail below those caps.
+        measured["query_p95_ms"] = p95
+        measured["save_p95_ms"] = saveP95
+        try PerformanceRatchet.check("search", measurements: measured)
         #endif
     }
 }

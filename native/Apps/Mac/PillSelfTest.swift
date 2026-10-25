@@ -5,6 +5,7 @@
  and exits with status 1 if any check failed. Recall is also checked populated: clearly fake "[Sample]"
  notes are written to the throwaway vault, the grid of cards is snapshotted, the arrow keys and Return are
  driven through the real query field, and typing cost is timed while the cards redraw.
+ PerformanceRatchet compares these Recall p95s against committed hosted main.
  The native-ci workflow (mac-build job) runs it on a GitHub macOS runner and uploads the output.
  Frame sampling observes actual window resize notifications so actor scheduling cannot
  skip interpolation frames; it starts from a quiet main thread and repeats a sample only when a
@@ -567,6 +568,19 @@ enum PillSelfTest {
             check("Recall typing with a full page of cards draws the typed letter within 33 ms p95",
                   drawn["withinP95Budget"] as? Bool == true)
             check("Recall cards redraw for each key within 100 ms p95", shown["withinP95Budget"] as? Bool == true)
+            // The same 48-key observations feed the ratchet after the unchanged
+            // fixed caps. Missing percentiles fail rather than skipping a gate.
+            do {
+                try PerformanceRatchet.check("recallTyping", measurements: [
+                    "dispatch_p95_ms": distribution(dispatch)["p95Ms"] as? Double ?? .nan,
+                    "letter_p95_ms": drawn["p95Ms"] as? Double ?? .nan,
+                    "cards_p95_ms": shown["p95Ms"] as? Double ?? .nan,
+                ])
+                check("Recall typing performance ratchet versus main", true)
+            } catch {
+                print("[selftest] \(error)")
+                check("Recall typing performance ratchet versus main", false)
+            }
         }
 
         /// Nearest-rank percentiles retain tails, including every >100 ms stall.
