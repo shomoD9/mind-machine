@@ -196,6 +196,12 @@ private struct NativeNoteAdapter: NSViewRepresentable {
     func makeNSView(context: Context) -> NSScrollView {
         let (scroll, editor) = MacMarkdownEditor.makeScrollableEditor()
         context.coordinator.attach(to: editor)
+        // Install publication during creation so immediate first-key input has
+        // the same handoff as every later representable update.
+        context.coordinator.changed = {
+            text = editor.string
+            richText = nil
+        }
         return scroll
     }
     func updateNSView(_ scroll: NSScrollView, context: Context) {

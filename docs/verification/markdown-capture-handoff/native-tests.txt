@@ -1,0 +1,30 @@
+native-ci
+2026-10-25T16:11:24.9704570Z Test Case '-[MindMachineUITests.MacCaptureHandoffTests testCopyAdvertisesOnlyMarkdownSourceForSelectedRange]' passed (0.007 seconds).
+2026-10-25T16:11:24.9706520Z Test Case '-[MindMachineUITests.MacCaptureHandoffTests testHostedBindingPublishesFinalKeyBeforeWindowHideAndRecreation]' passed (0.407 seconds).
+2026-10-25T16:11:24.9709660Z Test Case '-[MindMachineUITests.MacCaptureHandoffTests testSlowRefreshDoesNotWaitBeforeAcceptingInput]' passed (0.048 seconds).
+2026-10-25T16:11:24.9711780Z Test Case '-[MindMachineUITests.MacCaptureHandoffTests testSlowSaveKeepsInputAndFinalCharactersAcrossEditorRecreation]' passed (0.020 seconds).
+2026-10-25T16:11:24.9713780Z Test Case '-[MindMachineUITests.MacCaptureHandoffTests testStorageFailureKeepsDraftAndRetryClearsOnlyAfterDurableSave]' passed (0.015 seconds).
+2026-10-25T16:11:24.9715520Z Test Suite 'MacCaptureHandoffTests' passed at 2026-10-25 16:11:23.611.
+2026-10-25T16:11:25.4538690Z 	 Executed 73 tests, with 1 test skipped and 0 failures (0 unexpected) in 22.596 (22.608) seconds
+2026-10-25T16:11:25.4539650Z 	 Executed 73 tests, with 1 test skipped and 0 failures (0 unexpected) in 22.596 (22.609) seconds
+2026-10-25T16:11:25.4563070Z MM_HANDOFF_BENCH storage=held keys=10 p50Ms=0.17166666668799735 p95Ms=0.28508333338095326 maxMs=0.28508333338095326
+2026-10-25T16:11:38.4302960Z 	 Executed 35 tests, with 0 failures (0 unexpected) in 0.016 (0.021) seconds
+2026-10-25T16:11:38.4304130Z 	 Executed 35 tests, with 0 failures (0 unexpected) in 0.016 (0.022) seconds
+
+core-checks
+checks	Fixed-order gates	2026-10-25T16:06:15.7783840Z GATE 1: tracked diff whitespace (no configured Swift formatter/linter)
+checks	Fixed-order gates	2026-10-25T16:06:15.8594160Z GATE 2: public package invariants
+checks	Fixed-order gates	2026-10-25T16:07:15.0966320Z Test Case '-[MindMachineUITests.MacCaptureHandoffTests testCopyAdvertisesOnlyMarkdownSourceForSelectedRange]' passed (0.009 seconds).
+checks	Fixed-order gates	2026-10-25T16:07:15.0968120Z Test Case '-[MindMachineUITests.MacCaptureHandoffTests testHostedBindingPublishesFinalKeyBeforeWindowHideAndRecreation]' passed (0.336 seconds).
+checks	Fixed-order gates	2026-10-25T16:07:15.0970050Z Test Case '-[MindMachineUITests.MacCaptureHandoffTests testSlowRefreshDoesNotWaitBeforeAcceptingInput]' passed (0.061 seconds).
+checks	Fixed-order gates	2026-10-25T16:07:15.0972290Z Test Case '-[MindMachineUITests.MacCaptureHandoffTests testSlowSaveKeepsInputAndFinalCharactersAcrossEditorRecreation]' passed (0.028 seconds).
+checks	Fixed-order gates	2026-10-25T16:07:15.0975220Z Test Case '-[MindMachineUITests.MacCaptureHandoffTests testStorageFailureKeepsDraftAndRetryClearsOnlyAfterDurableSave]' passed (0.029 seconds).
+checks	Fixed-order gates	2026-10-25T16:07:15.0976280Z Test Suite 'MacCaptureHandoffTests' passed at 2026-10-25 16:07:13.820.
+checks	Fixed-order gates	2026-10-25T16:07:15.6386580Z 	 Executed 73 tests, with 1 test skipped and 0 failures (0 unexpected) in 26.384 (26.399) seconds
+checks	Fixed-order gates	2026-10-25T16:07:15.6392450Z 	 Executed 73 tests, with 1 test skipped and 0 failures (0 unexpected) in 26.384 (26.404) seconds
+checks	Fixed-order gates	2026-10-25T16:07:15.6451840Z MM_HANDOFF_BENCH storage=held keys=10 p50Ms=0.1880000000085147 p95Ms=0.3079166666850597 maxMs=0.3079166666850597
+checks	Fixed-order gates	2026-10-25T16:07:30.6511930Z 	 Executed 35 tests, with 0 failures (0 unexpected) in 0.020 (0.024) seconds
+checks	Fixed-order gates	2026-10-25T16:07:30.6512940Z 	 Executed 35 tests, with 0 failures (0 unexpected) in 0.020 (0.026) seconds
+checks	Fixed-order gates	2026-10-25T16:07:30.6515790Z GATE 3: model safety and counterexample sensitivity
+checks	Fixed-order gates	2026-10-25T16:08:24.8875650Z GATE 4: Release query/save budgets and process durability
+checks	Fixed-order gates	2026-10-25T16:09:07.8714790Z GATE 5: unsigned bundles and requested entitlements
