@@ -69,4 +69,38 @@ final class MarkdownParagraphTests: XCTestCase {
         XCTAssertTrue(delimiters.spans.isEmpty)
         XCTAssertTrue(MarkdownParagraph(String(repeating: "[x](", count: 2_048)).spans.isEmpty)
     }
+
+    func testStyleRangeDiscoveryStopsBeforeScanningHugeParagraphs() {
+        // Exercise the same accessor used by the Mac delegate, including a
+        // virtual gigabyte paragraph without allocating a gigabyte fixture.
+        for length in [110_279, 1_000_000_000] {
+            for location in [0, length / 2, length] {
+                var reads = 0
+                let range = MarkdownStyleRange.affected(by: NSRange(location: location, length: 0), length: length) { _ in
+                    reads += 1
+                    return 120
+                }
+                XCTAssertNil(range)
+                XCTAssertLessThanOrEqual(reads, MarkdownParagraph.maximumUTF16Length + 2)
+            }
+        }
+        var reads = 0
+        XCTAssertNil(MarkdownStyleRange.affected(by: NSRange(location: 0, length: 100_000), length: 100_000) { _ in
+            reads += 1; return 120
+        })
+        XCTAssertEqual(reads, 0, "Bulk input must be rejected before any scanning")
+    }
+
+    func testStyleRangeMatchesNativeParagraphBoundaries() {
+        for text in ["# first\nplain\n- last", "# a\r\nb\r\nlast", "a\u{2029}b", "👩🏽‍💻 e\u{301}\nnext", "last\n", ""] {
+            let source = text as NSString
+            for location in 0...source.length {
+                for count in 0...min(6, source.length - location) {
+                    let edit = NSRange(location: location, length: count)
+                    let actual = MarkdownStyleRange.affected(by: edit, length: source.length) { source.character(at: $0) }
+                    XCTAssertEqual(actual, source.paragraphRange(for: edit), "\(text.debugDescription) \(edit)")
+                }
+            }
+        }
+    }
 }

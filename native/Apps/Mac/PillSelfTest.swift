@@ -494,6 +494,10 @@ enum PillSelfTest {
                             // Give SwiftUI and AppKit a run-loop turn between keys;
                             // pacing is outside the measured interval.
                             await sleep(0.001)
+                            if dispatch.count.isMultiple(of: 25) {
+                                print("[baseline] \(name) keys=\(dispatch.count) lastDispatch=\(dispatch.last ?? -1) ms lastStyle=\(styling.last ?? -1) ms")
+                                fflush(stdout)
+                            }
                         }
                         let expected = source + String(repeating: "x", count: keyCount)
                         check("baseline \(name) retains every key in view and model", editor.string == expected && controller.model.draft == expected)

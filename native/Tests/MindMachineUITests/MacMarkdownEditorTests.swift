@@ -98,6 +98,24 @@ final class MacMarkdownEditorTests: XCTestCase {
     }
 
     @MainActor
+    func testBoundedParagraphStillStylesAfterHugeSource() throws {
+        let (editor, coordinator) = makeEditor()
+        let source = String(repeating: "plain ", count: 20_000) + "\n# tail"
+        coordinator.restore(source, in: editor)
+        let storage = try XCTUnwrap(editor.textStorage)
+        // A bulk restoration is plain; the first local edit must discover just
+        // the tail paragraph without traversing the huge preceding paragraph.
+        storage.addAttribute(.backgroundColor, value: NSColor.red, range: NSRange(location: 0, length: 1))
+        editor.setSelectedRange(NSRange(location: storage.length, length: 0))
+        editor.insertText("!", replacementRange: editor.selectedRange())
+        XCTAssertEqual(coordinator.lastRestyledRange, NSRange(location: 120_001, length: 7))
+        XCTAssertEqual((storage.attribute(.font, at: 120_003, effectiveRange: nil) as? NSFont)?.pointSize, 19)
+        XCTAssertEqual(storage.attribute(.backgroundColor, at: 0, effectiveRange: nil) as? NSColor, .red)
+        XCTAssertEqual(Data(editor.string.utf8), Data((source + "!").utf8))
+        XCTAssertNotNil(editor.textLayoutManager)
+    }
+
+    @MainActor
     func testCopySaveReopenPreservesExactUnicodeBytes() throws {
         let (editor, coordinator) = makeEditor()
         let source = "# e\u{301} 👩🏽‍💻\r\n- [ ] **task**\n- [x] *done* [🔭](https://example.org)\n"

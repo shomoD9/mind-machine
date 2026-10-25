@@ -18,6 +18,7 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
     private var editedRange: NSRange?
     private weak var editor: NSTextView?
     private var applying = false
+    private var attributeTransaction = false
     private var bodyFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
 
     public func attach(to editor: NSTextView) {
@@ -42,7 +43,9 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
     public func restore(_ source: String, in editor: NSTextView) {
         guard !editor.hasMarkedText(), let storage = editor.textStorage else { return }
         applying = true
-        storage.setAttributedString(NSAttributedString(string: source, attributes: baseAttributes(editor)))
+        let base = baseAttributes(editor)
+        storage.setAttributedString(NSAttributedString(string: source, attributes: base))
+        editor.typingAttributes = base
         applying = false
         editedRange = NSRange(location: 0, length: storage.length)
         restyle(editor)
@@ -76,31 +79,36 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
         let start = ProcessInfo.processInfo.systemUptime
         defer { lastStyleMilliseconds = (ProcessInfo.processInfo.systemUptime - start) * 1_000 }
         editedRange = nil
-        let source = storage.string as NSString
-        let location = min(edit.location, source.length)
-        let range = source.paragraphRange(for: NSRange(location: location, length: min(edit.length, source.length - location)))
+        // Read UTF-16 directly from the backing store. Bridging storage.string
+        // and asking for paragraphRange can scan/copy an arbitrarily large note
+        // before a parser cap has any chance to reject it.
+        let source = storage.mutableString
+        guard let range = MarkdownStyleRange.affected(by: edit, length: storage.length,
+                                                      characterAt: { source.character(at: $0) }) else {
+            lastRestyledRange = NSRange(location: min(edit.location, storage.length), length: 0)
+            return
+        }
         lastRestyledRange = range
         let base = baseAttributes(editor)
         let selection = editor.selectedRanges
         applying = true
         let undo = editor.undoManager
         undo?.disableUndoRegistration()
-        storage.beginEditing()
         defer {
-            storage.endEditing()
+            if attributeTransaction {
+                storage.endEditing()
+                attributeTransaction = false
+            }
             undo?.enableUndoRegistration()
             applying = false
             // No selection or scroll adjustment: native editing owns both.
             assert(editor.selectedRanges == selection)
-            editor.typingAttributes = base
+            if !NSDictionary(dictionary: editor.typingAttributes).isEqual(to: base) {
+                editor.typingAttributes = base
+            }
         }
-
-        // A large paste/restoration or oversized paragraph stays source. This
-        // caps parser work on the main thread without an async/context pipeline.
-        guard range.length <= 65_536 else {
-            apply(base, in: range, storage: storage)
-            return
-        }
+        // Only bounded paragraphs reach parsing or attribute enumeration. A
+        // huge plain paragraph does no attribute work or empty transaction.
         var cursor = range.location
         while cursor < NSMaxRange(range) {
             let paragraph = source.paragraphRange(for: NSRange(location: cursor, length: 0))
@@ -145,6 +153,13 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
         var changes: [NSRange] = []
         storage.enumerateAttributes(in: range) { existing, run, _ in
             if !NSDictionary(dictionary: existing).isEqual(to: attributes) { changes.append(run) }
+        }
+        guard !changes.isEmpty else { return }
+        // One transaction for actual differences; never start/end an empty
+        // transaction, which can still ask TextKit to reconsider paragraph layout.
+        if !attributeTransaction {
+            attributeTransaction = true
+            storage.beginEditing()
         }
         for run in changes { storage.setAttributes(attributes, range: run) }
     }

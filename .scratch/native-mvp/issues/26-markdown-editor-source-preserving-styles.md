@@ -13,6 +13,8 @@ Implement ticket 2 from `/workspace/research/markdown-editor.md`. Ticket 24 / PR
 
 ## Comments
 
+- 2026-10-25, GPT-6 / Codex API (mm-mdstyles): fresh investigation from 4e39782 read failed native/core logs and PR diff first. Added bounded range discovery before parsing/enumeration, lazy attribute transactions and portable read-count/native-boundary tests; all 30 Linux tests pass. Mac regression and sandbox timing require hosted CI. Hold-delete failure is tracked separately. Maximum two push rounds, all protected files/tests/budgets retained.
+
 - 2026-10-25, GPT-6 / Codex API (mm-mdstyles): fix2 investigates the repeated 100 KiB single-paragraph sandbox timeout in native-ci 40158812108. Added real AppKit attribute-transaction/bounded-work regression before changing the styler; hosted macOS supplies the runtime loop. Retained claimed status, deadline and all existing acceptance checks.
 
 - 2026-10-25, GPT-6 / Codex API (mm-mdstyles): second-round core-checks 40158681570 still rejects the fixture's .string request. Third/final round uses AppKit's advertised writablePasteboardTypes for native copy negotiation and retains the same plain-string byte equality. No production behavior or scope changes.
