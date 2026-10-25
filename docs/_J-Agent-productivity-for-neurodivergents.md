@@ -4,6 +4,8 @@
 
 ### GPT-6 - Codex API (mm-speed)
 
+- First push `3ace8b5` / PR #14 passed all eight checks (native-ci 40183421967). Show-request p95 5.454 ms versus open-to-input 37.996 ms does not justify changing open behavior in this fixture. Direct native-string comparison p95 drops from 5.808 to 0.004 ms at 100 KiB; the editor candidate did not improve, indicating the foreign-string fallback. Adopted explicit contiguous UTF-8 materialisation for the adapter comparison, retaining generic fallback and byte-exact equality. Added real binding-echo sentinel/selection and canonical-Unicode restoration checks; existing input/undo/composition coverage remains. Second push will remeasure production behavior.
+
 - Read project/tracker/triage/domain guidance, CONTEXT, privacy ADR, capture self-test/editor/controller and existing timing evidence to preserve the requested performance-only scope. Applied cloud-runtime, diagnosing-bugs/root-cause and artifact-verification skills; environment-status tool and network-policy file are unavailable. Confirmed Linux lacks AppKit, and configured GitHub CLI works without inspecting secrets.
 - Downloaded latest-main `61eca6a` successful Mac run 40180636797 before changing code. Recorded raw synthetic baseline and percentile evidence. Native layout dominates huge-paragraph dispatch while the existing binding-echo benchmark adds 8–11 ms; added a benchmark-only contiguous comparison candidate and synchronous show-request measurement to distinguish justified optimisations. Created and claimed local ticket 27. Protected paths, tests/counts/deadlines and production behavior remain unchanged.
 

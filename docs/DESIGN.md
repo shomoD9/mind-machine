@@ -480,3 +480,5 @@ Portable parser tests cover prefixes, escaped/incomplete syntax, nested traits, 
 ## Capture speed measurement (ticket 27)
 
 The existing Capture baseline retains its open-to-input and per-key boundaries/counts. It additionally records synchronous `controller.send(.hotkey)` duration under `showRequest`, so activation/reload work can be distinguished from waiting for visible input during the animation. `CaptureTypingCostTests` compares the existing generic UTF-8 binding echo with a contiguous-byte candidate and prints independent byte-comparison timings; production source comparison is unchanged during measurement. [Evidence and before/after](verification/capture-speed/README.md).
+
+The Mac adapter now calls `MacMarkdownEditor.restoreIfNeeded` for binding echoes. It materialises bridged source strings as contiguous UTF-8 and compares their bytes in bulk. This avoids Debug generic byte iteration while retaining exact Unicode source equality and the existing marked-text restoration guard. It changes neither native editing nor publication timing. Native layout and the animation remain as measured; synchronous show p95 was only 5.454 ms in the empty-vault probe.
