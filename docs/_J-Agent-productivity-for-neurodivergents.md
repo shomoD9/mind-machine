@@ -2,6 +2,15 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### GPT-6 - Codex API (mm-recallshot)
+
+- Swift 6.2.1 syntax parsing passed for the only touched code file; the existing portable suite passed all 23 tests (0.856 s execution). Reviewed the complete self-test diff and protected-path scope. Publishing push round 1 and opening the requested PR with the PR-writing skill; native compile, accessibility interaction and actual PNG review remain hosted checks.
+
+- Read project/domain/tracker/triage instructions, CONTEXT, ADR 0001, DESIGN, ticket/spec records and Capture redesign screenshot evidence; claimed ticket 26 for the authorized populated Recall evidence. Applied cloud runtime and prove-it-works skills. Runtime status tooling and network-policy file are absent; used the configured Git CLI without reading credentials. Confirmed main includes PRs #10/#11 and this branch starts clean.
+- Read WorkspaceView, SearchPreview, VaultModel, VaultFile and the Mac controller/panel/self-test. Recorded actual row text bounds, bold highlighting, date/overdue behavior, checklist filtering, relevance/newest ordering and keyboard limits so the explanation follows the rendering and retrieval paths.
+- Added four clearly fake captures only inside the existing UUID self-test vault, after all performance/idle observations. Added model membership checks, real accessibility row counts, a press of the existing Open tasks switch and checked PNG writes through cacheDisplay. Kept empty screenshots and all original checks. Product code/layout, workflows, signing, entitlements, release pipeline and PRODUCT remain untouched. Local parsing and hosted artifact verification follow.
+
+
 ### GPT-6 - Codex API (mm-mdbase)
 
 - Re-read the saved prompt and clean git state after the reconnect continuation. Applied diagnosing-bugs/root-cause skills and retrieved actual failed logs plus the retained self-test artifact. The original command `gh run view 40131868749 --log-failed` shows “self-test did not finish” at the unchanged 120-second deadline during 10 KiB typing; no report-writing error occurred. All other native jobs passed. The direct failure evidence makes extra serialization hypotheses unnecessary.
