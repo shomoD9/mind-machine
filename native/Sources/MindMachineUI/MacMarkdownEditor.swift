@@ -2,7 +2,8 @@
  coordinator and builds its text view with makeScrollableEditor(). It presents
  Markdown through attributes while text storage and the Capture model retain
  literal source. SwiftPM Mac tests and the typing-cost benchmark drive the same
- factory and delegate. */
+ factory and delegate. MarkdownCaptureTextView forwards command keys to the
+ separate portable-plan adapter in MacMarkdownEditingCommands. */
 #if os(macOS)
 import AppKit
 import Darwin
@@ -11,6 +12,22 @@ import MindMachineCore
 /// Pasting into Capture always inserts source, regardless of clipboard styling.
 public final class MarkdownCaptureTextView: NSTextView {
     public override func paste(_ sender: Any?) { pasteAsPlainText(sender) }
+
+    // Only command keys enter planning; every other text-system action stays native.
+    public override func insertNewline(_ sender: Any?) {
+        if !MacMarkdownEditingCommands.apply(.newline, to: self) { super.insertNewline(sender) }
+    }
+    public override func insertTab(_ sender: Any?) {
+        if !MacMarkdownEditingCommands.apply(.indent, to: self) { super.insertTab(sender) }
+    }
+    public override func insertBacktab(_ sender: Any?) {
+        if !MacMarkdownEditingCommands.apply(.outdent, to: self) { super.insertBacktab(sender) }
+    }
+    public override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if MacMarkdownEditingCommands.isTaskToggle(event),
+           MacMarkdownEditingCommands.apply(.toggleTask, to: self) { return true }
+        return super.performKeyEquivalent(with: event)
+    }
 }
 
 @MainActor

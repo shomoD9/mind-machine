@@ -4,6 +4,8 @@
 
 ### GPT-6 - Codex API (mm-mdctx)
 
+- Continued PR #17 after ticket 4 / PR #16 merged. Read repository, domain/tracker/triage, CONTEXT and privacy ADR guidance; applied resolving-merge-conflicts and prove-it-works skills. Fetched origin and merged 278a905 into ade796b. Kept both journal histories and all context/command tests; the production editor merged additively with willProcessEditing and bounded context invalidation alongside command routing. Verified all ten merged Mac test bodies are the exact union of both parents, and all other test files remain byte-for-byte identical. All 48 portable Swift tests and 17 watchdog tests pass; Mac Swift parsing and whitespace checks pass. Reviewed both parent diffs and protected-path scope before publishing the merge; hosted verification will follow without merging the PR. Progress is appended to /tmp/mm-mdctx-result.md.
+
 - First hosted push 2171e99 compiled both apps and passed both native UI journeys plus sandbox self-test. Both SwiftPM lanes caught the unchanged ordinary-locality assertion `{8,13}` versus `{8,7}`; the portable and new actual-AppKit oracles passed. Read both failed logs before modifying code. Applied debugging/root-cause skills; Apple documents willProcessEditing before attribute fixing, whereas didProcessEditing sees repaired ranges. Record at the earlier callback, retain styling at textDidChange and preserve all assertions/budgets. Second push will test that hypothesis; no instrumentation or test weakening.
 
 - Committed the failing split/join tests before implementation: LF at offset 4 in `**bold**` left bold/marker ink on the right fragment and returned `{0,5}` instead of `{0,9}`. Added a new pure core invalidator and changed one Mac call; right-endpoint inclusion fixes splits while retaining paragraph locality, source bytes and the 8,192-unit cap.
@@ -12,6 +14,17 @@
 
 - Read the full Markdown research and line-state/ticket plan, repository instructions, CONTEXT, agent tracker/domain/triage guidance, DESIGN, privacy ADR and tickets 25/26 to establish scope and existing contracts. Checked all origin ticket paths; claimed 29 because 27 is merged and 28 is reserved for editing commands. Work stays in md-context-invalidation. Runtime status tooling/network snapshot is absent; no secrets inspected.
 - Applied TDD at the user-approved portable invalidation/style seam and artifact verification. Inspected the line-local parser and bounded direct-storage discovery; investigate a newline split that omits the right paragraph. Retain the current subset because fence/reference context requires new parser state/global resolution and a policy for propagation beyond the fixed synchronous cap. No asynchronous parser is planned.
+### GPT-6 - Codex API (mm-mdcmds)
+
+- Read passing core-checks 40199148582 logs: 63 main-package tests (one pre-existing skip), 35 Pill tests and every deterministic gate passed, including both new AppKit command tests. Native-ci 40199148608 passed Mac/iOS builds, sandbox and both UI jobs; only its unchanged storage benchmark failed. Downloaded the real sandbox artifact: no failed checks, TextKit 2 throughout, draw p95 3.481/3.657/5.382 ms at 1/10/100 KiB and 53.465 ms for the huge paragraph. Recorded the existing huge-paragraph 33 ms budget miss without claiming a speedup. Publishing the second checkpoint with shortcut routing confined to key equivalents.
+
+- Opened PR #16 and watched the first hosted round. Mac app build/sandbox self-test and both Linux checks passed. Read native job 121186382375’s failed log: the unchanged Release durable-append test hit 16.033708 ms against 12 ms before editor tests; no budget changes. Self-review removed the redundant keyDown fallback so ordinary keys do not acquire a new hook, and changed the shortcut test to enter through the window’s real key-equivalent routing. Separate core-checks/runtime evidence is pending.
+
+- Merged origin/main after PR #14 landed. Applied the merge-conflict skill to retain both DESIGN sections and both journal entries; native files merged additively, preserving contiguous-byte binding comparison and its tests. Re-ran portable tests and syntax/whitespace checks before publishing the first hosted checkpoint.
+
+- Wrote the portable tests before implementing command behavior. A nil-plan scaffold failed the first bullet continuation (`XCTUnwrap` expected a plan); the remaining command cases then failed with 20 assertions before implementation. Added a pure UTF-16 edit planner, separate AppKit executor and small additive view hooks. Nine command tests and all 39 Linux tests pass; Mac sources parse locally but require AppKit CI to compile/run. Added actual native undo/redo, marked-input, shortcut and selection checks without touching timing tests. Updated DESIGN to record the command boundary and chosen Cmd-Shift-Return shortcut.
+
+- Read the complete Markdown editor research and repo/domain/tracker/triage/ADR/design guidance, inspected native text handling and existing tests, fetched origin and scanned remote ticket claims to reserve 28 after capture-speed’s 27. Applying TDD at the portable command-plan and real AppKit undo boundaries specified by the user. Work stays in this worktree; new logic will live in new files to limit overlap with PR #14.
 
 ### GPT-6 - Codex API (mm-speed)
 
