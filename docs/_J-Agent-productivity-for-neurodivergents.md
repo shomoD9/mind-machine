@@ -1,5 +1,11 @@
 # Agent journal — productivity-for-neurodivergents
 
+## 2026-10-26 - GPT-6 - Codex API (mm-ratchet)
+
+- All eight hosted checks at ca001b2 finished successfully, including all five native-ci jobs and core-checks. Downloaded the second actual Release artifact: query/save p95 4.026/2.337 ms, both pass. Reviewed implementation/diff and mechanically compared original fixed-budget statements with main; all remain, protected-path diff is empty, workload formulas/counts are unchanged. Resolved ticket 31 with acceptance evidence. Publishing this evidence-only update and watching its checks through settlement; final PR/result report will record the final head without merging.
+- Opened PR #20, `Performance ratchet: fail CI on slowdowns versus main`, at ca001b2 and watched hosted checks with gh. Both fast-core events passed. Downloaded the successful core-checks 40220928544 artifact: actual Release query/save p95 3.499/2.298 ms; keyboard medians snapshot 8.859 ms, first Recall 3.874 ms, append p95 2.855 ms, RSS 10.688 MiB. All ratchet comparisons and existing gates passed. Tightened the initial uncommitted snapshot/RSS allowances to 3 ms/1 MiB before publishing, and replayed both main process artifacts successfully to retain useful detection below fixed caps.
+- Downloaded native-ci 40220928728's successful sandbox self-test artifact and inspected the actual JSON/checks/stdout. Recall dispatch/letter/cards p95s were 5.309/26.280/59.263 ms, every ratchet passed, and the failure list was empty. The app compiled against the new shared core on macOS. Remaining package/iOS/UI checks were queued; continue watching before final completion. Protected-path diff is empty and all fixed-budget assertions/sample counts remain.
+
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
 ### GPT-6 - Codex API (mm-ratchet)

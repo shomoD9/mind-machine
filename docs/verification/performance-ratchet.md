@@ -34,4 +34,6 @@ Preceding main `12f53bd` ([native-ci 40211764426](https://github.com/shomoD9/min
 
 ## Prove a deliberate regression
 
+PR #20's implementation commit `ca001b2` passed all eight hosted checks: [native-ci 40220928728](https://github.com/shomoD9/mind-machine/actions/runs/40220928728) and [core-checks 40220928544](https://github.com/shomoD9/mind-machine/actions/runs/40220928544), plus both Linux events. Actual query/save p95s were 4.026/2.337 ms (native-ci) and 3.499/2.298 ms (core-checks). Keyboard snapshot/append/RSS medians were 8.859 ms / 2.855 ms / 10.688 MiB. Mac Recall letter/cards p95s were 26.280/59.263 ms; the self-test failure list was empty. All real ratchet observations passed, without retries or margin changes after publishing.
+
 `swift test --package-path native --filter PerformanceRatchetTests` calls the actual gate with 6 ms query p95 and 7 ms save p95, separately. Both pass the existing 10/12 ms budgets; both throw `MM_RATCHET FAIL` against this baseline. Tests also drive each metric independently past its ceiling and check the inclusive noise boundary, missing/nonfinite data, and one versus two slow keyboard processes. They exercise comparisons on Linux without claiming Linux performance equivalence. Hosted macOS supplies the actual timing observations through the unchanged existing workloads.
