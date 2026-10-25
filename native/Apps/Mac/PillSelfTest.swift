@@ -198,7 +198,6 @@ enum PillSelfTest {
             check("reserved third slot is not selectable", controller.state.phase == .expanded(.recall))
             await sleep(0.15)
             snapshot("pill-expanded-recall.png")
-            await recallCards()
             _ = panel.performKeyEquivalent(with: keyEvent(code: 18, characters: "1", flags: .command))
             check("Cmd-1 switches back to Capture", controller.state.phase == .expanded(.capture) && model.mode == 0)
             check("capture draft survived the tab switch", model.draft.contains("selftest note"))
@@ -319,6 +318,9 @@ enum PillSelfTest {
             // Run after the idle check so typing/layout/spelling work cannot
             // contaminate that pre-existing smoke-test observation.
             report["captureBaseline"] = await captureBaseline(coldOnly: false)
+            // Populated Recall runs last, so its sample notes and grid work cannot change the window,
+            // animation, idle or Capture baseline observations above.
+            await recallCards()
             finish()
         }
 
@@ -361,13 +363,24 @@ enum PillSelfTest {
             return notes
         }
 
-        /// Puts the caret back in the Recall query (after the reader replaced it) and returns its field editor.
+        /// Puts the caret in the Recall query (after a tab switch or the reader) and returns its field editor,
+        /// or nil when the query did not take focus.
         func recallEditor() async -> NSTextView? {
             controller.focusEditor(for: .recall)
-            _ = await wait { [self] in
+            let focused = await wait { [self] in
                 PillFocus.editor(for: .recall, in: controller.root.content).map(controller.holdsFocus) ?? false
             }
-            return panel.firstResponder as? NSTextView
+            return focused == nil ? nil : panel.firstResponder as? NSTextView
+        }
+
+        /// Replaces the query through the field as a person would: select it, delete, then type. The empty
+        /// query renders before typing starts, as it would between real keys, so the grid sees a new query.
+        func replaceQuery(_ editor: NSTextView, with text: String) async {
+            editor.selectAll(nil)
+            press(.delete)
+            await sleep(0.15)
+            typeKeys(text)
+            await sleep(0.3)
         }
 
         /// Virtual key codes for the letters the Recall step types, so each event looks like a real key.
@@ -421,19 +434,31 @@ enum PillSelfTest {
             return await recallEditor()
         }
 
+        /// Opens Recall with transitions made instant (they are measured earlier), runs the card checks,
+        /// then clears the query and collapses back to the pill.
+        func recallCards() async {
+            controller.reduceMotionOverride = true
+            _ = await settle { controller.send(.hotkey) }
+            _ = panel.performKeyEquivalent(with: keyEvent(code: 19, characters: "2", flags: .command))
+            check("Recall opens for the sample notes", controller.state.phase == .expanded(.recall))
+            await recallCardChecks()
+            controller.model.query = ""
+            controller.model.selectedCapture = nil
+            _ = await settle { controller.send(.hotkey) }
+            check("pill collapses after the Recall card checks", controller.state.phase == .collapsed)
+            controller.reduceMotionOverride = nil
+        }
+
         /// Populated Recall, driven through the real query field and its key handling.
         /// Keys go through the window, the field editor and the field's delegate exactly as typed keys do.
-        func recallCards() async {
+        func recallCardChecks() async {
             let model = controller.model
             guard let vaultURL else { check("self-test vault available for sample notes", false); return }
             let notes = seedSampleNotes(at: vaultURL)
             model.reload()
             check("sample notes saved for Recall", notes.count == 37)
             guard let editor = await recallEditor() else { check("Recall query focused for sample notes", false); return }
-            editor.selectAll(nil)
-            press(.delete)
-            typeKeys("garden")
-            await sleep(0.3)
+            await replaceQuery(editor, with: "garden")
             let hits = model.searchHits()
             let gardenNotes = notes.filter { $0.text.lowercased().contains("garden") }.map(\.id)
             check("Recall query finds every sample garden note", model.query == "garden" && Set(hits.map(\.capture.id)) == Set(gardenNotes))
@@ -459,9 +484,7 @@ enum PillSelfTest {
             // A new query clears the selection; then Up and Right move the caret, not a card, and Return
             // opens the first match.
             guard let field = await backToRecall() else { check("Recall query refocused after the reader", false); return }
-            press(.delete)
-            typeKeys("garden")
-            await sleep(0.15)
+            await replaceQuery(field, with: "garden")
             press(.up, .right)
             check("with no card selected, Up and Right move the caret in the query",
                   field.selectedRange() == NSRange(location: 1, length: 0) && model.query == "garden")
@@ -472,8 +495,7 @@ enum PillSelfTest {
             // "sample" prefix matches all of them. Dispatch runs the binding and SQLite search; the forced
             // layout and display run SwiftUI's grid update and draw. The turn adds the next run-loop pass.
             guard let typing = await backToRecall() else { check("Recall query refocused after the reader", false); return }
-            press(.delete)
-            await sleep(0.15)
+            await replaceQuery(typing, with: "")
             check("an empty query shows a full page of cards", model.searchHits().count == 30)
             var dispatch: [Double] = [], draw: [Double] = [], turns: [Double] = []
             let content = controller.root.content
@@ -499,8 +521,6 @@ enum PillSelfTest {
                                            "dispatch": distribution(dispatch), "dispatchToDrawProxy": drawn,
                                            "keyTurnDiagnostic": distribution(turns)]
             check("Recall typing with a full page of cards draws within 33 ms p95", drawn["withinP95Budget"] as? Bool == true)
-            model.query = ""
-            model.selectedCapture = nil
         }
 
         /// Nearest-rank percentiles retain tails, including every >100 ms stall.
