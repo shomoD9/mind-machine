@@ -121,11 +121,12 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
         restyle(editor)
     }
 
-    public func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
+    public func textStorage(_ textStorage: NSTextStorage, willProcessEditing editedMask: NSTextStorageEditActions,
                             range: NSRange, changeInLength delta: Int) {
         guard !applying, editedMask.contains(.editedCharacters) else { return }
-        // AppKit reports a range in the new UTF-16 source. A newline deletion
-        // naturally includes the joined paragraph when expanded below.
+        // Record character edits before native attribute fixing can widen the
+        // range through an existing separator. Presentation still waits for
+        // textDidChange; the portable invalidator includes both sides of splits.
         if let previous = editedRange { editedRange = NSUnionRange(previous, range) }
         else { editedRange = range }
     }
@@ -155,7 +156,7 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
         // and asking for paragraphRange can scan/copy an arbitrarily large note
         // before a parser cap has any chance to reject it.
         let source = storage.mutableString
-        guard let range = MarkdownStyleRange.affected(by: edit, length: storage.length,
+        guard let range = MarkdownContextInvalidation.affected(by: edit, length: storage.length,
                                                       characterAt: { source.character(at: $0) }) else {
             lastRestyledRange = NSRange(location: min(edit.location, storage.length), length: 0)
             return
