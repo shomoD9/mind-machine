@@ -492,12 +492,14 @@ enum PillSelfTest {
             check("Return with no card selected opens the first match", model.selectedCapture == id(0))
 
             // Typing cost with a full page of cards: an empty query shows the 30 newest notes and each
-            // "sample" prefix matches all of them. Dispatch runs the binding and SQLite search; the forced
-            // layout and display run SwiftUI's grid update and draw. The turn adds the next run-loop pass.
+            // "sample" prefix matches all of them. Dispatch runs the field and its binding; the forced
+            // layout and display draw the typed letter, which is the typing latency. The grid takes the
+            // new query on the next main-queue turn (WorkspaceView.swift), so `cards` waits for that turn,
+            // then lays out and draws again: the time until the cards on screen match the key.
             guard let typing = await backToRecall() else { check("Recall query refocused after the reader", false); return }
             await replaceQuery(typing, with: "")
             check("an empty query shows a full page of cards", model.searchHits().count == 30)
-            var dispatch: [Double] = [], draw: [Double] = [], turns: [Double] = []
+            var dispatch: [Double] = [], draw: [Double] = [], cards: [Double] = []
             let content = controller.root.content
             for _ in 0..<4 {
                 // Six letters, then six deletes back to the empty query.
@@ -509,18 +511,26 @@ enum PillSelfTest {
                     content.layoutSubtreeIfNeeded()
                     content.displayIfNeeded()
                     draw.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
-                    await sleep(0.001)
+                    // Queued after the grid's update, so it resumes once that update has run.
+                    await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
                     content.layoutSubtreeIfNeeded()
                     content.displayIfNeeded()
-                    turns.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                    cards.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                    // Pacing between keys, outside every measured interval.
+                    await sleep(0.001)
                 }
             }
             check("Recall typing keeps every key", model.query.isEmpty && typing.string.isEmpty && dispatch.count == 48)
             let drawn = distribution(draw, p95: 33)
+            // 100 ms is the usual limit for a response to feel immediate; the cards answer the query,
+            // while the letter itself is held to the 33 ms typing budget above.
+            let shown = distribution(cards, p95: 100)
             report["recallCardsTyping"] = ["keys": dispatch.count, "resultsPerKey": 30,
                                            "dispatch": distribution(dispatch), "dispatchToDrawProxy": drawn,
-                                           "keyTurnDiagnostic": distribution(turns)]
-            check("Recall typing with a full page of cards draws within 33 ms p95", drawn["withinP95Budget"] as? Bool == true)
+                                           "dispatchToCardsDrawn": shown]
+            check("Recall typing with a full page of cards draws the typed letter within 33 ms p95",
+                  drawn["withinP95Budget"] as? Bool == true)
+            check("Recall cards redraw for each key within 100 ms p95", shown["withinP95Budget"] as? Bool == true)
         }
 
         /// Nearest-rank percentiles retain tails, including every >100 ms stall.

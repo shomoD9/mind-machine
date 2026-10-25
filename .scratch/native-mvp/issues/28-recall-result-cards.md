@@ -18,3 +18,4 @@ Founder request (2026-10-25): "have cards instead of list like line objects when
 ## Comments
 
 - 2026-10-25, Claude Opus 5.5 / Claude Code (mm-cards): Claimed. Read WorkspaceView, SearchPreview, VaultFile.search, PillController/PillPanel key handling, PillSelfTest, PillAcceptanceTests, native-ci and DESIGN's pill sections. Main's Recall had no arrow-key movement before this ticket: the SwiftUI query field ignored arrows and Return. This ticket adds both. The iPhone companion shares WorkspaceView and keeps its rows, because the request is for the Mac pill and the phone is narrow.
+- 2026-10-25, Claude Opus 5.5 / Claude Code (mm-cards): Round 2 measured the typed letter at 41.9 ms p95 with a full page of cards: SwiftUI rebuilt the grid in the letter's frame. Cards are now `Equatable` and the Mac grid follows the query one main-queue turn later. The self-test gates the letter at 33 ms p95 and the cards' redraw at 100 ms p95.

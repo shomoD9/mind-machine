@@ -8,7 +8,8 @@
  bottom of every mode: a small sync glyph on the left (SyncIndicator.swift decides how much it says and
  it opens the sync setup sheet), the latest acknowledgement, and in Capture the one prominent action,
  Save, with its shortcut. Recall shows matches as RecallCards two wide on the Mac (RecallCards.swift, with
- the grid rules in RecallGrid.swift) and as rows on the iPhone. PillAcceptanceTests and PillSelfTest
+ the grid rules in RecallGrid.swift) and as rows on the iPhone. The Mac grid redraws one run-loop turn
+ after the query field, so the grid's layout never delays the typed letter. PillAcceptanceTests and PillSelfTest
  drive these controls by identifier. */
 import SwiftUI
 import MindMachineCore
@@ -18,6 +19,9 @@ public struct WorkspaceView: View {
     @State private var openTasks = false
     /// The Recall card the keyboard has selected, kept by note so a reload that reorders results keeps it.
     @State private var recallSelection: UUID?
+    /// The query the Mac Recall grid is showing. It follows `model.query` one run-loop turn later, so a
+    /// keystroke's frame draws only the typed letter and the grid redraws in the next frame.
+    @State private var shownQuery = ""
     @State private var showSettings = false
     @State private var showSyncSetup = false
     private let showsHeader: Bool
@@ -161,8 +165,13 @@ public struct WorkspaceView: View {
     // hairline-separated rows, which suit its narrow width.
     private var recall: some View {
         // One SQLite search per render serves the results, the empty-state line and the keyboard;
-        // the body re-runs on every keystroke, timer reload and sync-status change.
+        // the body re-runs on every keystroke, timer reload and sync-status change. On the Mac it searches
+        // the shown query, so the arrow keys and Return act on the cards that are on screen.
+        #if os(macOS)
+        let hits = model.searchHits(openTasks: openTasks, query: shownQuery)
+        #else
         let hits = model.searchHits(openTasks: openTasks)
+        #endif
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Greyscale.inkTertiary.color)
@@ -206,6 +215,8 @@ public struct WorkspaceView: View {
                                     recallSelection = id
                                     model.selectedCapture = id
                                 }
+                                // Skips rebuilding cards whose text, date and state are unchanged.
+                                .equatable()
                                 .id(id)
                             }
                         }
@@ -241,7 +252,16 @@ public struct WorkspaceView: View {
             }
         }
         // A new query or filter is a new result set, so the selection starts again from the query.
-        .onChange(of: model.query) { _, _ in clearSelection() }
+        // The grid takes the new query after this frame has drawn the typed letter. The block reads the
+        // query when it runs, so several keys typed within one turn produce one grid update.
+        .onChange(of: model.query) { _, _ in
+            clearSelection()
+            #if os(macOS)
+            DispatchQueue.main.async { if shownQuery != model.query { shownQuery = model.query } }
+            #endif
+        }
+        // The query can change while Recall is off screen (another mode, or the pill collapsed).
+        .onAppear { shownQuery = model.query }
         .onChange(of: openTasks) { _, _ in clearSelection() }
     }
 

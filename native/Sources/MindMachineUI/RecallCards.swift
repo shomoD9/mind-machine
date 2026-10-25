@@ -1,6 +1,6 @@
 /* The Mac Recall result card and the Mac query field that moves a selection through the cards.
  WorkspaceView (WorkspaceView.swift) lays RecallCards out two wide in a LazyVGrid when Recall has
- matches, and uses RecallQueryField in place of a SwiftUI TextField on the Mac so the arrow keys and
+ matches, compares them with `.equatable()` so unchanged cards are not rebuilt, and uses RecallQueryField in place of a SwiftUI TextField on the Mac so the arrow keys and
  Return reach the grid while the caret stays in the query. RecallGrid.swift holds the movement and
  title/body rules. PillAcceptanceTests and PillSelfTest find the field as `recall-query` and each
  card as `capture-result`.
@@ -65,6 +65,17 @@ struct RecallCard: View {
         .onHover { hovering = $0 }
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityIdentifier("capture-result")
+    }
+}
+
+/// A card is equal when everything it draws is equal. `open` is left out: it only names the card's note,
+/// which the id already compares. Without this, the closure would make SwiftUI rebuild every visible card
+/// on every update of the Recall page, including the ones a keystroke causes before the results change.
+extension RecallCard: Equatable {
+    nonisolated static func == (lhs: RecallCard, rhs: RecallCard) -> Bool {
+        lhs.hit.capture.id == rhs.hit.capture.id && lhs.hit.capture.createdAt == rhs.hit.capture.createdAt
+            && lhs.hit.highlightedText == rhs.hit.highlightedText
+            && lhs.selected == rhs.selected && lhs.overdue == rhs.overdue
     }
 }
 
