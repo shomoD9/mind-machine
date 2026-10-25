@@ -2,6 +2,10 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### GPT-6 - Codex API (mm-mdcmds)
+
+- Read the complete Markdown editor research and repo/domain/tracker/triage/ADR/design guidance, inspected native text handling and existing tests, fetched origin and scanned remote ticket claims to reserve 28 after capture-speed’s 27. Applying TDD at the portable command-plan and real AppKit undo boundaries specified by the user. Work stays in this worktree; new logic will live in new files to limit overlap with PR #14.
+
 ### Claude Opus 5.5 - Claude Code (mm-mdstyles)
 
 - Took over PR #12 after three failed Codex rounds. Read the failed native-ci logs for 0f48c1b, 4e39782, d0b03c7 and f80e5e1, the PR diff and the earlier result files. Compared self-test wall time across 25 native-ci runs: before ticket 1's baseline the sandbox self-test took 22–27 s; since PR #11 merged, main takes 119–130 s against the 120-second kill, and PR #11's own branch timed out once. The PR's runs die inside the 100 KiB one-paragraph fixture (0f48c1b reaches key 50; 4e39782 reaches key 1), whose measured styling is 0.2–0.4 ms but whose dispatch rose from main's 34 ms to 37–43 ms. Root cause: the deadline is already spent on main, and the PR adds per-key cost in that fixture outside the styler. The swift test job on 0f48c1b failed only at an artifact upload (ECONNRESET) before its test step ran.
