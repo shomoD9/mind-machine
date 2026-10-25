@@ -1,7 +1,8 @@
 /* CI self-test for the floating pill. Launched with "--pill-selftest <result.json>" (see MindMachineMac.swift),
  it drives the real window through expand, tab switching, typing, Esc, click-away, hotkey toggling,
  hide/show, dragging with persisted position, Reduce Motion and repeated cycles, records pass/fail checks and
- timings, writes PNG snapshots (including the empty Capture page with its prompt) next to the result file,
+ timings, writes PNG snapshots (including empty Capture and populated Recall with fake sample notes)
+ next to the result file,
  and exits with status 1 if any check failed.
  The native-ci workflow (mac-build job) runs it on a GitHub macOS runner and uploads the output.
  Frame sampling observes actual window resize notifications so actor scheduling cannot
@@ -12,6 +13,7 @@
 // and logs process-elapsed seconds plus whole key turns (key, draw and the
 // following run-loop turn) so a CI deadline overrun names the phase that grew.
 import AppKit
+import ApplicationServices
 import MindMachinePill
 import MindMachineUI
 import os.signpost
@@ -311,7 +313,144 @@ enum PillSelfTest {
             // Run after the idle check so typing/layout/spelling work cannot
             // contaminate that pre-existing smoke-test observation.
             report["captureBaseline"] = await captureBaseline(coldOnly: false)
+            // Seed only after every performance observation, so sample storage
+            // and Recall rendering cannot change the existing baseline workload.
+            await populatedRecallSnapshots()
             finish()
+        }
+
+        /// Exercise the unchanged shared Recall view in the UUID throwaway vault
+        /// created by MindMachineMac's --pill-selftest path (sync/notifications off).
+        func populatedRecallSnapshots() async {
+            let model = controller.model
+            check("Recall sample vault starts empty", model.vault.captures.isEmpty)
+            guard model.vault.captures.isEmpty else { return }
+            let samples = [
+                "[Sample] Trip plan: a long weekend in Kyoto.\n☐ Book the riverside guesthouse.\n☑ Save the train route.",
+                "[Sample] Book idea: a field guide to small adventures.\nPlan a chapter about getting lost on purpose.",
+                "[Sample] Tax reminder: plan the paperwork before Friday.\n☐ Gather the freelance invoices.\n☑ Find last year's return.",
+                "[Sample] Meeting note: the studio agreed on a quieter launch.\nSend Mira the revised sketch after lunch."
+            ]
+            for text in samples {
+                model.draft = text
+                model.richDraft = nil
+                model.saveCapture()
+            }
+            check("four fake Recall samples saved", model.error == nil && model.vault.captures.count == 4)
+            model.offeredCapture = nil
+            model.notice = nil
+            if !controller.state.phase.isExpanded {
+                _ = await settle { controller.send(.clickPill) }
+            }
+            controller.send(.select(.recall))
+            model.query = "plan"
+            check("sample clue matches exactly three notes", Set(model.results().map(\.text)) == Set(samples.prefix(3)))
+            check("sample clue matches two unfinished checklists", Set(model.results(openTasks: true).map(\.text)) == Set([samples[0], samples[2]]))
+
+            // SwiftUI builds accessibility lazily for a client. Record the mounted
+            // tree before/after a real request, so missing nodes remain diagnosable.
+            // The request must leave MainActor free to service AppKit's reply.
+            refreshRecallDisplay()
+            report["recallAccessibilityBeforeClientRequest"] = recallAccessibilitySummary()
+            let clientStatus = await Task.detached {
+                let application = AXUIElementCreateApplication(ProcessInfo.processInfo.processIdentifier)
+                AXUIElementSetMessagingTimeout(application, 1)
+                var windows: CFTypeRef?
+                return AXUIElementCopyAttributeValue(application, kAXWindowsAttribute as CFString, &windows).rawValue
+            }.value
+            report["recallAccessibilityClientStatus"] = clientStatus
+
+            // Count real row buttons, excluding any descendants inheriting their
+            // identifier. Read the live tree on every turn after layout/draw.
+            let populated = await wait { self.renderedRecallRows().count == 3 }
+            check("three Recall rows rendered", populated != nil)
+            report["recallSampleQuery"] = model.query
+            report["recallSampleRows"] = renderedRecallRows().compactMap { accessibilityAttribute(.title, of: $0) as? String }
+            report["recallAccessibilityPopulated"] = recallAccessibilitySummary()
+            check("populated Recall PNG saved", snapshot("pill-expanded-recall-populated.png"))
+
+            // Press the existing switch through its in-process accessibility
+            // action. No test binding or layout hook is added to WorkspaceView.
+            let toggle = accessibilityElements("open-tasks-toggle").first
+            check("Open tasks switch pressed", pressAccessibilityElement(toggle))
+            let filtered = await wait {
+                self.accessibilityElements("open-tasks-toggle").first.map {
+                    (self.accessibilityAttribute(.value, of: $0) as? NSNumber)?.boolValue == true
+                } == true
+                    && self.renderedRecallRows().count == 2
+            }
+            check("Open tasks shows two Recall rows", filtered != nil)
+            report["recallSampleTaskRows"] = renderedRecallRows().compactMap { accessibilityAttribute(.title, of: $0) as? String }
+            report["recallAccessibilityFiltered"] = recallAccessibilitySummary()
+            check("Open tasks Recall PNG saved", snapshot("pill-expanded-recall-populated-tasks.png"))
+        }
+
+        /// Flush pending SwiftUI layout and AppKit drawing before observing or
+        /// caching Recall. The switch changes local @State on a later UI turn.
+        func refreshRecallDisplay() {
+            controller.root.layoutSubtreeIfNeeded()
+            controller.root.content.layoutSubtreeIfNeeded()
+            controller.root.displayIfNeeded()
+        }
+
+        /// SwiftUI virtual nodes implement individual public Objective-C getters
+        /// without adopting the full protocol or advertising legacy attributes.
+        /// Optional dispatch tests the actual getter instead of protocol membership.
+        func accessibilityAttribute(_ attribute: NSAccessibility.Attribute, of object: AnyObject) -> Any? {
+            switch attribute {
+            case .identifier: return object.accessibilityIdentifier?()
+            case .children: return object.accessibilityChildren?()
+            case .title: return object.accessibilityLabel?()
+            case .value: return object.accessibilityValue?()
+            case .role: return object.accessibilityRole?()
+            default: return nil
+            }
+        }
+
+        /// Dispatch the public press selector on the real switch, then require
+        /// its changed value and the two rendered rows in the calling test.
+        func pressAccessibilityElement(_ object: AnyObject?) -> Bool {
+            object?.accessibilityPerformPress?() ?? false
+        }
+
+        /// Retain the full tree during traversal so virtual-node addresses cannot
+        /// be reused. Ignored native containers still expose their view subtrees.
+        func accessibilityTree() -> [AnyObject] {
+            var pending: [AnyObject] = [controller.root]
+            var visited = Set<ObjectIdentifier>()
+            var retained: [AnyObject] = []
+            while let object = pending.popLast() {
+                guard visited.insert(ObjectIdentifier(object)).inserted else { continue }
+                retained.append(object)
+                if let children = accessibilityAttribute(.children, of: object) as? [AnyObject] {
+                    pending.append(contentsOf: children)
+                }
+                if let view = object as? NSView { pending.append(contentsOf: view.subviews) }
+            }
+            return retained
+        }
+
+        func accessibilityElements(_ identifier: String) -> [AnyObject] {
+            accessibilityTree().filter { accessibilityAttribute(.identifier, of: $0) as? String == identifier }
+        }
+
+        func renderedRecallRows() -> [AnyObject] {
+            refreshRecallDisplay()
+            return accessibilityElements("capture-result").filter {
+                accessibilityAttribute(.role, of: $0) as? NSAccessibility.Role == .button
+            }
+        }
+
+        /// Keep the fixture's actual roles, identifiers and values in result.json;
+        /// a future observation failure should identify the missing node or getter.
+        func recallAccessibilitySummary() -> [[String: String]] {
+            accessibilityTree().map { object in
+                ["class": String(describing: type(of: object)),
+                 "identifier": accessibilityAttribute(.identifier, of: object) as? String ?? "",
+                 "role": (accessibilityAttribute(.role, of: object) as? NSAccessibility.Role)?.rawValue ?? "",
+                 "label": accessibilityAttribute(.title, of: object) as? String ?? "",
+                 "value": accessibilityAttribute(.value, of: object).map { String(describing: $0) } ?? ""]
+            }
         }
 
         /// Nearest-rank percentiles retain tails, including every >100 ms stall.
@@ -608,12 +747,17 @@ enum PillSelfTest {
         }
 
         /// Renders the window's own view tree to a PNG beside the result file (no Screen Recording permission needed).
-        func snapshot(_ name: String) {
+        @discardableResult
+        func snapshot(_ name: String) -> Bool {
             let view = controller.root
-            guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+            guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return false }
             view.cacheDisplay(in: view.bounds, to: rep)
             let directory = URL(fileURLWithPath: outputPath).deletingLastPathComponent()
-            try? rep.representation(using: .png, properties: [:])?.write(to: directory.appendingPathComponent(name))
+            guard let data = rep.representation(using: .png, properties: [:]) else { return false }
+            do {
+                try data.write(to: directory.appendingPathComponent(name))
+                return true
+            } catch { return false }
         }
     }
 }
