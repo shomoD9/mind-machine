@@ -134,7 +134,7 @@ final class MarkdownPreviewComparisonTests: XCTestCase {
         XCTAssertEqual(revealed.minY, muted.minY, accuracy: 1)
         XCTAssertEqual(editor.selectedRange(), NSRange(location: label, length: 0))
         XCTAssertEqual(Data(editor.string.utf8), Data(source.utf8))
-        FileHandle.standardOutput.write(Data("MM_PREVIEW_REJECTION gate=wrapping mutedTailY=\(muted.minY) hiddenTailY=\(hidden.minY) revealedTailY=\(revealed.minY) decision=retain-muted\n".utf8))
+        emit("MM_PREVIEW_REJECTION gate=wrapping mutedTailY=\(muted.minY) hiddenTailY=\(hidden.minY) revealedTailY=\(revealed.minY) decision=retain-muted")
     }
 
     func testCandidateRetainsSourceSelectionUndoAndComposition() throws {
@@ -146,8 +146,7 @@ final class MarkdownPreviewComparisonTests: XCTestCase {
         let undo = try XCTUnwrap(editor.undoManager)
         undo.removeAllActions()
         undo.groupsByEvent = false
-        // Direct test calls share no AppKit event boundary. Supply the group
-        // that the real event loop creates, retaining the single-undo assertion.
+        // Direct insertText has no physical event to create its undo group.
         undo.beginUndoGrouping()
         editor.insertText("!", replacementRange: editor.selectedRange())
         undo.endUndoGrouping()
@@ -181,6 +180,12 @@ final class MarkdownPreviewComparisonTests: XCTestCase {
 
     // Raw ordered samples are retained in hosted test logs. Nearest-rank tails
     // describe this diagnostic sample; missing hardware gates cannot pass from it.
+    private func emit(_ line: String) {
+        // Write each JSON line before XCTest's stderr progress can split a
+        // buffered stdout line, so reviewers can parse every ordered sample.
+        FileHandle.standardOutput.write(Data((line + "\n").utf8))
+    }
+
     private func report(_ samples: [Double], pass: Int, variant: String, fixture: String, metric: String) throws {
         let sorted = samples.sorted()
         func percentile(_ p: Double) -> Double { sorted[max(0, Int(ceil(Double(sorted.count) * p)) - 1)] }
@@ -188,10 +193,7 @@ final class MarkdownPreviewComparisonTests: XCTestCase {
             "count": samples.count, "p50Ms": percentile(0.5), "p95Ms": percentile(0.95),
             "p99Ms": percentile(0.99), "maxMs": sorted.last!, "over100Ms": samples.filter { $0 > 100 }.count,
             "samplesMs": samples, "profile": "shared-Mac-Debug-100-keys-diagnostic"]
-        // One write avoids buffered print fragments interleaving with XCTest's
-        // stderr lines, preserving machine-readable raw evidence in CI logs.
-        let json = String(decoding: try JSONSerialization.data(withJSONObject: row, options: [.sortedKeys]), as: UTF8.self)
-        FileHandle.standardOutput.write(Data(("MM_PREVIEW " + json + "\n").utf8))
+        emit("MM_PREVIEW " + String(decoding: try JSONSerialization.data(withJSONObject: row, options: [.sortedKeys]), as: UTF8.self))
     }
 
     func testPairedTypingAndPasteDiagnostics() throws {
