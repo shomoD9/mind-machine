@@ -104,12 +104,12 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
         restyle(editor)
     }
 
-    public func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
+    public func textStorage(_ textStorage: NSTextStorage, willProcessEditing editedMask: NSTextStorageEditActions,
                             range: NSRange, changeInLength delta: Int) {
         guard !applying, editedMask.contains(.editedCharacters) else { return }
-        // AppKit reports a range in the new UTF-16 source. A newline deletion
-        // naturally includes the joined paragraph. The portable invalidator also
-        // includes the right side of a split ending at an inserted separator.
+        // Record character edits before native attribute fixing can widen the
+        // range through an existing separator. Presentation still waits for
+        // textDidChange; the portable invalidator includes both sides of splits.
         if let previous = editedRange { editedRange = NSUnionRange(previous, range) }
         else { editedRange = range }
     }
