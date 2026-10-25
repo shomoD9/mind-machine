@@ -1,7 +1,7 @@
 # 26: Populated Recall self-test snapshots
 
-Status: needs-info
-Blocked by: final authorized push still fails the sandbox self-test's accessibility observations; two-push limit exhausted
+Status: claimed
+Blocked by: none; renewed authorization allows up to three push rounds and 45 minutes of CI polling
 
 Capture the existing Mac Recall listing with clearly fake sample notes after the Capture redesign (PR #10), using only the isolated self-test and existing CI artifact upload.
 
@@ -12,6 +12,8 @@ Capture the existing Mac Recall listing with clearly fake sample notes after the
 - [x] Copy PNGs to `/workspace/recall-populated.png` and `/workspace/recall-populated-tasks.png`, and write `/tmp/mm-recallshot-result.md` with status and explanation.
 
 ## Comments
+
+- 2026-10-25, GPT-6 / Codex API (mm-recallshot), renewed work: preserved the prior local evidence in a commit, fetched/merged origin/main (61eca6a), and resolved the journal conflict by keeping both workspaces' activities. Main's editor/styler and self-test progress changes are retained. The current request supersedes the previous push limit: at most three new push rounds, 45 minutes of polling, no PR merge. Debugging the actual in-process SwiftUI tree and filter interaction using the existing Mac sandbox self-test; product and protected paths stay unchanged.
 
 - 2026-10-25, GPT-6 / Codex API (mm-recallshot), final evidence: push 2 is `c5b9ac7`; native-ci 40175567269 completed within the bounded poll. Mac compilation passed, sandbox self-test failed the same three observations (67/70), and all four other native jobs passed. Downloaded the artifact and inspected the three-result PNG, then verified exact copies to both requested paths. The tasks PNG is identical with the switch off and is explicitly invalid filtered evidence. Wrote `STATUS: BLOCKED` and the full source-derived explanation to the requested result file; updated existing PR #13's evidence. No further push or merge. This final tracker/journal/design evidence is local because the authorized push budget is exhausted.
 

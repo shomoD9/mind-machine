@@ -13,6 +13,7 @@
 // and logs process-elapsed seconds plus whole key turns (key, draw and the
 // following run-loop turn) so a CI deadline overrun names the phase that grew.
 import AppKit
+import ApplicationServices
 import MindMachinePill
 import MindMachineUI
 import os.signpost
@@ -346,12 +347,26 @@ enum PillSelfTest {
             check("sample clue matches exactly three notes", Set(model.results().map(\.text)) == Set(samples.prefix(3)))
             check("sample clue matches two unfinished checklists", Set(model.results(openTasks: true).map(\.text)) == Set([samples[0], samples[2]]))
 
-            // Observe the actual SwiftUI row buttons before taking the normal
-            // cacheDisplay snapshot; a correct model alone cannot prove a list rendered.
-            let populated = await wait { self.accessibilityElements("capture-result").count == 3 }
+            // SwiftUI builds accessibility lazily for a client. Record the mounted
+            // tree before/after a real request, so missing nodes remain diagnosable.
+            // The request must leave MainActor free to service AppKit's reply.
+            refreshRecallDisplay()
+            report["recallAccessibilityBeforeClientRequest"] = recallAccessibilitySummary()
+            let clientStatus = await Task.detached {
+                let application = AXUIElementCreateApplication(ProcessInfo.processInfo.processIdentifier)
+                AXUIElementSetMessagingTimeout(application, 1)
+                var windows: CFTypeRef?
+                return AXUIElementCopyAttributeValue(application, kAXWindowsAttribute as CFString, &windows).rawValue
+            }.value
+            report["recallAccessibilityClientStatus"] = clientStatus
+
+            // Count real row buttons, excluding any descendants inheriting their
+            // identifier. Read the live tree on every turn after layout/draw.
+            let populated = await wait { self.renderedRecallRows().count == 3 }
             check("three Recall rows rendered", populated != nil)
             report["recallSampleQuery"] = model.query
-            report["recallSampleRows"] = accessibilityElements("capture-result").compactMap { accessibilityAttribute(.title, of: $0) as? String }
+            report["recallSampleRows"] = renderedRecallRows().compactMap { accessibilityAttribute(.title, of: $0) as? String }
+            report["recallAccessibilityPopulated"] = recallAccessibilitySummary()
             check("populated Recall PNG saved", snapshot("pill-expanded-recall-populated.png"))
 
             // Press the existing switch through its in-process accessibility
@@ -362,63 +377,80 @@ enum PillSelfTest {
                 self.accessibilityElements("open-tasks-toggle").first.map {
                     (self.accessibilityAttribute(.value, of: $0) as? NSNumber)?.boolValue == true
                 } == true
-                    && self.accessibilityElements("capture-result").count == 2
+                    && self.renderedRecallRows().count == 2
             }
             check("Open tasks shows two Recall rows", filtered != nil)
-            report["recallSampleTaskRows"] = accessibilityElements("capture-result").compactMap { accessibilityAttribute(.title, of: $0) as? String }
+            report["recallSampleTaskRows"] = renderedRecallRows().compactMap { accessibilityAttribute(.title, of: $0) as? String }
+            report["recallAccessibilityFiltered"] = recallAccessibilitySummary()
             check("Open tasks Recall PNG saved", snapshot("pill-expanded-recall-populated-tasks.png"))
         }
 
-        /// SwiftUI's virtual nodes can expose the informal NSObject accessibility
-        /// API without declaring NSAccessibilityProtocol conformance. Query their
-        /// advertised attributes as well as modern AppKit elements; otherwise the
-        /// walker silently skips a visibly populated SwiftUI result list.
-        func accessibilityAttribute(_ attribute: NSAccessibility.Attribute, of object: NSObject) -> Any? {
-            if let element = object as? any NSAccessibilityProtocol {
-                switch attribute {
-                case .identifier: return element.accessibilityIdentifier()
-                case .children: return element.accessibilityChildren()
-                case .title: return element.accessibilityLabel()
-                case .value: return element.accessibilityValue()
-                default: return nil
-                }
-            }
-            // Unsupported legacy attributes can raise an AppKit exception.
-            guard object.accessibilityAttributeNames().contains(attribute) else { return nil }
-            return object.accessibilityAttributeValue(attribute)
+        /// Flush pending SwiftUI layout and AppKit drawing before observing or
+        /// caching Recall. The switch changes local @State on a later UI turn.
+        func refreshRecallDisplay() {
+            controller.root.layoutSubtreeIfNeeded()
+            controller.root.content.layoutSubtreeIfNeeded()
+            controller.root.displayIfNeeded()
         }
 
-        /// Use the same bridge for actions, then require the switched value and
-        /// two rendered rows above; dispatch alone does not prove filtering worked.
-        func pressAccessibilityElement(_ object: NSObject?) -> Bool {
-            guard let object else { return false }
-            if let element = object as? any NSAccessibilityProtocol {
-                return element.accessibilityPerformPress()
+        /// SwiftUI virtual nodes implement individual public Objective-C getters
+        /// without adopting the full protocol or advertising legacy attributes.
+        /// Optional dispatch tests the actual getter instead of protocol membership.
+        func accessibilityAttribute(_ attribute: NSAccessibility.Attribute, of object: AnyObject) -> Any? {
+            switch attribute {
+            case .identifier: return object.accessibilityIdentifier?()
+            case .children: return object.accessibilityChildren?()
+            case .title: return object.accessibilityLabel?()
+            case .value: return object.accessibilityValue?()
+            case .role: return object.accessibilityRole?()
+            default: return nil
             }
-            guard object.accessibilityActionNames().contains(.press) else { return false }
-            object.accessibilityPerformAction(.press)
-            return true
         }
 
-        /// Ignored container views also need their subviews visited; retained
-        /// NSObject identities avoid revisiting nodes shared by both hierarchies.
-        func accessibilityElements(_ identifier: String) -> [NSObject] {
-            var pending: [Any] = [controller.root]
+        /// Dispatch the public press selector on the real switch, then require
+        /// its changed value and the two rendered rows in the calling test.
+        func pressAccessibilityElement(_ object: AnyObject?) -> Bool {
+            object?.accessibilityPerformPress?() ?? false
+        }
+
+        /// Retain the full tree during traversal so virtual-node addresses cannot
+        /// be reused. Ignored native containers still expose their view subtrees.
+        func accessibilityTree() -> [AnyObject] {
+            var pending: [AnyObject] = [controller.root]
             var visited = Set<ObjectIdentifier>()
-            var retained: [NSObject] = []
-            var matches: [NSObject] = []
-            while let item = pending.popLast() {
-                guard let object = item as? NSObject,
-                      visited.insert(ObjectIdentifier(object)).inserted else { continue }
+            var retained: [AnyObject] = []
+            while let object = pending.popLast() {
+                guard visited.insert(ObjectIdentifier(object)).inserted else { continue }
                 retained.append(object)
-                if accessibilityAttribute(.identifier, of: object) as? String == identifier { matches.append(object) }
-                if let children = accessibilityAttribute(.children, of: object) as? [Any] {
+                if let children = accessibilityAttribute(.children, of: object) as? [AnyObject] {
                     pending.append(contentsOf: children)
                 }
-                if let view = item as? NSView { pending.append(contentsOf: view.subviews) }
+                if let view = object as? NSView { pending.append(contentsOf: view.subviews) }
             }
-            withExtendedLifetime(retained) {}
-            return matches
+            return retained
+        }
+
+        func accessibilityElements(_ identifier: String) -> [AnyObject] {
+            accessibilityTree().filter { accessibilityAttribute(.identifier, of: $0) as? String == identifier }
+        }
+
+        func renderedRecallRows() -> [AnyObject] {
+            refreshRecallDisplay()
+            return accessibilityElements("capture-result").filter {
+                accessibilityAttribute(.role, of: $0) as? NSAccessibility.Role == .button
+            }
+        }
+
+        /// Keep the fixture's actual roles, identifiers and values in result.json;
+        /// a future observation failure should identify the missing node or getter.
+        func recallAccessibilitySummary() -> [[String: String]] {
+            accessibilityTree().map { object in
+                ["class": String(describing: type(of: object)),
+                 "identifier": accessibilityAttribute(.identifier, of: object) as? String ?? "",
+                 "role": (accessibilityAttribute(.role, of: object) as? NSAccessibility.Role)?.rawValue ?? "",
+                 "label": accessibilityAttribute(.title, of: object) as? String ?? "",
+                 "value": accessibilityAttribute(.value, of: object).map { String(describing: $0) } ?? ""]
+            }
         }
 
         /// Nearest-rank percentiles retain tails, including every >100 ms stall.
