@@ -39,3 +39,7 @@ Round 2 `61bbb91`: [native package](https://github.com/shomoD9/mind-machine/acti
 ## Published-head blocker
 
 Published head `4e295e85bbc5224d9ce7fd4d42314801778dce99` has passing fast-core. After the third push, GitHub reports the PR as CONFLICTING/DIRTY against `12f53bd` (Recall cards, PR #15); its native PR workflows were not launched. The conflict is solely the agent journal's independent day sections. A local merge preserves both sections and both application behaviors, but publishing that repair would require a fourth push, beyond the user's limit. Therefore the PR is blocked despite all eight checks passing for implementation head `61bbb91`. No PR has been merged by this task.
+
+## Resumed publication
+
+The human authorized up to two additional pushes for publishing and verifying the resolved merge. A fresh fetch confirms main remains `12f53bd`, already contained in the local merge. Both journal sections and the Capture/Recall changes are preserved. The earlier push-limit blocker is cleared; all 44 portable Swift tests and all 17 watchdog tests pass locally, with Swift 6.2.1. Changed Swift files syntax-parse and whitespace gates pass. A fresh hosted check run will verify the published merged head. The PR remains open and unmerged. Final check results are recorded in `/tmp/mm-handoff-result.md`.

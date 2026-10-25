@@ -1,7 +1,7 @@
 # 30: Markdown editor ticket 5 — capture handoff
 
-Status: ready-for-human
-Blocked by: publishing the locally resolved merge requires a fourth push, beyond the user-authorized limit; published PR conflicts with main after PR #15 landed
+Status: claimed
+Blocked by: none; publishing and hosted verification resumed with authorization for up to two additional pushes
 
 - Preserve final source characters across rapid typing and close/reopen.
 - Copy Markdown source to the clipboard.
@@ -17,3 +17,5 @@ Blocked by: publishing the locally resolved merge requires a fourth push, beyond
 - 2026-10-25, GPT-6 / Codex API (mm-handoff): implementation and manual spec/standards review complete. All eight hosted checks pass at `61bbb91` on PR #18, including 73 Mac package tests (one existing skip), five native handoff tests and both UI journeys. Evidence, raw before/two after latency runs and failing-first portable assertions are in `docs/verification/markdown-capture-handoff/README.md`. The third push records evidence only and is checked separately; PR stays open and unmerged.
 
 - Final publication: `4e295e8` has passing fast-core only; native checks are absent because main advanced to `12f53bd` and the agent journal conflicts. Both journal sections and the application changes have been retained in a local merge, verified on Linux and with Swift parsing. The three-push cap prevents publishing it. PR #18 remains open and unmerged; needs a separately authorized additional push and native reverification.
+
+- Resumed publication: the human authorized up to two further pushes, local portable/Linux tests and at most 45 minutes of hosted check polling. Fetched origin; latest main remains `12f53bd`, already contained in the local merge. Rechecked the journal resolution and additive application merge. Hosted verification remains pending; do not merge.
