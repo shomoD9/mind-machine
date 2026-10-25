@@ -3,7 +3,8 @@
  drawn where the first word will go until the person starts typing. RTF is still restored and stored
  alongside the exact original string. The keyboard (Apps/Keyboard/KeyboardViewController.swift) calls
  RichTextEditing.apply for its own bold/italic/list chips; the Mac and companion editors no longer do,
- and a later ticket replaces them with Markdown typed in the page. Colours come from Greyscale.swift. */
+ and Mac Capture styles Markdown typed in the page through MacMarkdownEditor, keeping the stored text
+ literal source with no RTF; the companion keeps RTF. Colours come from Greyscale.swift. */
 import SwiftUI
 #if os(iOS)
 import UIKit
@@ -191,37 +192,20 @@ private struct NativeNoteAdapter: NSViewRepresentable {
     @Binding var text: String
     @Binding var richText: Data?
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeCoordinator() -> MacMarkdownEditor { MacMarkdownEditor() }
     func makeNSView(context: Context) -> NSScrollView {
-        let scroll = NSTextView.scrollableTextView()
-        guard let editor = scroll.documentView as? NSTextView else { return scroll }
-        editor.setAccessibilityIdentifier("capture-editor")
-        editor.isRichText = true
-        // The page is the panel behind it: no own background, an overlay scroller that appears only
-        // while scrolling, and text starting at the view's edge so it lines up with the prompt and tabs.
-        scroll.drawsBackground = false
-        scroll.scrollerStyle = .overlay
-        scroll.autohidesScrollers = true
-        editor.drawsBackground = false
-        editor.textContainerInset = .zero
-        editor.textContainer?.lineFragmentPadding = 0
-        editor.importsGraphics = false
-        editor.font = RichTextEditing.bodyFont
-        editor.delegate = context.coordinator
+        let (scroll, editor) = MacMarkdownEditor.makeScrollableEditor()
+        context.coordinator.attach(to: editor)
         return scroll
     }
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let editor = scroll.documentView as? NSTextView else { return }
-        if editor.string != text { RichTextEditing.restore(text: text, richText: richText, in: editor) }
+        if !editor.string.utf8.elementsEqual(text.utf8) { context.coordinator.restore(text, in: editor) }
         let publish = {
             text = editor.string
-            richText = editor.textStorage.flatMap { try? RichTextEditing.encoded($0) }
+            richText = nil // Mac presentation is derived from the exact Markdown source.
         }
         context.coordinator.changed = publish
-    }
-    final class Coordinator: NSObject, NSTextViewDelegate {
-        var changed: () -> Void = {}
-        func textDidChange(_ notification: Notification) { changed() }
     }
 }
 #endif
