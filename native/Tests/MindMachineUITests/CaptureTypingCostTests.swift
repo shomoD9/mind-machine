@@ -5,7 +5,9 @@
  Capture setting at a time, and prints MM_EDITOR_BENCH lines. PillSelfTest types
  the same fixture under a 120-second process deadline; these lines attribute a
  slower key turn to a setting. Only correctness is asserted: hosted-runner
- timings are too noisy for a pass/fail budget here. */
+ timings are too noisy for a pass/fail budget here. The byte benchmark also
+ compares native Swift strings with strings read from Capture's text storage,
+ retaining the original comparison as a same-process control. */
 #if os(macOS)
 import XCTest
 import AppKit
@@ -150,7 +152,9 @@ final class CaptureTypingCostTests: XCTestCase {
             }
         }
     }
+    @MainActor
     func testByteExactComparisonCandidate() {
+        _ = NSApplication.shared
         for (left, right) in [("", ""), ("a", "a"), ("a", "b"), ("", "a"),
                               ("é", "e\u{301}"), ("éa", "e\u{301}"),
                               ("👩🏽‍💻", "👩🏽‍💻"), ("x\r\n", "x\n")] {
@@ -158,18 +162,24 @@ final class CaptureTypingCostTests: XCTestCase {
         }
         for bytes in [1_024, 10_240, 102_400] {
             let source = String(repeating: "x", count: bytes)
-            // Independent storage, as with strings bridged from NSTextStorage.
-            let echo = String(decoding: Array(source.utf8), as: UTF8.self)
-            for (name, compare) in [("generic", { source.utf8.elementsEqual(echo.utf8) }),
-                                     ("contiguous", { MacMarkdownEditor.sourceBytesEqual(source, echo) })] {
-                var samples: [Double] = []
-                for _ in 0..<100 {
-                    let start = ProcessInfo.processInfo.systemUptime
-                    let equal = compare()
-                    samples.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
-                    XCTAssertTrue(equal)
+            let (_, editor) = MacMarkdownEditor.makeScrollableEditor()
+            editor.textStorage?.setAttributedString(NSAttributedString(string: source))
+            // Keep the native-string probe, then include the actual storage read
+            // used by updateNSView. A native-only speedup cannot establish that
+            // bridging and UTF-8 materialisation improve the adapter's path.
+            for (representation, read) in [("native", { source }), ("textStorage", { editor.string })] {
+                let echo = String(decoding: Array(read().utf8), as: UTF8.self)
+                for (name, compare) in [("generic", { read().utf8.elementsEqual(echo.utf8) }),
+                                         ("contiguous", { MacMarkdownEditor.sourceBytesEqual(read(), echo) })] {
+                    var samples: [Double] = []
+                    for _ in 0..<100 {
+                        let start = ProcessInfo.processInfo.systemUptime
+                        let equal = compare()
+                        samples.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                        XCTAssertTrue(equal)
+                    }
+                    print("MM_BYTES_BENCH bytes=\(bytes) representation=\(representation) comparison=\(name) p50Ms=\(samples.sorted()[50]) p95Ms=\(samples.sorted()[94])")
                 }
-                print("MM_BYTES_BENCH bytes=\(bytes) comparison=\(name) p50Ms=\(samples.sorted()[50]) p95Ms=\(samples.sorted()[94])")
             }
         }
     }

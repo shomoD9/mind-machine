@@ -121,7 +121,8 @@ final class MacMarkdownEditorTests: XCTestCase {
         let source = String(repeating: "👩🏽‍💻 e\u{301}\n", count: 2_000)
         coordinator.restore(source, in: editor)
         let storage = try XCTUnwrap(editor.textStorage)
-        let selection = NSRange(location: 7, length: 2)
+        // Select the complete decomposed accent, on native cluster boundaries.
+        let selection = NSRange(location: 8, length: 2)
         editor.setSelectedRange(selection)
         // A sentinel detects any unnecessary whole-document restoration.
         storage.addAttribute(.backgroundColor, value: NSColor.red, range: NSRange(location: 0, length: 1))
