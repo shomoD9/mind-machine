@@ -2,6 +2,11 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### GPT-6 - Codex API (mm-mdctx)
+
+- Read the full Markdown research and line-state/ticket plan, repository instructions, CONTEXT, agent tracker/domain/triage guidance, DESIGN, privacy ADR and tickets 25/26 to establish scope and existing contracts. Checked all origin ticket paths; claimed 29 because 27 is merged and 28 is reserved for editing commands. Work stays in md-context-invalidation. Runtime status tooling/network snapshot is absent; no secrets inspected.
+- Applied TDD at the user-approved portable invalidation/style seam and artifact verification. Inspected the line-local parser and bounded direct-storage discovery; investigate a newline split that omits the right paragraph. Retain the current subset because fence/reference context requires new parser state/global resolution and a policy for propagation beyond the fixed synchronous cap. No asynchronous parser is planned.
+
 ### GPT-6 - Codex API (mm-speed)
 
 - Resumed PR #14 at `f01a1ef` after a hung run. Read repository/domain/tracker/triage guidance, CONTEXT, privacy ADR, debugging/root-cause, cloud-runtime, verification and PR skills. Runtime-status tooling/network policy remain unavailable. Fetched both failing jobs with 90-second command bounds; both Swift failures are `{7,3}` versus `{7,2}` in the new Unicode selection fixture. Reviewed and retained the pending `{8,2}` correction: it selects the full decomposed accent without weakening the assertion. Protected files remain untouched.
