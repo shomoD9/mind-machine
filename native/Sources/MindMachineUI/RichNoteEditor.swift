@@ -212,11 +212,11 @@ private struct NativeNoteAdapter: NSViewRepresentable {
         let scroll = NSScrollView()
         let editor = MarkdownCaptureTextView(usingTextLayoutManager: true)
         scroll.hasVerticalScroller = true
-        editor.maxSize = NSSize(width: .greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
+        editor.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         editor.isVerticallyResizable = true
         editor.isHorizontallyResizable = false
         editor.autoresizingMask = [.width]
-        editor.textContainer?.containerSize = NSSize(width: 0, height: .greatestFiniteMagnitude)
+        editor.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
         editor.textContainer?.widthTracksTextView = true
         scroll.documentView = editor
         editor.setAccessibilityIdentifier("capture-editor")

@@ -48,7 +48,7 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
         restyle(editor)
     }
 
-    public func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorage.EditActions,
+    public func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
                             range: NSRange, changeInLength delta: Int) {
         guard !applying, editedMask.contains(.editedCharacters) else { return }
         // AppKit reports a range in the new UTF-16 source. A newline deletion
