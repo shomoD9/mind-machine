@@ -196,6 +196,37 @@ final class MacMarkdownEditorTests: XCTestCase {
         XCTAssertTrue(editor.string.hasSuffix("!日本"))
         XCTAssertNotNil(editor.textLayoutManager)
     }
+
+    @MainActor
+    func testContextEditsMatchFreshWholeDocumentAttributes() throws {
+        let (editor, coordinator) = makeEditor()
+        let (oracle, fullStyler) = makeEditor()
+        for original in ["**bold**", "# **heading**\n- [ ] *task*", "[**label**](url)\r\n👩🏽‍💻 e\u{301}"] {
+            coordinator.restore(original, in: editor)
+            // Splits can leave old font/marker runs on the right side. Compare
+            // actual AppKit attributes with a fresh full-source restoration,
+            // then join and change indentation through native character edits.
+            for (edit, replacement) in [(NSRange(location: 4, length: 0), "\n"),
+                                        (NSRange(location: 4, length: 1), ""),
+                                        (NSRange(location: 0, length: 0), "    "),
+                                        (NSRange(location: 0, length: 4), "")] {
+                let expected = (editor.string as NSString).replacingCharacters(in: edit, with: replacement)
+                editor.insertText(replacement, replacementRange: edit)
+                fullStyler.restore(expected, in: oracle)
+                let actual = try XCTUnwrap(editor.textStorage)
+                let wanted = try XCTUnwrap(oracle.textStorage)
+                XCTAssertEqual(Data(editor.string.utf8), Data(expected.utf8))
+                XCTAssertEqual(actual.length, wanted.length)
+                for index in 0..<actual.length {
+                    XCTAssertTrue(NSDictionary(dictionary: actual.attributes(at: index, effectiveRange: nil))
+                        .isEqual(to: wanted.attributes(at: index, effectiveRange: nil)),
+                        "Attribute mismatch at \(index) in \(expected.debugDescription)")
+                }
+                XCTAssertNotNil(editor.textLayoutManager)
+            }
+        }
+    }
+
     @MainActor
     func testEditingCommandsAreSingleUndoStepsAndPreserveSurroundingSource() throws {
         // Each direct action is its own event here. Physical keyboard events
