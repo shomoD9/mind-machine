@@ -2,16 +2,20 @@
  it drives the real window through expand, tab switching, typing, Esc, click-away, hotkey toggling,
  hide/show, dragging with persisted position, Reduce Motion and repeated cycles, records pass/fail checks and
  timings, writes PNG snapshots (including the empty Capture page with its prompt) next to the result file,
- and exits with status 1 if any check failed.
+ and exits with status 1 if any check failed. Recall is also checked populated: clearly fake "[Sample]"
+ notes are written to the throwaway vault, the grid of cards is snapshotted, the arrow keys and Return are
+ driven through the real query field, and typing cost is timed while the cards redraw.
  The native-ci workflow (mac-build job) runs it on a GitHub macOS runner and uploads the output.
  Frame sampling observes actual window resize notifications so actor scheduling cannot
- skip interpolation frames. The capture baseline records open/input and per-key
+ skip interpolation frames; it starts from a quiet main thread and repeats a sample only when a
+ main-thread stall made the window skip frames (sampleTransition). The capture baseline records open/input and per-key
  dispatch/draw distributions without changing the editor; --capture-baseline-only
  and --capture-baseline-cold support the Release rerun script. Nothing here runs in normal use. */
 // Capture baseline also records the source styler's measured paragraph work,
 // and logs process-elapsed seconds plus whole key turns (key, draw and the
 // following run-loop turn) so a CI deadline overrun names the phase that grew.
 import AppKit
+import MindMachineCore
 import MindMachinePill
 import MindMachineUI
 import os.signpost
@@ -20,10 +24,11 @@ import os.signpost
 enum PillSelfTest {
     static let suiteName = "dev.mindmachine.pill-selftest"
 
-    static func run(controller: PillController, hotkeyStatus: OSStatus, outputPath: String, processEntry: Double) {
+    static func run(controller: PillController, hotkeyStatus: OSStatus, outputPath: String, processEntry: Double,
+                    vaultURL: URL?) {
         Task { @MainActor in
             let runner = Runner(controller: controller, hotkeyStatus: hotkeyStatus, outputPath: outputPath,
-                                processEntry: processEntry)
+                                processEntry: processEntry, vaultURL: vaultURL)
             await runner.execute()
         }
     }
@@ -39,15 +44,18 @@ enum PillSelfTest {
         let hotkeyStatus: OSStatus
         let outputPath: String
         let processEntry: Double
+        /// The throwaway vault the app was launched with; the Recall step writes its sample notes here.
+        let vaultURL: URL?
         let timingLog = OSLog(subsystem: "dev.mindmachine.capture-baseline", category: .pointsOfInterest)
         var report: [String: Any] = [:]
         var checks: [String: Bool] = [:]
 
-        init(controller: PillController, hotkeyStatus: OSStatus, outputPath: String, processEntry: Double) {
+        init(controller: PillController, hotkeyStatus: OSStatus, outputPath: String, processEntry: Double, vaultURL: URL?) {
             self.controller = controller
             self.hotkeyStatus = hotkeyStatus
             self.outputPath = outputPath
             self.processEntry = processEntry
+            self.vaultURL = vaultURL
         }
 
         private var panel: PillPanel { controller.panel }
@@ -81,16 +89,49 @@ enum PillSelfTest {
         /// Register before starting the transition and observe each actual AppKit
         /// resize synchronously. A sleeping actor task can miss frames while the
         /// main run loop animates; notifications record the window changes directly.
-        func sampleFrames(_ action: () -> Void) async -> (duration: Double?, widths: [CGFloat]) {
+        /// Each resize's time is kept too, so a sample shows whether the main thread stalled mid-animation.
+        func sampleFrames(_ action: () -> Void) async -> (duration: Double?, widths: [CGFloat], maxGap: Double) {
             var widths = [panel.frame.width]
+            var times = [CACurrentMediaTime()]
             let observer = NotificationCenter.default.addObserver(forName: NSWindow.didResizeNotification,
                                                                   object: panel, queue: .main) { [self] _ in
-                MainActor.assumeIsolated { widths.append(panel.frame.width) }
+                MainActor.assumeIsolated { widths.append(panel.frame.width); times.append(CACurrentMediaTime()) }
             }
             defer { NotificationCenter.default.removeObserver(observer) }
             let duration = await settle(action)
             widths.append(panel.frame.width)
-            return (duration, widths)
+            let gaps = zip(times.dropFirst(), times).map { $0 - $1 }
+            return (duration, widths, gaps.max() ?? 0)
+        }
+
+        /// Samples one expand (`open`) or collapse and counts the distinct widths strictly between the pill
+        /// and the panel. AppKit's frame animation is time-based: if the main thread is busy for a frame or
+        /// two, the window skips the widths it would have shown then. An unstalled collapse shows exactly
+        /// three such widths, so one stall on a shared CI host failed the check (main run 40100125298, PR #15
+        /// run 40203248221). Each sample starts after a quiet 0.3 s, so work left over from the previous
+        /// transition (focus retries, the editor's first layout) does not land in it. A sample is repeated,
+        /// at most three times in all, only when it had too few widths and a stall: a gap between resizes over
+        /// 1.5 frame periods (25 ms at 60 Hz), which is what skipping even one frame produces. A transition
+        /// that jumps, or animates too few frames without stalling, still fails on its first sample. The
+        /// reported sample is the last one taken; every attempt is kept in result.json.
+        func sampleTransition(open: Bool, between: Range<CGFloat>) async
+            -> (duration: Double?, widths: [CGFloat], intermediate: Int, attempts: [[String: Any]]) {
+            var attempts: [[String: Any]] = []
+            while true {
+                if attempts.count > 0 {
+                    // Return to the starting state for the repeat, outside the sample.
+                    _ = await settle { controller.send(open ? .escape : .clickPill) }
+                }
+                await sleep(0.3)
+                let frames = await sampleFrames { controller.send(open ? .clickPill : .escape) }
+                let intermediate = Set(frames.widths.filter { between.contains($0) }).count
+                let stalled = frames.maxGap > 1.5 / 60
+                attempts.append(["widths": frames.widths.map(Double.init), "intermediateWidths": intermediate,
+                                 "maxFrameGapMs": ms(frames.maxGap), "stalled": stalled])
+                if intermediate >= 3 || !stalled || attempts.count == 3 {
+                    return (frames.duration, frames.widths, intermediate, attempts)
+                }
+            }
         }
 
         /// Seconds until `condition` holds, polling every 4 ms, or nil after one second.
@@ -253,21 +294,23 @@ enum PillSelfTest {
             handle.mouseLocation = { NSEvent.mouseLocation }
 
             // 6b. The window must pass through intermediate sizes, otherwise nothing is actually animating.
-            let expansionFrames = await sampleFrames { controller.send(.clickPill) }
-            let sampledExpand = expansionFrames.duration
             let between = PillGeometry.pillSize.width + 20 ..< PillGeometry.panelSize.width - 20
-            let intermediate = Set(expansionFrames.widths.filter { between.contains($0) }).count
+            let expansionFrames = await sampleTransition(open: true, between: between)
+            let sampledExpand = expansionFrames.duration
+            let intermediate = expansionFrames.intermediate
             report["expandWidths"] = expansionFrames.widths.map(Double.init)
             report["expandIntermediateWidths"] = intermediate
             report["expandSampledMs"] = ms(sampledExpand)
+            report["expandSamples"] = expansionFrames.attempts
             check("expand passes through intermediate frames", intermediate >= 3)
             check("expand animation lasts about its configured duration", (sampledExpand ?? 0) >= PillMotion.expand * 0.8)
-            let collapseFrames = await sampleFrames { controller.send(.escape) }
+            let collapseFrames = await sampleTransition(open: false, between: between)
             let sampledCollapse = collapseFrames.duration
-            let collapseIntermediate = Set(collapseFrames.widths.filter { between.contains($0) }).count
+            let collapseIntermediate = collapseFrames.intermediate
             report["collapseWidths"] = collapseFrames.widths.map(Double.init)
             report["collapseIntermediateWidths"] = collapseIntermediate
             report["collapseSampledMs"] = ms(sampledCollapse)
+            report["collapseSamples"] = collapseFrames.attempts
             check("collapse passes through intermediate frames", collapseIntermediate >= 3)
             check("collapse animation lasts about its configured duration", (sampledCollapse ?? 0) >= PillMotion.collapse * 0.8)
             await sleep(0.1)
@@ -311,7 +354,219 @@ enum PillSelfTest {
             // Run after the idle check so typing/layout/spelling work cannot
             // contaminate that pre-existing smoke-test observation.
             report["captureBaseline"] = await captureBaseline(coldOnly: false)
+            // Populated Recall runs last, so its sample notes and grid work cannot change the window,
+            // animation, idle or Capture baseline observations above.
+            await recallCards()
             finish()
+        }
+
+        // MARK: Recall cards
+
+        /// Clearly fake notes for the populated Recall snapshot and grid checks. Seven mention "garden",
+        /// so that query fills four rows of the two-column grid (the last row half full); their dates step
+        /// back so cards show different days. Thirty fillers make an empty query fill the 30-result page,
+        /// the most cards Recall ever lays out, for the typing measurement.
+        func seedSampleNotes(at url: URL) -> [Capture] {
+            let day: TimeInterval = 86_400, now = Date()
+            func ago(_ days: Double) -> Date { now.addingTimeInterval(-days * day) }
+            var notes = [
+                Capture(text: "[Sample] Garden plan\nMove the tomatoes to the sunny bed.\nWater the garden before 9 on hot days.",
+                        createdAt: ago(1)),
+                Capture(text: "[Sample] Weekend errands\n- [ ] Buy garden twine\n- [ ] Return library books\n- [x] Call the plumber",
+                        checklist: [ChecklistItem(text: "Buy garden twine"), ChecklistItem(text: "Return library books"),
+                                    ChecklistItem(text: "Call the plumber", complete: true)],
+                        createdAt: ago(2)),
+                Capture(text: "[Sample] Book notes\nTrees share sugar through fungal networks.\nThe garden chapter is the quiet centre of the book.",
+                        createdAt: ago(4)),
+                Capture(text: "[Sample] Idea\nA shared garden calendar for the street: one page, no sign-up, a pencil on a string.",
+                        createdAt: ago(7)),
+                Capture(text: "[Sample] Note to self\nThe garden needs less than I think: water, light and less fussing.",
+                        createdAt: ago(11)),
+                Capture(text: "[Sample] Call with Sam\nCommunity garden budget, the shed roof and who keeps the key.",
+                        createdAt: ago(16)),
+                Capture(text: "[Sample] Seed order\n- [ ] Sweet peas\n- [ ] Garden rocket\n- [ ] Nasturtiums",
+                        checklist: [ChecklistItem(text: "Sweet peas"), ChecklistItem(text: "Garden rocket"),
+                                    ChecklistItem(text: "Nasturtiums")],
+                        createdAt: ago(23)),
+            ]
+            for index in 1...30 {
+                notes.append(Capture(text: "[Sample] Filler note \(index)\nPlaceholder text that fills the Recall result page.",
+                                     createdAt: ago(30 + Double(index))))
+            }
+            // A second handle on the same SQLite store, as the keyboard extension would write it.
+            let file = VaultFile(url: url)
+            do { for note in notes { try file.append(note) } } catch { return [] }
+            return notes
+        }
+
+        /// Puts the caret in the Recall query (after a tab switch or the reader) and returns its field editor,
+        /// or nil when the query did not take focus.
+        func recallEditor() async -> NSTextView? {
+            controller.focusEditor(for: .recall)
+            let focused = await wait { [self] in
+                PillFocus.editor(for: .recall, in: controller.root.content).map(controller.holdsFocus) ?? false
+            }
+            return focused == nil ? nil : panel.firstResponder as? NSTextView
+        }
+
+        /// Replaces the query through the field as a person would: select it, delete, then type. The empty
+        /// query renders before typing starts, as it would between real keys, so the grid sees a new query.
+        func replaceQuery(_ editor: NSTextView, with text: String) async {
+            editor.selectAll(nil)
+            press(.delete)
+            await sleep(0.15)
+            typeKeys(text)
+            await sleep(0.3)
+        }
+
+        /// Virtual key codes for the letters the Recall step types, so each event looks like a real key.
+        static let letterCodes: [Character: UInt16] = ["a": 0, "s": 1, "d": 2, "g": 5, "e": 14, "r": 15,
+                                                         "p": 35, "l": 37, "n": 45, "m": 46]
+
+        func typeKeys(_ text: String) {
+            for letter in text { panel.sendEvent(keyEvent(code: Self.letterCodes[letter] ?? 0, characters: String(letter))) }
+        }
+
+        enum Key {
+            case up, down, left, right, enter, delete
+
+            var code: UInt16 {
+                switch self {
+                case .up: return 126
+                case .down: return 125
+                case .left: return 123
+                case .right: return 124
+                case .enter: return 36
+                case .delete: return 51
+                }
+            }
+            var characters: String {
+                switch self {
+                case .up: return "\u{F700}"
+                case .down: return "\u{F701}"
+                case .left: return "\u{F702}"
+                case .right: return "\u{F703}"
+                case .enter: return "\r"
+                case .delete: return "\u{7F}"
+                }
+            }
+            /// Arrow keys arrive with the function and keypad flags, as from a hardware keyboard.
+            var flags: NSEvent.ModifierFlags {
+                switch self {
+                case .up, .down, .left, .right: return [.numericPad, .function]
+                case .enter, .delete: return []
+                }
+            }
+        }
+
+        func press(_ keys: Key...) {
+            for key in keys { panel.sendEvent(keyEvent(code: key.code, characters: key.characters, flags: key.flags)) }
+        }
+
+        /// Returns from the reader to Recall the way "Back to Recall" does, and refocuses the query.
+        func backToRecall() async -> NSTextView? {
+            controller.model.selectedCapture = nil
+            await sleep(0.15)
+            return await recallEditor()
+        }
+
+        /// Opens Recall with transitions made instant (they are measured earlier), runs the card checks,
+        /// then clears the query and collapses back to the pill.
+        func recallCards() async {
+            controller.reduceMotionOverride = true
+            _ = await settle { controller.send(.hotkey) }
+            _ = panel.performKeyEquivalent(with: keyEvent(code: 19, characters: "2", flags: .command))
+            check("Recall opens for the sample notes", controller.state.phase == .expanded(.recall))
+            await recallCardChecks()
+            controller.model.query = ""
+            controller.model.selectedCapture = nil
+            _ = await settle { controller.send(.hotkey) }
+            check("pill collapses after the Recall card checks", controller.state.phase == .collapsed)
+            controller.reduceMotionOverride = nil
+        }
+
+        /// Populated Recall, driven through the real query field and its key handling.
+        /// Keys go through the window, the field editor and the field's delegate exactly as typed keys do.
+        func recallCardChecks() async {
+            let model = controller.model
+            guard let vaultURL else { check("self-test vault available for sample notes", false); return }
+            let notes = seedSampleNotes(at: vaultURL)
+            model.reload()
+            check("sample notes saved for Recall", notes.count == 37)
+            guard let editor = await recallEditor() else { check("Recall query focused for sample notes", false); return }
+            await replaceQuery(editor, with: "garden")
+            let hits = model.searchHits()
+            let gardenNotes = notes.filter { $0.text.lowercased().contains("garden") }.map(\.id)
+            check("Recall query finds every sample garden note", model.query == "garden" && Set(hits.map(\.capture.id)) == Set(gardenNotes))
+            snapshot("pill-expanded-recall-cards.png")
+            guard hits.count == 7 else { return }
+            let id = { (index: Int) in hits[index].capture.id }
+
+            // Down enters the grid at the first card; Return opens it.
+            press(.down, .enter)
+            check("Down then Return opens the first card", model.selectedCapture == id(0))
+            // The selection is kept across the reader. From card 0: Right, Down, Left lands on card 2 (row 2, left).
+            guard await backToRecall() != nil else { check("Recall query refocused after the reader", false); return }
+            press(.right)
+            await sleep(0.15)
+            snapshot("pill-expanded-recall-cards-selected.png")
+            press(.down, .left, .enter)
+            check("Right, Down, Left move through the grid row by row", model.selectedCapture == id(2))
+            // From card 2: Up twice returns to the query, then Down to the bottom; the half-full last row
+            // takes the last card, Down and Right stop there, and the grid scrolls to it.
+            guard await backToRecall() != nil else { check("Recall query refocused after the reader", false); return }
+            press(.up, .up, .down, .down, .down, .down, .down, .right, .enter)
+            check("Up leaves the grid and Down reaches the last card", model.selectedCapture == id(6))
+            // A new query clears the selection; then Up and Right move the caret, not a card, and Return
+            // opens the first match.
+            guard let field = await backToRecall() else { check("Recall query refocused after the reader", false); return }
+            await replaceQuery(field, with: "garden")
+            press(.up, .right)
+            check("with no card selected, Up and Right move the caret in the query",
+                  field.selectedRange() == NSRange(location: 1, length: 0) && model.query == "garden")
+            press(.enter)
+            check("Return with no card selected opens the first match", model.selectedCapture == id(0))
+
+            // Typing cost with a full page of cards: an empty query shows the 30 newest notes and each
+            // "sample" prefix matches all of them. Dispatch runs the field and its binding; the forced
+            // layout and display draw the typed letter, which is the typing latency. The grid takes the
+            // new query on the next main-queue turn (WorkspaceView.swift), so `cards` waits for that turn,
+            // then lays out and draws again: the time until the cards on screen match the key.
+            guard let typing = await backToRecall() else { check("Recall query refocused after the reader", false); return }
+            await replaceQuery(typing, with: "")
+            check("an empty query shows a full page of cards", model.searchHits().count == 30)
+            var dispatch: [Double] = [], draw: [Double] = [], cards: [Double] = []
+            let content = controller.root.content
+            for _ in 0..<4 {
+                // Six letters, then six deletes back to the empty query.
+                let keys: [Character?] = "sample".map { Optional($0) } + [Character?](repeating: nil, count: 6)
+                for key in keys {
+                    let start = ProcessInfo.processInfo.systemUptime
+                    if let key { typeKeys(String(key)) } else { press(.delete) }
+                    dispatch.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                    content.layoutSubtreeIfNeeded()
+                    content.displayIfNeeded()
+                    draw.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                    // Queued after the grid's update, so it resumes once that update has run.
+                    await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
+                    content.layoutSubtreeIfNeeded()
+                    content.displayIfNeeded()
+                    cards.append((ProcessInfo.processInfo.systemUptime - start) * 1_000)
+                    // Pacing between keys, outside every measured interval.
+                    await sleep(0.001)
+                }
+            }
+            check("Recall typing keeps every key", model.query.isEmpty && typing.string.isEmpty && dispatch.count == 48)
+            let drawn = distribution(draw, p95: 33)
+            // 100 ms is the usual limit for a response to feel immediate; the cards answer the query,
+            // while the letter itself is held to the 33 ms typing budget above.
+            let shown = distribution(cards, p95: 100)
+            report["recallCardsTyping"] = ["keys": dispatch.count, "resultsPerKey": 30,
+                                           "dispatch": distribution(dispatch), "dispatchToDrawProxy": drawn,
+                                           "dispatchToCardsDrawn": shown]
+            check("Recall typing with a full page of cards draws the typed letter within 33 ms p95",
+                  drawn["withinP95Budget"] as? Bool == true)
+            check("Recall cards redraw for each key within 100 ms p95", shown["withinP95Budget"] as? Bool == true)
         }
 
         /// Nearest-rank percentiles retain tails, including every >100 ms stall.
