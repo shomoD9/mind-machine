@@ -13,4 +13,6 @@ Capture the existing Mac Recall listing with clearly fake sample notes after the
 
 ## Comments
 
+- 2026-10-25, GPT-6 / Codex API (mm-recallshot), resume: PR #13 exists at `8c91a30`. Native run 40173502398 compiled successfully; its sandbox self-test failed three protocol-only accessibility checks although the downloaded PNG shows all three results. Added legacy attribute/action traversal and retained virtual-node identities in the self-test; preserved the assertions. This is push round 2 of 2. CI and final artifact/result-file verification remain pending, with a 30-minute polling bound and no further pushes authorized.
+
 - 2026-10-25, GPT-6 / Codex API (mm-recallshot): read project/domain/tracker/triage guidance, CONTEXT, ADR 0001, DESIGN and the existing redesign evidence. Confirmed main includes PRs #10/#11 and the worktree is clean. The Mac entry point already creates a UUID temporary vault with sync and notifications disabled. Source inspection confirms results use a three-line start-of-note preview, bold matches and creation date; no dedicated title or keyboard result navigator exists. Linux has Swift 6.2.1 but no AppKit, so the existing native-ci Mac artifact is the runtime proof. Protected files and product behavior remain outside scope.

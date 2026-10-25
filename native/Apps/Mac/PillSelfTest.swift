@@ -345,36 +345,73 @@ enum PillSelfTest {
             let populated = await wait { self.accessibilityElements("capture-result").count == 3 }
             check("three Recall rows rendered", populated != nil)
             report["recallSampleQuery"] = model.query
-            report["recallSampleRows"] = accessibilityElements("capture-result").compactMap { $0.accessibilityLabel() }
+            report["recallSampleRows"] = accessibilityElements("capture-result").compactMap { accessibilityAttribute(.title, of: $0) as? String }
             check("populated Recall PNG saved", snapshot("pill-expanded-recall-populated.png"))
 
             // Press the existing switch through its in-process accessibility
             // action. No test binding or layout hook is added to WorkspaceView.
             let toggle = accessibilityElements("open-tasks-toggle").first
-            check("Open tasks switch pressed", toggle?.accessibilityPerformPress() == true)
+            check("Open tasks switch pressed", pressAccessibilityElement(toggle))
             let filtered = await wait {
-                (self.accessibilityElements("open-tasks-toggle").first?.accessibilityValue() as? NSNumber)?.boolValue == true
+                self.accessibilityElements("open-tasks-toggle").first.map {
+                    (self.accessibilityAttribute(.value, of: $0) as? NSNumber)?.boolValue == true
+                } == true
                     && self.accessibilityElements("capture-result").count == 2
             }
             check("Open tasks shows two Recall rows", filtered != nil)
-            report["recallSampleTaskRows"] = accessibilityElements("capture-result").compactMap { $0.accessibilityLabel() }
+            report["recallSampleTaskRows"] = accessibilityElements("capture-result").compactMap { accessibilityAttribute(.title, of: $0) as? String }
             check("Open tasks Recall PNG saved", snapshot("pill-expanded-recall-populated-tasks.png"))
         }
 
-        /// Walk AppKit and SwiftUI's virtual accessibility children. Ignored
-        /// container views also need their subviews visited; identity avoids duplicates.
-        func accessibilityElements(_ identifier: String) -> [any NSAccessibilityProtocol] {
+        /// SwiftUI's virtual nodes can expose the informal NSObject accessibility
+        /// API without declaring NSAccessibilityProtocol conformance. Query their
+        /// advertised attributes as well as modern AppKit elements; otherwise the
+        /// walker silently skips a visibly populated SwiftUI result list.
+        func accessibilityAttribute(_ attribute: NSAccessibility.Attribute, of object: NSObject) -> Any? {
+            if let element = object as? any NSAccessibilityProtocol {
+                switch attribute {
+                case .identifier: return element.accessibilityIdentifier()
+                case .children: return element.accessibilityChildren()
+                case .title: return element.accessibilityLabel()
+                case .value: return element.accessibilityValue()
+                default: return nil
+                }
+            }
+            // Unsupported legacy attributes can raise an AppKit exception.
+            guard object.accessibilityAttributeNames().contains(attribute) else { return nil }
+            return object.accessibilityAttributeValue(attribute)
+        }
+
+        /// Use the same bridge for actions, then require the switched value and
+        /// two rendered rows above; dispatch alone does not prove filtering worked.
+        func pressAccessibilityElement(_ object: NSObject?) -> Bool {
+            guard let object else { return false }
+            if let element = object as? any NSAccessibilityProtocol {
+                return element.accessibilityPerformPress()
+            }
+            guard object.accessibilityActionNames().contains(.press) else { return false }
+            object.accessibilityPerformAction(.press)
+            return true
+        }
+
+        /// Ignored container views also need their subviews visited; retained
+        /// NSObject identities avoid revisiting nodes shared by both hierarchies.
+        func accessibilityElements(_ identifier: String) -> [NSObject] {
             var pending: [Any] = [controller.root]
             var visited = Set<ObjectIdentifier>()
-            var matches: [any NSAccessibilityProtocol] = []
+            var retained: [NSObject] = []
+            var matches: [NSObject] = []
             while let item = pending.popLast() {
-                guard visited.insert(ObjectIdentifier(item as AnyObject)).inserted else { continue }
-                if let element = item as? any NSAccessibilityProtocol {
-                    if element.accessibilityIdentifier() == identifier { matches.append(element) }
-                    pending.append(contentsOf: element.accessibilityChildren() ?? [])
+                guard let object = item as? NSObject,
+                      visited.insert(ObjectIdentifier(object)).inserted else { continue }
+                retained.append(object)
+                if accessibilityAttribute(.identifier, of: object) as? String == identifier { matches.append(object) }
+                if let children = accessibilityAttribute(.children, of: object) as? [Any] {
+                    pending.append(contentsOf: children)
                 }
                 if let view = item as? NSView { pending.append(contentsOf: view.subviews) }
             }
+            withExtendedLifetime(retained) {}
             return matches
         }
 

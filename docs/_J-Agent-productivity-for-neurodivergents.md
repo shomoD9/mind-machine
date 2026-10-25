@@ -4,6 +4,9 @@
 
 ### GPT-6 - Codex API (mm-recallshot)
 
+- Resumed PR #13 after the paused run. Re-read repository/domain/tracker/triage guidance, CONTEXT, ADR 0001 and the cloud/debugging/verification skills. Retrieved `gh run view 40173502398 --log-failed` and its actual `pill-selftest` artifact: the app compiled, model membership checks and PNG writes passed, but three accessibility observations failed. Inspected the PNG directly and confirmed three rendered rows, narrowing the fault to test observation. Runtime tooling/policy and a Swift executable are absent in this resumed environment; GitHub CLI access works without inspecting credentials.
+- Corrected only PillSelfTest's accessibility observation: cover NSObject's advertised legacy attributes/actions as well as formal AppKit protocol elements, and retain visited virtual nodes during traversal to prevent identity reuse. Kept all row/filter assertions, sample-vault isolation, snapshot rendering and product code unchanged. Checked Apple API declarations and the complete diff; the final authorized push round will use existing PR #13, followed by a bounded hosted CI wait and direct artifact inspection.
+
 - Swift 6.2.1 syntax parsing passed for the only touched code file; the existing portable suite passed all 23 tests (0.856 s execution). Reviewed the complete self-test diff and protected-path scope. Publishing push round 1 and opening the requested PR with the PR-writing skill; native compile, accessibility interaction and actual PNG review remain hosted checks.
 
 - Read project/domain/tracker/triage instructions, CONTEXT, ADR 0001, DESIGN, ticket/spec records and Capture redesign screenshot evidence; claimed ticket 26 for the authorized populated Recall evidence. Applied cloud runtime and prove-it-works skills. Runtime status tooling and network-policy file are absent; used the configured Git CLI without reading credentials. Confirmed main includes PRs #10/#11 and this branch starts clean.
