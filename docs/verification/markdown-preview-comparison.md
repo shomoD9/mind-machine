@@ -1,6 +1,6 @@
 # Markdown editor ticket 6: bounded preview comparison
 
-Keep muted markers. Collapsing inactive Markdown markers is accepted only after every gate passes; the small candidate below changes wrapping when its paragraph opens. Native geometry and paired timing results will be recorded after the hosted run. No production editor code or package dependency changes in this comparison.
+Keep muted markers. Collapsing inactive Markdown markers is accepted only after every gate passes; the small candidate below changes wrapping when its paragraph opens. Both first hosted Mac lanes measured tail Y 90 → 18 → 90 pt across muted → collapsed → revealed states; paired timing results follow after the fixture correction. No production editor code or package dependency changes in this comparison.
 
 Source: `/workspace/research/markdown-editor.md` (25 October 2026), ticket 6 and Speed gates and measurement. Local tracker: [31](../../.scratch/native-mvp/issues/31-markdown-preview-comparison.md). Baseline: main `12f53bd`. Context invalidation and capture handoff are separate open branches at comparison start; this rejection experiment does not claim their acceptance.
 
@@ -21,7 +21,7 @@ The wrapping fixture contains a link with a long destination between `outside` a
 | Acceptance gate | Evidence and decision boundary |
 | --- | --- |
 | Caret clicks | Segment geometry measured; physical single/double/triple-click and drag behavior unproven. No click-gate pass claimed. Immediate reveal lacks the pinned reference's click-sequence deferral. |
-| Wrapping | Compare muted → collapsed → revealed `tail` geometry; reject when reveal changes lines. Hosted values pending. |
+| Wrapping | Compare muted → collapsed → revealed `tail` geometry; reject when reveal changes lines. Both first hosted lanes measured 90 → 18 → 90 pt; reveal moves the word by 72 pt. |
 | VoiceOver | Unmeasured. AppKit text source/attributes and green UI tests cannot establish spoken navigation, selection, punctuation or editing behavior. |
 | Selection/source | Candidate test checks exact UTF-8 including emoji/decomposed accents, preserved native range and plain-source clipboard. Hosted result pending. Drag/word selection remains unproven. |
 | Undo | Candidate test inserts, undoes once with no remaining undo action, and redoes; presentation does not register undo. Hosted result pending. |
@@ -55,3 +55,5 @@ swift test --package-path native --filter MarkdownPreviewComparisonTests
 Existing hosted Mac tests, app builds, sandbox self-test and UI journeys run without workflow changes. Linux runs the portable suite and syntax-parses the new Swift file; it cannot execute AppKit. Hosted and local check results will be recorded here and in the PR.
 
 Only a test file, this evidence, DESIGN, the journal and local tracker change. Runtime behavior, source mode and muted-marker appearance remain the baseline. No other feature or performance work is included. The PR must remain unmerged; any future visible editor change requires Shomo's approval.
+
+First checkpoint `4168f50`: native-ci [40213570027](https://github.com/shomoD9/mind-machine/actions/runs/40213570027) and core-checks [40213570072](https://github.com/shomoD9/mind-machine/actions/runs/40213570072) both pass the wrapping-rejection and paired timing tests. Both stop the source/undo fixture on `NSUndoManager ... must begin a group before registering undo`: the harness disabled event grouping but supplied no explicit group for direct insertion. The correction adds synthetic event groups and keeps the same one-undo/redo assertions. JSON output is changed to a single write per row after buffered prints interleaved with XCTest logs. The unchanged Mac app passes 73/74 checks; only Recall-card draw p95 fails (39.690 ms versus 33 ms). Both Linux checks, Mac UI and iOS build pass; keyboard UI was cancelled. No baseline/Recall performance code or gate is changed.
