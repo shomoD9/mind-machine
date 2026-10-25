@@ -108,7 +108,8 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
                             range: NSRange, changeInLength delta: Int) {
         guard !applying, editedMask.contains(.editedCharacters) else { return }
         // AppKit reports a range in the new UTF-16 source. A newline deletion
-        // naturally includes the joined paragraph when expanded below.
+        // naturally includes the joined paragraph. The portable invalidator also
+        // includes the right side of a split ending at an inserted separator.
         if let previous = editedRange { editedRange = NSUnionRange(previous, range) }
         else { editedRange = range }
     }
@@ -138,7 +139,7 @@ public final class MacMarkdownEditor: NSObject, NSTextViewDelegate, NSTextStorag
         // and asking for paragraphRange can scan/copy an arbitrarily large note
         // before a parser cap has any chance to reject it.
         let source = storage.mutableString
-        guard let range = MarkdownStyleRange.affected(by: edit, length: storage.length,
+        guard let range = MarkdownContextInvalidation.affected(by: edit, length: storage.length,
                                                       characterAt: { source.character(at: $0) }) else {
             lastRestyledRange = NSRange(location: min(edit.location, storage.length), length: 0)
             return
