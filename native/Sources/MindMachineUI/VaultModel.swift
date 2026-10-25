@@ -1,6 +1,7 @@
 /* Observable presentation model called by WorkspaceView and the UIKit keyboard.
  It coordinates durable indexed writes, private sync, configured inference and alerts;
- Vault owns shared retrieval ranking and domain transitions. */
+ Vault owns shared retrieval ranking and domain transitions. Mac Capture submits
+ immutable snapshots through portable CaptureHandoff and background CaptureStorage. */
 import Foundation
 import CryptoKit
 import SwiftUI
@@ -16,8 +17,8 @@ public final class VaultModel: ObservableObject {
     @Published public var error: String?
     @Published public var notice: String?
     @Published public var mode = 0
-    @Published public var draft = ""
-    @Published public var richDraft: Data?
+    @Published public var draft = "" { didSet { captureHandoff.edited() } }
+    @Published public var richDraft: Data? { didSet { captureHandoff.edited() } }
     @Published public var query = ""
     @Published public var chatDraft = ""
     @Published public var temporary = false
@@ -29,6 +30,9 @@ public final class VaultModel: ObservableObject {
     @Published public var modelName = "llama3.2"
     @Published public var cloudOptIn = false
     @Published public var deviceNotificationStatus = "Device notification status not checked"
+    private var captureHandoff = CaptureHandoff()
+    private let captureStorage: CaptureStorage
+    private var captureRefreshGeneration: UInt64 = 0
     private let file: VaultFile
     private let deviceReminders: DeviceReminders?
     private var timer: Timer?
@@ -39,19 +43,23 @@ public final class VaultModel: ObservableObject {
     @Published public var syncStatus = "Local vault · pair private sync in setup"
 
 
-    public init(url: URL? = nil, notificationAccess: NotificationAccess = .companion) {
+    public init(url: URL? = nil, notificationAccess: NotificationAccess = .companion,
+                captureStorage: CaptureStorage? = nil) {
         captureLimit = notificationAccess == .keyboard ? 100 : nil
         enablesSync = notificationAccess != .disabled
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         // Folder name kept from the former product name so existing vaults stay readable.
         file = VaultFile(url: url ?? base.appendingPathComponent("SecondBrain/vault.json"))
+        // A separate connection prevents background Capture I/O from holding
+        // the synchronous legacy caller's in-process lock.
+        self.captureStorage = captureStorage ?? CaptureStorage(file: VaultFile(url: file.url))
         deviceReminders = notificationAccess == .disabled ? nil : DeviceReminders(file: file, allowsPermissionPrompt: notificationAccess == .companion)
         reload()
         Task { [weak self] in await self?.syncNow() }
         // The timer reconciles in-app events only. System delivery uses UN requests;
         // foreground reconciliation is never described as closed-app notification proof.
         timer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.reload(); await self?.syncNow() }
+            Task { @MainActor in self?.refreshForPresentation(); await self?.syncNow() }
         }
     }
 
@@ -75,7 +83,9 @@ public final class VaultModel: ObservableObject {
             syncStatus = "Syncing privately…"
             try await sync.synchronize()
             syncStatus = await sync.status
-            let latest = try file.read(captureLimit: captureLimit)
+            let generation = captureRefreshGeneration
+            let latest = try await captureStorage.read(captureLimit: captureLimit)
+            guard generation == captureRefreshGeneration else { return }
             if latest != vault { vault = latest }
         } catch { syncStatus = "Local vault · \(error.localizedDescription)" }
     }
@@ -88,8 +98,29 @@ public final class VaultModel: ObservableObject {
     public func activateCapture() {
         mode = 0
         selectedCapture = nil
-        reload()
+        refreshForPresentation()
         Task { [weak self] in await self?.syncNow() }
+    }
+
+    /// Mac reopening and timer refreshes never wait for storage on the input
+    /// actor. A save or newer refresh invalidates an older loaded snapshot.
+    public func refreshForPresentation() {
+        #if os(macOS)
+        captureRefreshGeneration += 1
+        let generation = captureRefreshGeneration
+        Task {
+            do {
+                let latest = try await captureStorage.refresh(captureLimit: captureLimit)
+                guard generation == captureRefreshGeneration else { return }
+                if latest != vault { vault = latest }
+                clearInvalidReminderOffer()
+                // Storage has already reconciled due Chat events off this actor.
+                Task { [weak self] in await self?.refreshDeviceNotifications() }
+            } catch { self.error = "Could not read the vault: \(error.localizedDescription)" }
+        }
+        #else
+        reload()
+        #endif
     }
 
     public func reload() {
@@ -126,29 +157,45 @@ public final class VaultModel: ObservableObject {
 
     public func saveCapture() {
         guard !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        // Explicit visual/Markdown checkboxes become tasks; bullets remain text.
-        let items = draft.components(separatedBy: .newlines).compactMap { line -> ChecklistItem? in
-            if line.hasPrefix("☐ ") { return ChecklistItem(text: String(line.dropFirst(2))) }
-            if line.hasPrefix("☑ ") { return ChecklistItem(text: String(line.dropFirst(2)), complete: true) }
-            if line.hasPrefix("- [ ] ") { return ChecklistItem(text: String(line.dropFirst(6))) }
-            if line.hasPrefix("- [x] ") { return ChecklistItem(text: String(line.dropFirst(6)), complete: true) }
-            return nil
-        }
-        let capture = Capture(text: draft, richText: richDraft, checklist: items)
+        let capture = CaptureHandoff.capture(source: draft, richText: richDraft)
         do {
             try file.append(capture)
-            // Save acknowledgement is local. Clear a previous Up to date value
-            // synchronously, before the asynchronous exchange can start.
-            if enablesSync { syncStatus = "Saved locally · sync pending" }
-            vault.captures.append(capture)
-            if let captureLimit { vault.captures = Array(vault.captures.sorted { $0.createdAt > $1.createdAt }.prefix(captureLimit)) }
-            Task { [weak self] in await self?.syncNow() }
-            draft = ""; richDraft = nil; error = nil; notice = "Saved on this device"
-            // A soft offer follows persistence and does not classify or rewrite it.
-            let action = capture.text.lowercased().trimmingCharacters(in: .whitespaces)
-            let actionable = !items.isEmpty || ["buy ","call ","apply ","remember ","send ","book "].contains(where: action.hasPrefix)
-            offeredCapture = actionable && !capture.allItemsComplete ? capture.id : nil
+            acknowledgeCapture(capture, clearDraft: true)
         } catch { self.error = "Could not save: \(error.localizedDescription)" }
+    }
+
+    /// Snapshot synchronously before returning to the event loop. Repeated Save
+    /// while pending is ignored; later typing stays live until durable completion.
+    @discardableResult
+    public func submitCapture() -> Task<Void, Never>? {
+        guard let submission = captureHandoff.begin(source: draft, richText: richDraft) else { return nil }
+        captureRefreshGeneration += 1
+        notice = nil
+        return Task {
+            do {
+                try await captureStorage.save(submission.capture)
+                captureRefreshGeneration += 1
+                let clear = captureHandoff.finish(submission, succeeded: true)
+                acknowledgeCapture(submission.capture, clearDraft: clear)
+            } catch {
+                _ = captureHandoff.finish(submission, succeeded: false)
+                self.error = "Could not save: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    // Both submission paths acknowledge only committed originals. Generation
+    // ownership controls draft clearing, independent of text/Unicode equality.
+    private func acknowledgeCapture(_ capture: Capture, clearDraft: Bool) {
+        if enablesSync { syncStatus = "Saved locally · sync pending" }
+        if !vault.captures.contains(where: { $0.id == capture.id }) { vault.captures.append(capture) }
+        if let captureLimit { vault.captures = Array(vault.captures.sorted { $0.createdAt > $1.createdAt }.prefix(captureLimit)) }
+        Task { [weak self] in await self?.syncNow() }
+        if clearDraft { draft = ""; richDraft = nil }
+        error = nil; notice = "Saved on this device"
+        let action = capture.text.lowercased().trimmingCharacters(in: .whitespaces)
+        let actionable = !capture.checklist.isEmpty || ["buy ","call ","apply ","remember ","send ","book "].contains(where: action.hasPrefix)
+        offeredCapture = actionable && !capture.allItemsComplete ? capture.id : nil
     }
 
     /// Recall reads only the ranked page from SQLite. Models and network requests

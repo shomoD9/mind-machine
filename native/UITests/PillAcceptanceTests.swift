@@ -39,6 +39,13 @@ final class PillAcceptanceTests: XCTestCase {
         XCTAssertTrue(app.buttons["sync-setup"].exists)
         editor.click()
         editor.typeText("Tonight telescope code 7319")
+        // Hide immediately after the final key and reopen the real capture
+        // surface before saving. The bound draft must retain the complete tail.
+        app.buttons["pill-close"].click()
+        XCTAssertTrue(pill.waitForExistence(timeout: 5))
+        pill.click()
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        expectText(editor, "Tonight telescope code 7319")
         app.buttons["save-capture"].click()
         expectText(app.staticTexts["save-status"], "Saved on this device")
 

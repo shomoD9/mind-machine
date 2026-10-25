@@ -13,6 +13,20 @@ import MindMachineCore
 public final class MarkdownCaptureTextView: NSTextView {
     public override func paste(_ sender: Any?) { pasteAsPlainText(sender) }
 
+    // Copy and cut export the selected source. Advertising rich formats lets
+    // receiving apps prefer presentation over the authored Markdown.
+    public override var writablePasteboardTypes: [NSPasteboard.PasteboardType] { [.string] }
+
+    public override func writeSelection(to pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        guard type == .string else { return false }
+        let ranges = selectedRanges.map(\.rangeValue).filter { $0.length > 0 }
+        guard !ranges.isEmpty else { return false }
+        // AppKit's multi-type entry point declares the pasteboard, then calls
+        // this writer. Read only native selected ranges from the literal store.
+        let source = string as NSString
+        return pboard.setString(ranges.map { source.substring(with: $0) }.joined(separator: "\n"), forType: .string)
+    }
+
     // Only command keys enter planning; every other text-system action stays native.
     public override func insertNewline(_ sender: Any?) {
         if !MacMarkdownEditingCommands.apply(.newline, to: self) { super.insertNewline(sender) }

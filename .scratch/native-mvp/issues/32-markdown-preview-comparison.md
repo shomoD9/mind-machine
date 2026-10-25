@@ -1,4 +1,4 @@
-# 31: Markdown editor ticket 6 — bounded preview comparison
+# 32: Markdown editor ticket 6 — bounded preview comparison
 
 Status: ready-for-human
 Blocked by: none for a rejection comparison; accepting hiding additionally requires research tickets 3/5 and every native/hardware gate

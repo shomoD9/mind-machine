@@ -89,7 +89,7 @@ public struct WorkspaceView: View {
         }
         .foregroundStyle(Greyscale.ink.color)
         .tint(Greyscale.ink.color)
-        .onChange(of: model.mode) { _, _ in model.selectedCapture = nil; model.reload() }
+        .onChange(of: model.mode) { _, _ in model.selectedCapture = nil; model.refreshForPresentation() }
     }
 
     // The private draft survives mode changes; Save clears it only after persistence.
@@ -124,7 +124,13 @@ public struct WorkspaceView: View {
 
     // The one prominent action. On the Mac the label carries its shortcut, so the hint is learnt by looking.
     private var saveButton: some View {
-        Button { model.saveCapture() } label: {
+        Button {
+            #if os(macOS)
+            model.submitCapture()
+            #else
+            model.saveCapture()
+            #endif
+        } label: {
             HStack(spacing: 6) {
                 Text("Save")
                 #if os(macOS)

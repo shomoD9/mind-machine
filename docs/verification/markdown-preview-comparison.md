@@ -2,7 +2,7 @@
 
 Keep muted markers. Collapsing inactive Markdown markers is accepted only after every gate passes; the small candidate below changes wrapping when its paragraph opens. Both first-round hosted lanes measured the trailing word at y=90 pt muted, y=18 pt collapsed, and y=90 pt revealed: 72 pt of reflow. No production editor code or package dependency changes in this comparison.
 
-Source: `/workspace/research/markdown-editor.md` (25 October 2026), ticket 6 and Speed gates and measurement. Local tracker: [31](../../.scratch/native-mvp/issues/31-markdown-preview-comparison.md). Baseline: main `12f53bd`. Context invalidation and capture handoff are separate open branches at comparison start; this rejection experiment does not claim their acceptance.
+Source: `/workspace/research/markdown-editor.md` (25 October 2026), ticket 6 and Speed gates and measurement. Local tracker: [32](../../.scratch/native-mvp/issues/32-markdown-preview-comparison.md). Baseline: main `12f53bd`. Context invalidation and capture handoff are separate open branches at comparison start; this rejection experiment does not claim their acceptance.
 
 ## Candidate and licence
 
@@ -97,3 +97,5 @@ First checkpoint `4168f50`: native-ci [40213570027](https://github.com/shomoD9/m
 The downloaded `pill-selftest/result.json` from green run 40215135518 has `failed: []`, all 74 checks true and unchanged Recall-card draw p95 31.620 ms. Its first-run miss is retained above; no production change was needed for the later pass.
 
 Main integration: e556df5 (ticket 3 / PR #17) was merged after these measurements to resolve the journal conflict. Both journal histories and main’s context-invalidation implementation are preserved; ticket 6 adds no production change. The paired measurements above remain observations at their stated revision. Existing hosted checks verify the integrated branch before reporting completion.
+
+Post-integration verification: all eight checks on bf166cd passed ([core-checks 40220880458](https://github.com/shomoD9/mind-machine/actions/runs/40220880458), [native-ci 40220880582](https://github.com/shomoD9/mind-machine/actions/runs/40220880582)). Both lanes pass the three comparison tests, retain 52 intact timing rows and reproduce the same geometry. Main package: 79 tests, one pre-existing skip, zero failures; Pill: 35 passed. The downloaded sandbox report is 74/74 passed with TextKit 2 throughout. Main subsequently advanced to dd7463d (ticket 5 / PR #18); its native implementation is merged unchanged to keep the decision PR reviewable, with final hosted results recorded in the PR. Local comparison ticket is now 32 because main assigned 31 to handoff.
