@@ -1,6 +1,8 @@
-/* The view tree inside the pill window: a blurred rounded background, the pill glyph, the SwiftUI
- panel content and the click/drag handle. Built once by PillController (PillController.swift), which
- animates the window frame while fading the glyph and content; the content is laid out once at its
+/* The view tree inside the pill window: a flat greyscale rounded surface, the pill glyph, the SwiftUI
+ panel content and the click/drag handle. The surface is one opaque paper grey (Greyscale.paper) drawn by
+ PillSurfaceView rather than a translucent behind-window blur: the panel reads as a page, matches the
+ companion's greyscale surfaces and costs no live blur while it animates. Built once by PillController
+ (PillController.swift), which animates the window frame while fading the glyph and content; the content is laid out once at its
  final size and pinned to the top-left, so the window reveals it instead of re-laying it out per frame.
  The 14 pt corner radius makes the 28 pt pill a capsule and keeps the panel's corners soft.
  PillAcceptanceTests opens the existing accessible handle through its stable identifier. */
@@ -27,12 +29,9 @@ final class PillRootView: NSView {
         layer?.borderWidth = 0.5
         layer?.borderColor = NSColor.separatorColor.cgColor
 
-        let blur = NSVisualEffectView(frame: bounds)
-        blur.material = .popover
-        blur.blendingMode = .behindWindow
-        blur.state = .active   // the window is never "active", so force the live material
-        blur.autoresizingMask = [.width, .height]
-        addSubview(blur)
+        let surface = PillSurfaceView(frame: bounds)
+        surface.autoresizingMask = [.width, .height]
+        addSubview(surface)
 
         // The SwiftUI view must not drive the window's size: the controller owns every frame change.
         content.sizingOptions = []
@@ -46,7 +45,7 @@ final class PillRootView: NSView {
         let symbol = NSImage(systemSymbolName: "brain.head.profile", accessibilityDescription: nil)
             ?? NSImage(systemSymbolName: "circle.grid.2x2.fill", accessibilityDescription: nil)
         glyph.image = symbol?.withSymbolConfiguration(.init(pointSize: 14, weight: .medium))
-        glyph.contentTintColor = .labelColor
+        glyph.contentTintColor = Greyscale.ink.nsColor
         glyph.frame = NSRect(x: (bounds.width - 20) / 2, y: (bounds.height - 20) / 2, width: 20, height: 20)
         glyph.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
         addSubview(glyph)
@@ -75,4 +74,24 @@ final class PillRootView: NSView {
             layer?.borderColor = NSColor.separatorColor.cgColor
         }
     }
+}
+
+/// The pill and panel background. It draws in `draw(_:)` so the colour resolves against the current
+/// appearance on every redraw and so PillSelfTest's cacheDisplay snapshots include it.
+final class PillSurfaceView: NSView {
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        // A flat fill looks the same stretched, so window resizes during the animation reuse the drawn
+        // contents instead of redrawing every frame; appearance changes still redraw below.
+        layerContentsRedrawPolicy = .onSetNeedsDisplay
+    }
+
+    required init?(coder: NSCoder) { fatalError("PillSurfaceView is created in code only") }
+
+    override func draw(_ dirtyRect: NSRect) {
+        Greyscale.paper.nsColor.setFill()
+        dirtyRect.fill()
+    }
+
+    override func viewDidChangeEffectiveAppearance() { needsDisplay = true }
 }

@@ -1,7 +1,8 @@
 /* Checklist/reminder controls used by WorkspaceView on Mac and the companion.
  The keyboard renders the same VaultModel operations with UIKit controls. These
  views never change the original capture text when completion or dates change.
- Colours and button styles come from Greyscale.swift. */
+ Colours and button styles come from Greyscale.swift. ReminderOfferView sits above the Capture page
+ in WorkspaceView after an actionable save. */
 import SwiftUI
 import MindMachineCore
 
@@ -68,11 +69,16 @@ public struct ReminderOfferView: View {
                     ReminderEditor(model: model, captureID: id) { choosing = false; model.offeredCapture = nil }
                         .id(id)
                 } else {
-                    HStack {
-                        Text("Saved. Add a reminder?").font(.caption).accessibilityIdentifier("reminder-offer")
-                        Button("Choose date") { choosing = true }.accessibilityIdentifier("reminder-offer-choose")
-                        Button("Not now") { model.offeredCapture = nil }.accessibilityIdentifier("reminder-offer-dismiss")
-                    }
+                    // A one-line offer above the page: its two answers are quiet text links, so Save stays
+                    // the only prominent control in Capture.
+                    HStack(spacing: 12) {
+                        Text("Saved. Add a reminder?").foregroundStyle(Greyscale.inkSecondary.color)
+                            .accessibilityIdentifier("reminder-offer")
+                        Button("Choose date") { choosing = true }.buttonStyle(.plain).fontWeight(.semibold)
+                            .accessibilityIdentifier("reminder-offer-choose")
+                        Button("Not now") { model.offeredCapture = nil }.buttonStyle(.plain)
+                            .foregroundStyle(Greyscale.inkSecondary.color).accessibilityIdentifier("reminder-offer-dismiss")
+                    }.font(.caption)
                 }
             }.onChange(of: model.offeredCapture) { _, _ in choosing = false }
         }

@@ -1,6 +1,7 @@
 /* Mac XCUITest journey for the real floating pill and shared WorkspaceView.
  MindMachinePillUITests in native-ci clicks/types through accessibility; the
- existing PillSelfTest separately checks App Sandbox, window flags and timing. */
+ existing PillSelfTest separately checks App Sandbox, window flags and timing. The Capture page has
+ no formatting buttons (WorkspaceView/RichNoteEditor); the journey asserts they stay absent. */
 import XCTest
 
 final class PillAcceptanceTests: XCTestCase {
@@ -27,6 +28,12 @@ final class PillAcceptanceTests: XCTestCase {
         pill.click()
         let editor = app.textViews["capture-editor"]
         XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        // Capture is a plain page: the former Bold/Italic/bullet/checkbox row must not come back, and
+        // the quiet sync glyph that replaced the "Sync setup" button still offers sync details.
+        for removed in ["format-bold", "format-italic", "format-bullet", "format-checkbox"] {
+            XCTAssertFalse(app.buttons[removed].exists, "\(removed) should not be in the Capture window")
+        }
+        XCTAssertTrue(app.buttons["sync-setup"].exists)
         editor.click()
         editor.typeText("Tonight telescope code 7319")
         app.buttons["save-capture"].click()
