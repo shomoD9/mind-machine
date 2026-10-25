@@ -2,6 +2,13 @@
 
 ## 2026-10-25 - GPT-6 - Codex API (mm-kbfeel)
 
+### GPT-6 - Codex API (mm-mdstyles)
+
+- Read research Recommendation/Architecture/Line states/speed budgets/ticket 2, AGENTS, tracker/triage/domain guidance, CONTEXT, ADR, DESIGN, existing Mac editor/self-test and PR #10's diff to keep scope out of Capture layout. Applied cloud-runtime/prove-it-works and PR-writing skills. Cloud-status tooling/network policy are unavailable; configured gh works. Fetched both branches and claimed the next free ticket, 26.
+- Reran unchanged main through native-ci (40153281833); all five native jobs passed. Downloaded its actual pill-selftest artifact and the prior main artifact. Fresh before draw-proxy p50/p95/p99: 1 KiB 1.145/1.674/1.840 ms; 10 KiB 1.300/1.551/1.591; 100 KiB 4.959/6.762/8.624; huge paragraph 35.659/42.183/46.159. Warm-open p95 36.730 ms. The huge paragraph already exceeds the proposed 33 ms p95. These are Debug shared-VM proxies, not physical Release measurements.
+- Added a dependency-free UTF-16 Capture-subset parser and Mac paragraph attribute coordinator. Source is never normalized/reconstructed; Mac publishes literal source without per-key RTF. TextKit 2 is explicit, markers stay visible/muted, native paste inserts plain source, substitutions are disabled, changed attributes apply outside undo, and marked text defers styling. Capped synchronous parser/paste work; context invalidation and editing commands remain separate tickets.
+- Added portable parser and Mac production-coordinator tests for source/Unicode ranges, live prefixes, nested traits, paragraph boundaries, copy/save/reopen byte identity, native undo and marked text. All 28 Linux tests pass (1.079 s), including five new parser tests; Swift syntax parsing/whitespace checks pass. Updated DESIGN and verification notes, and added per-paragraph styling samples to the existing timing harness without changing its fixtures/counts/gates. Publishing for hosted AppKit compile/runtime verification; no PRODUCT, workflow/signing/entitlement, release or layout/view styling changes.
+
 ### GPT-6 - Codex API (mm-mdbase)
 
 - Re-read the saved prompt and clean git state after the reconnect continuation. Applied diagnosing-bugs/root-cause skills and retrieved actual failed logs plus the retained self-test artifact. The original command `gh run view 40131868749 --log-failed` shows “self-test did not finish” at the unchanged 120-second deadline during 10 KiB typing; no report-writing error occurred. All other native jobs passed. The direct failure evidence makes extra serialization hypotheses unnecessary.

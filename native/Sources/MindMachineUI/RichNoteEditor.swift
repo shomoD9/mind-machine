@@ -1,6 +1,7 @@
 /* Native visual note editor used by WorkspaceView on Mac/iPhone. The keyboard
  reuses RichTextEditing for the same bold/italic/list operations and RTF format.
- The editor surface and formatting chips use the Greyscale palette. */
+ The editor surface and formatting chips use the Greyscale palette. Mac Capture
+ uses MacMarkdownEditor for source-preserving live attributes; iOS keeps RTF. */
 import SwiftUI
 #if os(iOS)
 import UIKit
@@ -205,10 +206,19 @@ private struct NativeNoteAdapter: NSViewRepresentable {
     @Binding var richText: Data?
     let controller: NoteEditorController
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeCoordinator() -> MacMarkdownEditor { MacMarkdownEditor() }
     func makeNSView(context: Context) -> NSScrollView {
-        let scroll = NSTextView.scrollableTextView()
-        guard let editor = scroll.documentView as? NSTextView else { return scroll }
+        // Construct the modern engine explicitly; never access layoutManager.
+        let scroll = NSScrollView()
+        let editor = MarkdownCaptureTextView(usingTextLayoutManager: true)
+        scroll.hasVerticalScroller = true
+        editor.maxSize = NSSize(width: .greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
+        editor.isVerticallyResizable = true
+        editor.isHorizontallyResizable = false
+        editor.autoresizingMask = [.width]
+        editor.textContainer?.containerSize = NSSize(width: 0, height: .greatestFiniteMagnitude)
+        editor.textContainer?.widthTracksTextView = true
+        scroll.documentView = editor
         editor.setAccessibilityIdentifier("capture-editor")
         editor.isRichText = true
         // The rounded paper surface is drawn by SwiftUI around this view.
@@ -216,23 +226,19 @@ private struct NativeNoteAdapter: NSViewRepresentable {
         editor.drawsBackground = false
         editor.importsGraphics = false
         editor.font = .systemFont(ofSize: NSFont.systemFontSize)
-        editor.delegate = context.coordinator
+        context.coordinator.attach(to: editor)
         controller.editor = editor
         return scroll
     }
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let editor = scroll.documentView as? NSTextView else { return }
-        if editor.string != text { RichTextEditing.restore(text: text, richText: richText, in: editor) }
+        if !editor.string.utf8.elementsEqual(text.utf8) { context.coordinator.restore(text, in: editor) }
         let publish = {
             text = editor.string
-            richText = editor.textStorage.flatMap { try? RichTextEditing.encoded($0) }
+            richText = nil // Mac presentation is derived from the exact Markdown source.
         }
         context.coordinator.changed = publish
         controller.changed = publish
-    }
-    final class Coordinator: NSObject, NSTextViewDelegate {
-        var changed: () -> Void = {}
-        func textDidChange(_ notification: Notification) { changed() }
     }
 }
 #endif
