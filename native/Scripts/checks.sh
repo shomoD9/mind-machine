@@ -59,6 +59,7 @@ for name, budget in budgets.items():
     print(f'MM_CORE_BUDGET {name} median={measured:.3f} budget={budget}')
     assert 0 < measured < budget, (name, measured, budget)
 PY
+"$BIN/VaultIntegrityProbe" ratchet-keyboard "$PERF/measurements.txt"
 
 echo 'GATE 5: unsigned bundles and requested entitlements'
 xcodebuild -quiet -project native/MindMachine.xcodeproj -scheme MindMachine \

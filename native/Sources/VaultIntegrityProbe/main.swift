@@ -1,5 +1,6 @@
-/* Process-level durability probe called by Scripts/verify_vault_processes.py in
- macOS CI. stdout acknowledges only completed saves; SIGKILL exercises recovery. */
+/* Process-level durability/resource probe called by verify_vault_processes.py,
+ checks.sh and native-ci. stdout acknowledges only completed saves; SIGKILL
+ exercises recovery. ratchet-keyboard compares checks.sh's three fresh samples. */
 import Foundation
 import Darwin
 import MindMachineCore
@@ -8,7 +9,10 @@ let args = CommandLine.arguments
 if args.count < 3 { fatalError("usage: VaultIntegrityProbe write|read vault.json [prefix] [count]") }
 let store = VaultFile(url: URL(fileURLWithPath: args[2]))
 do {
-    if args[1] == "write" {
+    if args[1] == "ratchet-keyboard" {
+        // Read the existing benchmark output after its fixed-budget checks.
+        try PerformanceRatchet.checkKeyboardLog(String(contentsOfFile: args[2], encoding: .utf8))
+    } else if args[1] == "write" {
         let prefix = args[3], count = Int(args[4])!
         for i in 0..<count {
             let text = "\(prefix)-\(i)"
